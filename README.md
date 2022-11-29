@@ -4,3 +4,7 @@ A collection of CLI scripts and SQL queries to research various WordPress perfor
 
 * The `cli` directory contains the source code for the various CLI scripts (which can be invoked by `npm run research`).
 * The `sql` directory contains BigQuery SQL queries to gather field data from e.g. HTTP Archive.
+
+## Disclaimer
+
+This is not an officially supported Google product
