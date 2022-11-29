@@ -36,7 +36,8 @@ import {
 export const options = [
 	{
 		argname: '-t, --test <test...>',
-		description: 'WebPageTest test result ID or URL; optionally supports passing multiple test result IDs to merge their metrics',
+		description:
+			'WebPageTest test result ID or URL; optionally supports passing multiple test result IDs to merge their metrics',
 		required: true,
 	},
 	{
@@ -78,21 +79,27 @@ export async function handler( opt ) {
 	// multiple WebPageTest tests, typically with similar configuration, to get more than 9 test runs.
 	let accTestRuns = 0;
 	const accMedianMetrics = {};
-	await Promise.all( testIds.map( async ( testId ) => {
-		const result = await getResultJson( testId );
-		const medianMetrics = getResultServerTiming( result );
+	await Promise.all(
+		testIds.map( async ( testId ) => {
+			const result = await getResultJson( testId );
+			const medianMetrics = getResultServerTiming( result );
 
-		accTestRuns += result.testRuns;
-		medianMetrics.forEach( ( metric ) => {
-			if ( ! accMedianMetrics[ metric.name ] ) {
-				accMedianMetrics[ metric.name ] = [];
-			}
-			accMedianMetrics[ metric.name ].push( metric );
-		} );
-	} ) );
-	const mergedMedianMetrics = Object.values( accMedianMetrics ).map( ( medianMetrics ) => {
-		return medianMetrics.length > 1 ? mergeResultMetrics( ...medianMetrics ) : medianMetrics.shift();
-	} );
+			accTestRuns += result.testRuns;
+			medianMetrics.forEach( ( metric ) => {
+				if ( ! accMedianMetrics[ metric.name ] ) {
+					accMedianMetrics[ metric.name ] = [];
+				}
+				accMedianMetrics[ metric.name ].push( metric );
+			} );
+		} )
+	);
+	const mergedMedianMetrics = Object.values( accMedianMetrics ).map(
+		( medianMetrics ) => {
+			return medianMetrics.length > 1
+				? mergeResultMetrics( ...medianMetrics )
+				: medianMetrics.shift();
+		}
+	);
 
 	let headings, parseTableData;
 	if ( includeRuns ) {
@@ -115,7 +122,7 @@ export async function handler( opt ) {
 			headings,
 			mergedMedianMetrics.map( parseTableData ),
 			format,
-			rowsAsColumns,
+			rowsAsColumns
 		)
 	);
 }
