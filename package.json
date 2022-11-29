@@ -11,8 +11,8 @@
     "table": "^6.8.0"
   },
   "scripts": {
-    "format": "wp-scripts format ./bin",
-    "lint": "wp-scripts lint-js ./bin",
+    "format": "wp-scripts format ./cli --ext mjs",
+    "lint": "wp-scripts lint-js ./cli --ext mjs",
     "research": "./cli/run.mjs"
   }
 }
