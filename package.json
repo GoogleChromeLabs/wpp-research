@@ -1,0 +1,18 @@
+{
+  "name": "wpp-research",
+  "license": "Apache-2.0",
+  "repository": "git+https://github.com/GoogleChromeLabs/wpp-research.git",
+  "devDependencies": {
+    "@wordpress/scripts": "^24.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^9.4.1",
+    "csv-stringify": "^6.2.0",
+    "node-fetch": "^3.3.0",
+    "table": "^6.8.0"
+  },
+  "scripts": {
+    "format": "wp-scripts format ./bin",
+    "lint": "wp-scripts lint-js ./bin",
+    "research": "./cli/run.mjs"
+  }
+}

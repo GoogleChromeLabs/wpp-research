@@ -1,0 +1,38 @@
+/**
+ * Utility functions related to URL fetching.
+ *
+ * WPP Research, Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * External dependencies
+ */
+import fetch from 'node-fetch';
+
+/**
+ * Internal dependencies
+ */
+import { UrlFetchApp } from './gas.mjs';
+
+export async function fetchJson( url ) {
+	// This condition is for compatibility with using the code in Google Apps Script.
+	if ( UrlFetchApp ) {
+		const response = UrlFetchApp.fetch( url );
+		return JSON.parse( response.getContentText() );
+	}
+
+	const response = await fetch( url );
+	return response.json();
+}
