@@ -13,7 +13,11 @@
     "table": "^6.8.0"
   },
   "scripts": {
+<<<<<<< HEAD
     "format": "wp-scripts format ./cli/**/*.mjs",
+=======
+    "format": "wp-scripts format ./cli --ext mjs",
+>>>>>>> 08948e7 (Add package-lock.json, .nvmrc, .gitignore.)
     "lint": "wp-scripts lint-js ./cli --ext mjs",
     "research": "./cli/run.mjs"
   }
