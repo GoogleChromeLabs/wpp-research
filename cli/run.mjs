@@ -30,6 +30,10 @@ import {
 	formats,
 } from './lib/cli/logger.mjs';
 import {
+	handler as benchmarkUrlHandler,
+	options as benchmarkUrlOptions,
+} from './commands/benchmark-url.mjs';
+import {
 	handler as wptMetricsHandler,
 	options as wptMetricsOptions,
 } from './commands/wpt-metrics.mjs';
@@ -62,6 +66,9 @@ const catchException = ( handler ) => {
 	};
 };
 
+withOptions( program.command( 'benchmark-url' ), benchmarkUrlOptions )
+	.description( 'Runs benchmarks for an URL' )
+	.action( catchException( benchmarkUrlHandler ) );
 withOptions( program.command( 'wpt-metrics' ), wptMetricsOptions )
 	.description( 'Gets performance metrics for a WebPageTest result' )
 	.action( catchException( wptMetricsHandler ) );
