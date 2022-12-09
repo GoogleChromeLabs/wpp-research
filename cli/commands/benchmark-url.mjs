@@ -220,23 +220,15 @@ function outputResults( opt, results ) {
 		}
 	}
 
-	const newRow = ( title ) => {
-		const line = new Array( len + 1 ).fill( '' );
-		line[ 0 ] = title;
-		return line;
-	};
-
 	const headings = [
 		'',
 		'Success Rate',
 		'Response Time',
+		...Object.keys( allMetricNames ),
 	];
 
-	Object.keys( allMetricNames ).forEach( ( name ) => {
-		headings.push( name );
-	} );
-
 	const tableData = [];
+
 	for ( let i = 0; i < len; i++ ) {
 		const [ url, completeRequests, responseTimes, metrics ] = results[ i ];
 		const completionRate = round(
@@ -253,6 +245,10 @@ function outputResults( opt, results ) {
 		for ( const metric of Object.keys( metrics ) ) {
 			const metricAvgMs = round( calcMedian( metrics[ metric ] ), 2 );
 			tableRow.push( metricAvgMs );
+		}
+
+		for ( let i = tableRow.length; i < headings.length; i++ ) {
+			tableRow.push( '' );
 		}
 
 		tableData.push( tableRow );
