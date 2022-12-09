@@ -133,6 +133,7 @@ function benchmarkURL( params ) {
 	const metrics = {};
 	const responseTimes = [];
 	let completeRequests = 0;
+	let requestNum = 0;
 
 	const onHeaders = ( { headers } ) => {
 		const responseMetrics = getServerTimingMetricsFromHeaders( headers );
@@ -151,7 +152,16 @@ function benchmarkURL( params ) {
 	};
 
 	const instance = autocannon( {
-		method: 'POST', // The post method is needed to bypass CDN or full page cache.
+		requests: [
+			{
+				setupRequest( req ) {
+					return {
+						...req,
+						path: `${ req.path }?rnd=${ requestNum++ }`,
+					};
+				},
+			},
+		],
 		...params,
 		setupClient( client ) {
 			client.on( 'headers', onHeaders );
