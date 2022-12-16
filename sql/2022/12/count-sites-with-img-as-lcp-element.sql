@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
+
 SELECT 
   lh._TABLE_SUFFIX as client, 
   count(lh.url) as sites 
