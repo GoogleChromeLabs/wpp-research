@@ -15,12 +15,14 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
-
 SELECT 
-  lh._TABLE_SUFFIX AS client, 
-  ( total-COUNT(lh.url) ) AS `wp_sites_without_fetchpriority_on_lcp_img`,
-  total AS `total_wp_sites_with_img_as_lcp`,
-   ROUND( (total-COUNT(lh.url))*100/total, 3 ) AS `opportunity_score_in_percent`
+  lh._TABLE_SUFFIX AS `Client`,
+  COUNT(DISTINCT lh.url) AS `With_fetchpriority_on_lcp`, 
+  (total-COUNT(DISTINCT lh.url)) AS `Without_fetchpriority_on_LCP`,
+  total AS `Total_with_LCP`,
+  totalwp AS `Total_WP_sites`,
+  CONCAT(ROUND((total-COUNT(DISTINCT lh.url))*100/total, 3),' %') AS `Opportunity_Score`,
+  CONCAT(ROUND((total-COUNT(DISTINCT lh.url))*100/totalwp, 3),' %') AS `Overall_Opportunity_Score`
 FROM 
   `httparchive.lighthouse.2022_10_01_*` AS lh
 JOIN
@@ -31,11 +33,11 @@ JOIN
 (
   SELECT 
     lh._TABLE_SUFFIX, 
-    COUNT(lh.url) as total 
+    COUNT(DISTINCT lh.url) AS total 
   FROM 
-    `httparchive.lighthouse.2022_10_01_*` as lh 
+    `httparchive.lighthouse.2022_10_01_*` AS lh 
   JOIN 
-    `httparchive.technologies.2022_10_01_*` as tech 
+    `httparchive.technologies.2022_10_01_*` AS tech 
   ON 
     tech.url = lh.url 
   WHERE 
@@ -53,9 +55,25 @@ JOIN
     ) 
   GROUP BY 
     lh._TABLE_SUFFIX
-) a
+) tlcp
 ON
-  a._TABLE_SUFFIX = lh._TABLE_SUFFIX
+  tlcp._TABLE_SUFFIX = lh._TABLE_SUFFIX
+JOIN
+(
+  SELECT 
+    _TABLE_SUFFIX, 
+    COUNT(DISTINCT url) AS totalwp 
+  FROM 
+    `httparchive.technologies.2022_10_01_*`
+  WHERE
+    app = 'WordPress' 
+  AND 
+    category = 'CMS'
+  GROUP BY 
+    _TABLE_SUFFIX
+) twp
+ON
+  twp._TABLE_SUFFIX = lh._TABLE_SUFFIX
 WHERE 
   lh._TABLE_SUFFIX = tech._TABLE_SUFFIX 
 AND 
@@ -71,4 +89,8 @@ AND
   ) 
 GROUP BY 
   lh._TABLE_SUFFIX,
-  total
+  total,
+  totalwp
+ORDER BY 
+  Client
+ASC
