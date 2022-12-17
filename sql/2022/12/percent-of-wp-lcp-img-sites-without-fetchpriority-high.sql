@@ -19,7 +19,7 @@
 SELECT 
   lh._TABLE_SUFFIX AS client, 
   ( total-COUNT(lh.url) ) AS `wp_sites_without_fetchpriority_on_lcp_img`,
-  total as `total_wp_sites_with_img_as_lcp`,
+  total AS `total_wp_sites_with_img_as_lcp`,
    ROUND( (total-COUNT(lh.url))*100/total, 3 ) AS `opportunity_score_in_percent`
 FROM 
   `httparchive.lighthouse.2022_10_01_*` AS lh
