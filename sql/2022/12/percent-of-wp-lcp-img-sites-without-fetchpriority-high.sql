@@ -17,14 +17,45 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
 
 SELECT 
-  lh._TABLE_SUFFIX as client, 
-  count(lh.url) as sites 
+  lh._TABLE_SUFFIX AS client, 
+  ( total-COUNT(lh.url) ) AS `wp_sites_without_fetchpriority_on_lcp_img`,
+  total as `total_wp_sites_with_img_as_lcp`,
+   ROUND( (total-COUNT(lh.url))*100/total, 3 ) AS `opportunity_score_in_percent`
 FROM 
-  `httparchive.lighthouse.2022_10_01_*` as lh 
+  `httparchive.lighthouse.2022_10_01_*` AS lh
 JOIN
-  `httparchive.technologies.2022_10_01_*` as tech
+  `httparchive.technologies.2022_10_01_*` AS tech
 ON
-  tech.url = lh.url 
+  tech.url = lh.url
+JOIN
+(
+  SELECT 
+    lh._TABLE_SUFFIX, 
+    COUNT(lh.url) as total 
+  FROM 
+    `httparchive.lighthouse.2022_10_01_*` as lh 
+  JOIN 
+    `httparchive.technologies.2022_10_01_*` as tech 
+  ON 
+    tech.url = lh.url 
+  WHERE 
+    lh._TABLE_SUFFIX = tech._TABLE_SUFFIX 
+  AND 
+    app = 'WordPress' 
+  AND 
+    category = 'CMS' 
+  AND 
+    REGEXP_CONTAINS(
+      JSON_EXTRACT(
+        report, '$.audits.largest-contentful-paint-element.details.items'
+      ), 
+      '<img'
+    ) 
+  GROUP BY 
+    lh._TABLE_SUFFIX
+) a
+ON
+  a._TABLE_SUFFIX = lh._TABLE_SUFFIX
 WHERE 
   lh._TABLE_SUFFIX = tech._TABLE_SUFFIX 
 AND 
@@ -39,4 +70,5 @@ AND
     '<img.*fetchpriority.{3}high'
   ) 
 GROUP BY 
-  lh._TABLE_SUFFIX
+  lh._TABLE_SUFFIX,
+  total
