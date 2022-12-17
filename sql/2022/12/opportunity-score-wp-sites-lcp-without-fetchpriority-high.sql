@@ -17,7 +17,7 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
 SELECT 
   lh._TABLE_SUFFIX AS `Client`,
-  COUNT(DISTINCT lh.url) AS `With_fetchpriority_on_lcp`, 
+  COUNT(DISTINCT lh.url) AS `With_fetchpriority_on_LCP`, 
   (total-COUNT(DISTINCT lh.url)) AS `Without_fetchpriority_on_LCP`,
   total AS `Total_with_LCP`,
   totalwp AS `Total_WP_sites`,
