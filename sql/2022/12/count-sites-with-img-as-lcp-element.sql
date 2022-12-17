@@ -16,22 +16,28 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
 
-SELECT 
+SELECT
   lh._TABLE_SUFFIX as client, 
-  count(lh.url) as sites 
-FROM 
+  COUNT(lh.url) as sites 
+FROM
   `httparchive.lighthouse.2022_10_01_*` as lh 
-  JOIN `httparchive.technologies.2022_10_01_*` as tech ON tech.url = lh.url 
-where 
+JOIN
+  `httparchive.technologies.2022_10_01_*` as tech 
+ON
+  tech.url = lh.url 
+WHERE
   lh._TABLE_SUFFIX = tech._TABLE_SUFFIX 
-  and app = 'WordPress' 
-  and category = 'CMS' 
-  and REGEXP_CONTAINS(
+AND
+  app = 'WordPress' 
+AND
+  category = 'CMS' 
+AND
+  REGEXP_CONTAINS(
     JSON_EXTRACT(
       report, '$.audits.largest-contentful-paint-element.details.items'
     ), 
     '<img'
   ) 
-group by 
+GROUP BY
   lh._TABLE_SUFFIX
 
