@@ -8,8 +8,7 @@ Queries are added on demand and organized in year + month directories.
 
 ### 2022/12
 
-* [% of WordPress sites having <img> as LCP element](./2022/12/count-sites-with-img-as-lcp-element.sql)
-* [% of WordPress sites having fetchpriority='high' on LCP image](./2022/12/count-sites-having-fetchpriority-high-on-lcp-img.sql)
+* [% of WordPress sites not having fetchpriority='high' on LCP image](./2022/12/opportunity-score-wp-sites-lcp-without-fetchpriority-high.sql)
 
 ### 2022/11
 
