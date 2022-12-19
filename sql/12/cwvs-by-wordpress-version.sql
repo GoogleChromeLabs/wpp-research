@@ -31,10 +31,6 @@ FROM
   (
     SELECT
       date,
-      ARRAY_TO_STRING(ARRAY_AGG(DISTINCT category IGNORE NULLS ORDER BY category), ', ')
-        AS categories,
-      app,
-      info,
       REGEXP_EXTRACT(info, '(\\d.\\d).*') AS major_version,
       client,
       COUNT(DISTINCT url) AS origins,
