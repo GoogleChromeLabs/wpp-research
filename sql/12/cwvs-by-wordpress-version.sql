@@ -30,7 +30,6 @@ SELECT *
 FROM
   (
     SELECT
-      date,
       REGEXP_EXTRACT(info, '(\\d.\\d).*') AS major_version,
       client,
       COUNT(DISTINCT url) AS origins,
