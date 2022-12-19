@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# See https://github.com/GoogleChromeLabs/wpp-research/pull/17
+
 SELECT
   mobile.version,
   ROUND(pct_webp_mobile, 3) AS pct_webp_mobile,
