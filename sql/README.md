@@ -21,3 +21,4 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ### 2022/11
 
 * [Performance Lab plugin version distribution in a given month](./2022/11/performance-lab-version-distribution.sql)
+* [WebP adoption by WordPress version](./2022/11/performance-lab-version-distribution.sql)
