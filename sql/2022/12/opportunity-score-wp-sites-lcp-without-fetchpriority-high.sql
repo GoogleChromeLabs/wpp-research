@@ -92,5 +92,4 @@ GROUP BY
   total,
   totalwp
 ORDER BY 
-  Client
-ASC
+  Client ASC
