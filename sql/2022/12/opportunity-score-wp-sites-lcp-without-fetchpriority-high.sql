@@ -1,4 +1,4 @@
-# HTTP Archive query to get Performance Lab plugin version distribution in a given month.
+# HTTP Archive query to get % of WordPress sites not having fetchpriority='high' on LCP image.
 #
 # WPP Research, Copyright 2022 Google LLC
 #
@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
-SELECT 
+SELECT
   lh._TABLE_SUFFIX AS `Client`,
   COUNT(DISTINCT lh.url) AS `With_fetchpriority_on_LCP`, 
   (total-COUNT(DISTINCT lh.url)) AS `Without_fetchpriority_on_LCP`,
@@ -23,7 +23,7 @@ SELECT
   totalwp AS `Total_WP_sites`,
   CONCAT(ROUND((total-COUNT(DISTINCT lh.url))*100/total, 3),' %') AS `Opportunity_Score`,
   CONCAT(ROUND((total-COUNT(DISTINCT lh.url))*100/totalwp, 3),' %') AS `Overall_Opportunity_Score`
-FROM 
+FROM
   `httparchive.lighthouse.2022_10_01_*` AS lh
 JOIN
   `httparchive.technologies.2022_10_01_*` AS tech
@@ -31,45 +31,45 @@ ON
   tech.url = lh.url
 JOIN
 (
-  SELECT 
+  SELECT
     lh._TABLE_SUFFIX, 
     COUNT(DISTINCT lh.url) AS total 
-  FROM 
+  FROM
     `httparchive.lighthouse.2022_10_01_*` AS lh 
-  JOIN 
+  JOIN
     `httparchive.technologies.2022_10_01_*` AS tech 
-  ON 
+  ON
     tech.url = lh.url 
-  WHERE 
+  WHERE
     lh._TABLE_SUFFIX = tech._TABLE_SUFFIX 
-  AND 
+  AND
     app = 'WordPress' 
-  AND 
+  AND
     category = 'CMS' 
-  AND 
+  AND
     REGEXP_CONTAINS(
       JSON_EXTRACT(
         report, '$.audits.largest-contentful-paint-element.details.items'
       ), 
       '<img'
     ) 
-  GROUP BY 
+  GROUP BY
     lh._TABLE_SUFFIX
 ) tlcp
 ON
   tlcp._TABLE_SUFFIX = lh._TABLE_SUFFIX
 JOIN
 (
-  SELECT 
+  SELECT
     _TABLE_SUFFIX, 
     COUNT(DISTINCT url) AS totalwp 
-  FROM 
+  FROM
     `httparchive.technologies.2022_10_01_*`
   WHERE
     app = 'WordPress' 
-  AND 
+  AND
     category = 'CMS'
-  GROUP BY 
+  GROUP BY
     _TABLE_SUFFIX
 ) twp
 ON
@@ -87,9 +87,9 @@ AND
     ), 
     '<img.*fetchpriority.{3}high'
   ) 
-GROUP BY 
+GROUP BY
   lh._TABLE_SUFFIX,
   total,
   totalwp
-ORDER BY 
+ORDER BY
   Client ASC
