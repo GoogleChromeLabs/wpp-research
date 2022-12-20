@@ -65,6 +65,8 @@ FROM (
 			tpages._TABLE_SUFFIX = tech._TABLE_SUFFIX
 		AND
 			app = 'WordPress'
+		AND
+			category = 'CMS'
 	 ),
 	 UNNEST([10, 25, 50, 75, 90]) AS percentile
 GROUP BY
