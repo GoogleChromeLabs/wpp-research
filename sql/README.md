@@ -4,6 +4,18 @@ This directory is an ever-growing collection of BigQuery SQL queries focused on 
 
 Queries are added on demand and organized in year + month directories.
 
+## Adding a new query
+
+Once you are ready to add a new query to the repository, open a pull request following these guidelines:
+
+1. Implement the query in a `.sql` file.
+    * Use a brief but descriptive name for what the query is for.
+    * Include the license header, and change the description in the first line.
+2. Make sure the query is placed in the year-month based folder structure based on the current month.
+3. Run the query (outside of GitHub) and post the results into the PR description (see [#13](https://github.com/GoogleChromeLabs/wpp-research/pull/13) for an example).
+4. Add a comment above the query in the `.sql` file with a link to the PR to make it easy to view the query results.
+5. Add the query to the query index below, following the format.
+
 ## Query index
 
 ### 2022/12
