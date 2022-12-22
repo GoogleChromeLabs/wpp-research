@@ -1,4 +1,4 @@
-# HTTP Archive query to get Core Web Vital "good" rates by WordPress version.
+# HTTP Archive query to get Core Web Vitals "good" rates by WordPress version.
 #
 # WPP Research, Copyright 2022 Google LLC
 #
