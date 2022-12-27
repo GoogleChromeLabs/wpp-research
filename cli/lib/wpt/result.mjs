@@ -60,7 +60,7 @@ function getResultRuns_( result ) {
 	return Object.values( result.runs );
 }
 
-function createGetMetricValue_( metric ) {
+function createGetSingleMetricValue_( metric ) {
 	// The metrics listed here are those highlighted in the
 	// https://www.webpagetest.org/graph_page_data.php view.
 	switch ( metric ) {
@@ -155,6 +155,41 @@ function createGetMetricValue_( metric ) {
 	}
 
 	throw new Error( `Unsupported metric ${ metric }` );
+}
+
+function createGetMetricValue_( metric ) {
+	const toSubtract = [];
+	const toAdd = metric.split( ' + ' ).map( ( m ) => {
+		const parts = m.split( ' - ' );
+		const first = parts.shift();
+		parts.forEach( ( part ) => {
+			toSubtract.push( part.trim() );
+		} );
+		return first.trim();
+	} );
+
+	const toAddCallbacks = toAdd.map( ( metric ) => {
+		return createGetSingleMetricValue_( metric );
+	} );
+	const toSubtractCallbacks = toSubtract.map( ( metric ) => {
+		return createGetSingleMetricValue_( metric );
+	} );
+
+	return ( run ) => {
+		const toAddValues = toAddCallbacks.map( ( getValue ) => getValue( run ) );
+		const toSubtractValues = toSubtractCallbacks.map( ( getValue ) => getValue( run ) );
+		if ( toAddValues.includes( undefined ) || toSubtractValues.includes( undefined ) ) {
+			return undefined;
+		}
+		let total = 0;
+		toAddValues.forEach( ( value ) => {
+			total += value;
+		} );
+		toSubtractValues.forEach( ( value ) => {
+			total -= value;
+		} );
+		return total;
+	};
 }
 
 function createGetResponseHeader_( headerName ) {
