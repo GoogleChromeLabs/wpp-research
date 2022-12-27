@@ -205,7 +205,16 @@ export function getResultMetrics( result, ...metrics ) {
 		const getMetricValue = createGetMetricValue_( metric );
 
 		runs.forEach( ( run ) => {
-			values.push( getMetricValue( run ) );
+			let value;
+			try {
+				value = getMetricValue( run );
+			} catch ( e ) {
+				value = null;
+			}
+			if ( value === undefined ) {
+				value = null;
+			}
+			values.push( value );
 		} );
 
 		return {
