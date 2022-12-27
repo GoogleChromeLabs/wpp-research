@@ -175,6 +175,11 @@ function createGetMetricValue_( metric ) {
 		return createGetSingleMetricValue_( metric );
 	} );
 
+	// Simple scenario of just one metric.
+	if ( toAddCallbacks.length === 1 && toSubtractCallbacks.length === 0 ) {
+		return toAddCallbacks.shift();
+	}
+
 	return ( run ) => {
 		const toAddValues = toAddCallbacks.map( ( getValue ) => getValue( run ) );
 		const toSubtractValues = toSubtractCallbacks.map( ( getValue ) => getValue( run ) );
