@@ -27,7 +27,7 @@ By default, only the median values are returned. You can optionally request all 
 #### Required arguments
 
 * `--test` (`-t`): You need to pass a WebPageTest result ID (e.g. "221011_AiDcV7_GGM") or URL (e.g. "https://www.webpagetest.org/result/221011_AiDcV7_GGM/"). You can optionally pass multiple test result IDs to merge their metrics. This is usually not relevant but can be helpful to combine multiple results with similar test configuration, to effectively have more test runs than the limit of 9 that WebPageTest imposes.
-* `--metrics` (`-m`): You need to pass one or more WebPageTest metrics. Any metrics available on the "Graph Page Data" view (e.g. "https://www.webpagetest.org/graph_page_data.php?tests=221011_AiDcV7_GGM&median_value=1") are available. For a full list, please see the source code of the `createGetMetricValue_()` function in the `lib/wpt/result.mjs` file.
+* `--metrics` (`-m`): You need to pass one or more WebPageTest metrics. Any metrics available on the "Graph Page Data" view (e.g. "https://www.webpagetest.org/graph_page_data.php?tests=221011_AiDcV7_GGM&median_value=1") are available. For a full list, please see the source code of the `createGetSingleMetricValue_()` function in the `lib/wpt/result.mjs` file. Additionally, you can access any Server-Timing metric by its identifier prefixed with "Server-Timing:". You can even aggregate multiple metrics in one via addition and/or subtraction.
 
 #### Examples
 
@@ -49,6 +49,21 @@ wpt-metrics --test 221011_AiDcV7_GGM --metrics TTFB --include-runs
 Get Cumulative Layout Shift median _and_ all individual run values, with rows and columns inverted:
 ```
 wpt-metrics --test 221011_AiDcV7_GGM --metrics CLS --include-runs --rows-as-columns
+```
+
+Get median value for the difference between Largest Contentful Paint and Time to First Byte:
+```
+wpt-metrics --test 221011_AiDcV7_GGM --metrics "LCP - TTFB"
+```
+
+Get median value for a Server-Timing metric called "wp-before-template":
+```
+wpt-metrics --test 221011_AiDcV7_GGM --metrics Server-Timing:wp-before-template
+```
+
+Get median value for the sum of two Server-Timing metrics "wp-before-template" and "wp-template":
+```
+wpt-metrics --test 221011_AiDcV7_GGM --metrics "Server-Timing:wp-before-template + Server-Timing:wp-template"
 ```
 
 ### `wpt-server-timing`
