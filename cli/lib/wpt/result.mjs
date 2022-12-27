@@ -22,6 +22,8 @@
 import { fetchJson } from '../util/fetch.mjs';
 import { calcMedian } from '../util/math.mjs';
 
+let getServerTimingHeader;
+
 export function isTestId( testId ) {
 	return !! testId.match( /^[0-9]{6}_[A-Za-z0-9_]+$/ );
 }
@@ -132,6 +134,26 @@ function createGetMetricValue_( metric ) {
 			return ( run ) => run.firstView.bytesIn;
 	}
 
+	if ( metric.startsWith( 'Server-Timing:' ) ) {
+		const stMetric = metric.substring( 'Server-Timing:'.length );
+		if ( ! getServerTimingHeader ) {
+			getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+		}
+		return ( run ) => {
+			const stHeader = getServerTimingHeader( run );
+			const stIndex = stHeader.indexOf( `${ stMetric };dur=` );
+			if ( stIndex < 0 ) {
+				throw new Error( `Server-Timing metric ${ stMetric } not present in run` );
+			}
+			let stValue = stHeader.substring( stIndex + `${ stMetric };dur=`.length );
+			const nextIndex = stValue.indexOf( ',' );
+			if ( nextIndex >= 0 ) {
+				stValue = stValue.substring( 0, nextIndex );
+			}
+			return parseFloat( stValue.trim() );
+		};
+	}
+
 	throw new Error( `Unsupported metric ${ metric }` );
 }
 
@@ -196,7 +218,9 @@ export function getResultMetrics( result, ...metrics ) {
 
 export function getResultServerTiming( result ) {
 	const runs = getResultRuns_( result );
-	const getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+	if ( ! getServerTimingHeader ) {
+		getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+	}
 
 	const stHeaders = runs.map( getServerTimingHeader );
 
