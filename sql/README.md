@@ -21,6 +21,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ### 2022/12
 
 * [% of WordPress sites not having fetchpriority='high' on LCP image](./2022/12/opportunity-score-wp-sites-lcp-without-fetchpriority-high.sql)
+* [% of WordPress sites that use core theme with jQuery in a given month](./2022/12/usage-of-core-themes-with-jquery.sql)
 
 ### 2022/11
 
