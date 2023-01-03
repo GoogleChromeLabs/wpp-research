@@ -20,7 +20,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ### 2022/12
 
-* [Measure the impact of inaccurate sizes attributes per "img" tag](./2022/12/opportunity-score-wp-sites-assess-impact-of-inaccurate-sizes-attribute.sql)
+* [Measure the impact of inaccurate sizes attributes per "img" tag](./2022/12/inaccurate-sizes-attribute-impact.sql)
 
 ### 2022/11
 
