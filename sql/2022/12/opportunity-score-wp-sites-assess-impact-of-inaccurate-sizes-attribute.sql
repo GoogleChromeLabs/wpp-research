@@ -1,5 +1,4 @@
-#standardSQL
-# measure the impact of innacurate sizes attributes per <img> for WordPress sites.
+# Measure the impact of inaccurate sizes attributes per <img> for WordPress sites.
 #
 # WPP Research, Copyright 2022 Google LLC
 #
