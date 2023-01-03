@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2022/12
+
+* [Measure the impact of inaccurate sizes attributes per <img> for WordPress sites.](./2022/12/opportunity-score-wp-sites-assess-impact-of-inaccurate-sizes-attribute.sql)
+
 ### 2022/11
 
 * [Performance Lab plugin version distribution in a given month](./2022/11/performance-lab-version-distribution.sql)
