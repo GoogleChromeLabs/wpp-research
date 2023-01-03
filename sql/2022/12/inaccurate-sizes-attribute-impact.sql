@@ -1,4 +1,4 @@
-# Measure the impact of inaccurate sizes attributes per <img> for WordPress sites.
+# HTTP Archive query to measure impact of inaccurate sizes attributes per <img> for WordPress sites.
 #
 # WPP Research, Copyright 2022 Google LLC
 #
