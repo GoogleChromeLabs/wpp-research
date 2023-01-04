@@ -249,6 +249,10 @@ export function getResultMetrics( result, ...metrics ) {
 			try {
 				value = getMetricValue( run );
 			} catch ( e ) {
+				// Only re-throw error if it's about an invalid Server-Timing metric.
+				if ( e.message.includes( 'Server-Timing metric' ) ) {
+					throw e;
+				}
 				value = null;
 			}
 			if ( value === undefined ) {
