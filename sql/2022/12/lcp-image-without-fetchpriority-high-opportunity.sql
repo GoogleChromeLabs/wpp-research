@@ -31,8 +31,8 @@ SELECT
   (total_with_lcp-with_fetchpriority_on_lcp) AS without_fetchpriority_on_lcp,
   total_with_lcp,
   total_wp_sites,
-  CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_with_lcp, 3),' %') AS opportunity_score,
-  CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_wp_sites, 3),' %') AS overall_opportunity_score
+  CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_with_lcp, 3),' %') AS opportunity,
+  CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_wp_sites, 3),' %') AS overall_opportunity
 FROM (
   SELECT 
   client,
