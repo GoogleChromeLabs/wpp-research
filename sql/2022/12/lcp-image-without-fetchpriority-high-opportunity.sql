@@ -20,11 +20,11 @@ CREATE TEMP FUNCTION
   RETURNS STRING
   LANGUAGE js AS '''
 try {
-const data = JSON.parse(attributes);
-const fetchpriorityAttr = data.find(attr => attr["name"] === "fetchpriority")
-return fetchpriorityAttr.value
+  const data = JSON.parse(attributes);
+  const fetchpriorityAttr = data.find(attr => attr["name"] === "fetchpriority")
+  return fetchpriorityAttr.value;
 } catch (e) {
-return "";
+  return "";
 }
 ''';
 SELECT
