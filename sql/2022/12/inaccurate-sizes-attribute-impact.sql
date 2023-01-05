@@ -19,40 +19,39 @@ CREATE TEMPORARY FUNCTION getSrcsetSizesAccuracy(payload STRING)
 RETURNS ARRAY<STRUCT<sizesAbsoluteError INT64, sizesRelativeError FLOAT64, wDescriptorAbsoluteError INT64, wDescriptorRelativeError FLOAT64, actualSizesEstimatedWastedLoadedPixels INT64, actualSizesEstimatedWastedLoadedBytes FLOAT64, wastedLoadedPercent FLOAT64>>
 LANGUAGE js AS '''
 try {
-  var $ = JSON.parse(payload);
-  var responsiveImages = JSON.parse($._responsive_images);
-  responsiveImages = responsiveImages['responsive-images'];
-  return responsiveImages.map(({
-    sizesAbsoluteError,
-    sizesRelativeError,
-    wDescriptorAbsoluteError,
-    wDescriptorRelativeError,
-    idealSizesSelectedResourceEstimatedPixels,
-    actualSizesEstimatedWastedLoadedPixels,
-    actualSizesEstimatedWastedLoadedBytes
-  }) => {
-    let wastedLoadedPercent;
-    if ( idealSizesSelectedResourceEstimatedPixels > 0 ) {
-      wastedLoadedPercent = actualSizesEstimatedWastedLoadedPixels / idealSizesSelectedResourceEstimatedPixels;
-    } else {
-      wastedLoadedPercent = null;
-    }
-    return {
-      sizesAbsoluteError,
-      sizesRelativeError,
-      wDescriptorAbsoluteError,
-      wDescriptorRelativeError,
-      actualSizesEstimatedWastedLoadedPixels,
-      actualSizesEstimatedWastedLoadedBytes,
-      wastedLoadedPercent
-    };
-  }
+    var $ = JSON.parse(payload);
+	var responsiveImages = JSON.parse($._responsive_images);
+	responsiveImages = responsiveImages['responsive-images'];
+	return responsiveImages.map(({
+		sizesAbsoluteError,
+		sizesRelativeError,
+		wDescriptorAbsoluteError,
+		wDescriptorRelativeError,
+		idealSizesSelectedResourceEstimatedPixels,
+		actualSizesEstimatedWastedLoadedPixels,
+		actualSizesEstimatedWastedLoadedBytes
+	}) => {
+		let wastedLoadedPercent;
+		if ( idealSizesSelectedResourceEstimatedPixels > 0 ) {
+			wastedLoadedPercent = actualSizesEstimatedWastedLoadedPixels / idealSizesSelectedResourceEstimatedPixels;
+		} else {
+			wastedLoadedPercent = null;
+		}
+		return {
+			sizesAbsoluteError,
+			sizesRelativeError,
+			wDescriptorAbsoluteError,
+			wDescriptorRelativeError,
+			actualSizesEstimatedWastedLoadedPixels,
+			actualSizesEstimatedWastedLoadedBytes,
+			wastedLoadedPercent
+		};
+	}
 );
 } catch (e) {
-  return [];
+	return [];
 }
 ''';
-
 
 SELECT
 	percentile,
