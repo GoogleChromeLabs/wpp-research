@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 SELECT
-  tpages._TABLE_SUFFIX AS client,
+  har_pages._TABLE_SUFFIX AS client,
   COUNTIF(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.async') AS INT64) > 0) AS async,
   COUNTIF(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.defer') AS INT64) > 0) AS defer,
   COUNTIF(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.async_and_defer') AS INT64) > 0) AS async_and_defer,
@@ -28,13 +28,13 @@ SELECT
   COUNTIF(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.async') AS INT64) = 0 AND CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.defer') AS INT64) = 0) AS neither,
   COUNTIF(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.async') AS INT64) = 0 AND CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.defer') AS INT64) = 0) / COUNT(0) AS neither_pct
 FROM
-  `httparchive.pages.2022_06_01_*` as tpages
+  `httparchive.pages.2022_06_01_*` as har_pages
       JOIN
-        `httparchive.technologies.2022_10_01_*` AS tech
+        `httparchive.technologies.2022_10_01_*` AS har_tech
     ON
-        tech.url = tpages.url
+        har_tech.url = har_pages.url
     WHERE
-        tpages._TABLE_SUFFIX = tech._TABLE_SUFFIX
+        har_pages._TABLE_SUFFIX = har_tech._TABLE_SUFFIX
     AND
         app = 'WordPress'
     AND
