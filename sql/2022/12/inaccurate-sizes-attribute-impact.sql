@@ -64,7 +64,7 @@ SELECT
 	APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedBytes, 1000)[OFFSET(percentile * 10)] AS actualSizesEstimatedWastedLoadedBytes,
 	APPROX_QUANTILES(image.wastedLoadedPercent, 1000)[OFFSET(percentile * 10)] AS wastedLoadedPercent
 FROM (
-  SELECT
+    SELECT
 		tpages._TABLE_SUFFIX AS client,
 		image
 	FROM
