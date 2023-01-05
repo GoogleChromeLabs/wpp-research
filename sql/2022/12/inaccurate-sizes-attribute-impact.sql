@@ -26,37 +26,37 @@ CREATE TEMPORARY FUNCTION
   wastedLoadedPercent FLOAT64>>
   LANGUAGE js AS '''
 try {
-    var $ = JSON.parse(payload);
-    var responsiveImages = JSON.parse($._responsive_images);
-    responsiveImages = responsiveImages['responsive-images'];
-    return responsiveImages.map(({
-        sizesAbsoluteError,
-        sizesRelativeError,
-        wDescriptorAbsoluteError,
-        wDescriptorRelativeError,
-        idealSizesSelectedResourceEstimatedPixels,
-        actualSizesEstimatedWastedLoadedPixels,
-        actualSizesEstimatedWastedLoadedBytes
-    }) => {
-        let wastedLoadedPercent;
-        if ( idealSizesSelectedResourceEstimatedPixels > 0 ) {
-            wastedLoadedPercent = actualSizesEstimatedWastedLoadedPixels / idealSizesSelectedResourceEstimatedPixels;
-        } else {
-            wastedLoadedPercent = null;
-        }
-        return {
-            sizesAbsoluteError,
-            sizesRelativeError,
-            wDescriptorAbsoluteError,
-            wDescriptorRelativeError,
-            actualSizesEstimatedWastedLoadedPixels,
-            actualSizesEstimatedWastedLoadedBytes,
-            wastedLoadedPercent
-        };
+  var $ = JSON.parse(payload);
+  var responsiveImages = JSON.parse($._responsive_images);
+  responsiveImages = responsiveImages['responsive-images'];
+  return responsiveImages.map(({
+    sizesAbsoluteError,
+    sizesRelativeError,
+    wDescriptorAbsoluteError,
+    wDescriptorRelativeError,
+    idealSizesSelectedResourceEstimatedPixels,
+    actualSizesEstimatedWastedLoadedPixels,
+    actualSizesEstimatedWastedLoadedBytes
+  }) => {
+    let wastedLoadedPercent;
+    if ( idealSizesSelectedResourceEstimatedPixels > 0 ) {
+      wastedLoadedPercent = actualSizesEstimatedWastedLoadedPixels / idealSizesSelectedResourceEstimatedPixels;
+    } else {
+      wastedLoadedPercent = null;
     }
+    return {
+      sizesAbsoluteError,
+      sizesRelativeError,
+      wDescriptorAbsoluteError,
+      wDescriptorRelativeError,
+      actualSizesEstimatedWastedLoadedPixels,
+      actualSizesEstimatedWastedLoadedBytes,
+      wastedLoadedPercent
+    };
+  }
 );
 } catch (e) {
-    return [];
+  return [];
 }
 ''';
 SELECT
