@@ -70,10 +70,10 @@ FROM (
 	FROM
 		`httparchive.pages.2022_10_01_*` AS tpages,
 		UNNEST(getSrcsetSizesAccuracy(payload)) AS image
-			JOIN
+	JOIN
 		`httparchive.technologies.2022_10_01_*` AS tech
-		ON
-			tech.url = tpages.url
+	ON
+		tech.url = tpages.url
 	WHERE
 		tpages._TABLE_SUFFIX = tech._TABLE_SUFFIX
 	AND
