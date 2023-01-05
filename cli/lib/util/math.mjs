@@ -17,12 +17,14 @@
  */
 
 export function calcMedian( values ) {
-	const len = values.length;
+	const notNullValues = values.filter( ( value ) => value !== null );
+
+	const len = notNullValues.length;
 	if ( len === 0 ) {
 		return 0;
 	}
 
-	const list = [ ...values ];
+	const list = [ ...notNullValues ];
 	list.sort( ( a, b ) => b - a );
 
 	return len % 2 === 0
