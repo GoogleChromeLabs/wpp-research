@@ -15,7 +15,10 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/15
-CREATE TEMP FUNCTION getFetchPriorityAttr(attributes STRING) RETURNS STRING LANGUAGE js AS '''
+CREATE TEMP FUNCTION
+  getFetchPriorityAttr(attributes STRING)
+  RETURNS STRING
+  LANGUAGE js AS '''
 try {
 const data = JSON.parse(attributes);
 const fetchpriorityAttr = data.find(attr => attr["name"] === "fetchpriority")
@@ -24,7 +27,6 @@ return fetchpriorityAttr.value
 return "";
 }
 ''';
-
 SELECT
   client,
   with_fetchpriority_on_lcp,
@@ -34,30 +36,22 @@ SELECT
   CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_with_lcp, 3),' %') AS opportunity,
   CONCAT(ROUND((total_with_lcp-with_fetchpriority_on_lcp)*100/total_wp_sites, 3),' %') AS overall_opportunity
 FROM (
-  SELECT 
-  client,
-  COUNTIF( 
-    getFetchPriorityAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes')) = "high"
-    AND
-    JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') = "IMG"
-  ) AS `with_fetchpriority_on_lcp`,
-  COUNTIF(JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') = "IMG") AS `total_with_lcp`,
-  COUNT(page) AS `total_wp_sites`,
-  FROM `httparchive.all.pages`, 
-      UNNEST(technologies) as technologies,
-      UNNEST(technologies.categories) as category  
-  WHERE 
+  SELECT
+    client,
+    COUNTIF( getFetchPriorityAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes')) = "high"
+      AND JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') = "IMG" ) AS `with_fetchpriority_on_lcp`,
+    COUNTIF(JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') = "IMG") AS `total_with_lcp`,
+    COUNT(page) AS `total_wp_sites`,
+  FROM
+    `httparchive.all.pages`,
+    UNNEST(technologies) AS technologies,
+    UNNEST(technologies.categories) AS category
+  WHERE
     is_root_page = TRUE
-  AND 
-    category = "CMS"
-  AND
-    technologies.technology = "WordPress"
-  AND
-  date IN (
-      "2022-11-01"
-    )
+    AND category = "CMS"
+    AND technologies.technology = "WordPress"
+    AND date IN ( "2022-11-01" )
   GROUP BY
     client
   ORDER BY
-    client ASC
-)
+    client ASC )
