@@ -19,7 +19,7 @@ CREATE TEMPORARY FUNCTION getSrcsetSizesAccuracy(payload STRING)
 RETURNS ARRAY<STRUCT<sizesAbsoluteError INT64, sizesRelativeError FLOAT64, wDescriptorAbsoluteError INT64, wDescriptorRelativeError FLOAT64, actualSizesEstimatedWastedLoadedPixels INT64, actualSizesEstimatedWastedLoadedBytes FLOAT64, wastedLoadedPercent FLOAT64>>
 LANGUAGE js AS '''
 try {
-	var $ = JSON.parse(payload);
+    var $ = JSON.parse(payload);
 	var responsiveImages = JSON.parse($._responsive_images);
 	responsiveImages = responsiveImages['responsive-images'];
 	return responsiveImages.map(({
