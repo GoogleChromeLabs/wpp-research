@@ -30,6 +30,11 @@ insert_final_newline = false
 indent_style = space
 indent_size = 2
 
+[*.sql]
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+
 [*.yml]
 insert_final_newline = false
 indent_style = space
