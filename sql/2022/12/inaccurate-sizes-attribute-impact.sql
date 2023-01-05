@@ -54,8 +54,8 @@ try {
 ''';
 
 SELECT
-	percentile,
-	client,
+  percentile,
+  client,
 	APPROX_QUANTILES(image.sizesAbsoluteError, 1000)[OFFSET(percentile * 10)] AS sizesAbsoluteError,
 	APPROX_QUANTILES(image.sizesRelativeError, 1000)[OFFSET(percentile * 10)] AS sizesRelativeError,
 	APPROX_QUANTILES(image.wDescriptorAbsoluteError, 1000)[OFFSET(percentile * 10)] AS wDescriptorAbsoluteError,
@@ -64,7 +64,7 @@ SELECT
 	APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedBytes, 1000)[OFFSET(percentile * 10)] AS actualSizesEstimatedWastedLoadedBytes,
 	APPROX_QUANTILES(image.wastedLoadedPercent, 1000)[OFFSET(percentile * 10)] AS wastedLoadedPercent
 FROM (
-	SELECT
+  SELECT
 		tpages._TABLE_SUFFIX AS client,
 		image
 	FROM
