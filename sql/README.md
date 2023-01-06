@@ -20,7 +20,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ### 2023/01
 
-* [% of WordPress sites that use defer on any script](./2023/01/percentage-of-defe
+* [% of WordPress sites that use defer on any script](./2023/01/percentage-of-deferred-scripts.sql)
+* [% of WordPress sites with at least one deferred script](./2023/01/atleast-one-deferred-script.sql)
 
 ### 2022/12
 
