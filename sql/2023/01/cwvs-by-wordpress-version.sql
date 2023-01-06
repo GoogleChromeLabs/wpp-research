@@ -28,7 +28,19 @@ AS (
   good + needs_improvement + poor > 0
 );
 
-SELECT *
+SELECT
+  major_version,
+  client,
+  SUM( origins ) AS origins,
+  SUM( origins_with_good_fid ) AS origins_with_good_fid,
+  SUM( origins_with_good_cls ) AS origins_with_good_cls,
+  SUM( origins_with_good_lcp ) AS origins_with_good_lcp,
+  SUM( origins_with_any_fid ) AS origins_with_any_fid,
+  SUM( origins_with_any_cls ) AS origins_with_any_cls,
+  SUM( origins_with_any_lcp ) AS origins_with_any_lcp,
+  SUM( origins_with_good_cwv ) AS origins_with_good_cwv,
+  SUM( origins_eligible_for_cwv ) AS origins_eligible_for_cwv,
+  AVG( pct_eligible_origins_with_good_cwv ) AS pct_eligible_origins_with_good_cwv
 FROM
   (
     SELECT
@@ -78,6 +90,7 @@ FROM
           `httparchive.technologies.2022_10_01_*`
         WHERE
           app = 'WordPress'
+          AND category = 'CMS'
           AND info != ''
       )
       USING (date, url, client)
@@ -89,4 +102,5 @@ FROM
       client
   )
 WHERE origins > 100
+GROUP BY major_version, client
 ORDER BY major_version DESC
