@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See https://github.com/GoogleChromeLabs/wpp-research/pull/18
+# See https://github.com/GoogleChromeLabs/wpp-research/pull/26
 
 CREATE TEMP FUNCTION IS_GOOD(good FLOAT64, needs_improvement FLOAT64, poor FLOAT64)
 RETURNS BOOL
