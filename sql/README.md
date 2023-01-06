@@ -18,6 +18,12 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/01
+
+* [% of WordPress sites that use defer on any script](./2023/01/percentage-of-deferred-scripts.sql)
+* [% of WordPress sites with at least one deferred script](./2023/01/atleast-one-deferred-script.sql)
+* [% of WordPress sites with no scripts.](./2023/01/no-scripts-on-page.sql)
+
 ### 2022/12
 
 * [% of WordPress sites that use core theme with jQuery in a given month](./2022/12/usage-of-core-themes-with-jquery.sql)
