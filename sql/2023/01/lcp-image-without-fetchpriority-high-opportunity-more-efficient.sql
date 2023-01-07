@@ -45,10 +45,10 @@ WITH
 SELECT
   client,
   COUNTIF(fetchpriority = "high"
-    AND nodeName = "IMG" ) AS `with_fetchpriority_on_lcp`,
+    AND nodeName = "IMG" ) AS with_fetchpriority_on_lcp,
   COUNTIF(nodeName = "IMG") - COUNTIF(fetchpriority = "high"
-    AND nodeName = "IMG" ) AS `without_fetchpriority_on_lcp`,
-  COUNTIF(nodeName = "IMG") AS `total_with_lcp`,
+    AND nodeName = "IMG" ) AS without_fetchpriority_on_lcp,
+  COUNTIF(nodeName = "IMG") AS total_with_lcp,
   COUNT(0) AS total_wp_sites,
   (COUNTIF(nodeName = "IMG") - COUNTIF(fetchpriority = "high"
     AND nodeName = "IMG" )) / COUNTIF(nodeName = "IMG") AS pct_opportunity,
