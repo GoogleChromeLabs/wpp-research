@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/01
+
+* [impact of third-party render blocking scripts](./2023/01/third-party-render-blocking-script.sql)
+
 ### 2022/12
 
 * [% of WordPress sites that use core theme with jQuery in a given month](./2022/12/usage-of-core-themes-with-jquery.sql)
