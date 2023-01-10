@@ -24,7 +24,7 @@ jobs:
           node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
-      - run: npm run benchmark --silent -- -c 2 -n 10 -f urls/${{ matrix.file }}.txt -o csv > ${{ matrix.file }}.csv
+      - run: npm run benchmark --silent -- -c 2 -n 10 -f analysis/hosting-stack/${{ matrix.file }}.txt -o csv > ${{ matrix.file }}.csv
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.file }}
