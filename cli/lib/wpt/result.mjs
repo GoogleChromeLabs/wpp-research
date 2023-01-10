@@ -22,6 +22,8 @@
 import { fetchJson } from '../util/fetch.mjs';
 import { calcMedian } from '../util/math.mjs';
 
+let getServerTimingHeader;
+
 export function isTestId( testId ) {
 	return !! testId.match( /^[0-9]{6}_[A-Za-z0-9_]+$/ );
 }
@@ -58,7 +60,7 @@ function getResultRuns_( result ) {
 	return Object.values( result.runs );
 }
 
-function createGetMetricValue_( metric ) {
+function createGetSingleMetricValue_( metric ) {
 	// The metrics listed here are those highlighted in the
 	// https://www.webpagetest.org/graph_page_data.php view.
 	switch ( metric ) {
@@ -132,7 +134,67 @@ function createGetMetricValue_( metric ) {
 			return ( run ) => run.firstView.bytesIn;
 	}
 
+	if ( metric.startsWith( 'Server-Timing:' ) ) {
+		const stMetric = metric.substring( 'Server-Timing:'.length );
+		if ( ! getServerTimingHeader ) {
+			getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+		}
+		return ( run ) => {
+			const stHeader = getServerTimingHeader( run );
+			const stIndex = stHeader.indexOf( `${ stMetric };dur=` );
+			if ( stIndex < 0 ) {
+				throw new Error( `Server-Timing metric ${ stMetric } not present in run` );
+			}
+			let stValue = stHeader.substring( stIndex + `${ stMetric };dur=`.length );
+			const nextIndex = stValue.indexOf( ',' );
+			if ( nextIndex >= 0 ) {
+				stValue = stValue.substring( 0, nextIndex );
+			}
+			return parseFloat( stValue.trim() );
+		};
+	}
+
 	throw new Error( `Unsupported metric ${ metric }` );
+}
+
+function createGetMetricValue_( metric ) {
+	const toSubtract = [];
+	const toAdd = metric.split( ' + ' ).map( ( m ) => {
+		const parts = m.split( ' - ' );
+		const first = parts.shift();
+		parts.forEach( ( part ) => {
+			toSubtract.push( part.trim() );
+		} );
+		return first.trim();
+	} );
+
+	const toAddCallbacks = toAdd.map( ( metric ) => {
+		return createGetSingleMetricValue_( metric );
+	} );
+	const toSubtractCallbacks = toSubtract.map( ( metric ) => {
+		return createGetSingleMetricValue_( metric );
+	} );
+
+	// Simple scenario of just one metric.
+	if ( toAddCallbacks.length === 1 && toSubtractCallbacks.length === 0 ) {
+		return toAddCallbacks.shift();
+	}
+
+	return ( run ) => {
+		const toAddValues = toAddCallbacks.map( ( getValue ) => getValue( run ) );
+		const toSubtractValues = toSubtractCallbacks.map( ( getValue ) => getValue( run ) );
+		if ( toAddValues.includes( undefined ) || toSubtractValues.includes( undefined ) ) {
+			return undefined;
+		}
+		let total = 0;
+		toAddValues.forEach( ( value ) => {
+			total += value;
+		} );
+		toSubtractValues.forEach( ( value ) => {
+			total -= value;
+		} );
+		return total;
+	};
 }
 
 function createGetResponseHeader_( headerName ) {
@@ -183,7 +245,20 @@ export function getResultMetrics( result, ...metrics ) {
 		const getMetricValue = createGetMetricValue_( metric );
 
 		runs.forEach( ( run ) => {
-			values.push( getMetricValue( run ) );
+			let value;
+			try {
+				value = getMetricValue( run );
+			} catch ( e ) {
+				// Only re-throw error if it's about an invalid Server-Timing metric.
+				if ( e.message.includes( 'Server-Timing metric' ) ) {
+					throw e;
+				}
+				value = null;
+			}
+			if ( value === undefined ) {
+				value = null;
+			}
+			values.push( value );
 		} );
 
 		return {
@@ -196,7 +271,9 @@ export function getResultMetrics( result, ...metrics ) {
 
 export function getResultServerTiming( result ) {
 	const runs = getResultRuns_( result );
-	const getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+	if ( ! getServerTimingHeader ) {
+		getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
+	}
 
 	const stHeaders = runs.map( getServerTimingHeader );
 
