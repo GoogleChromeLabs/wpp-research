@@ -1,12 +1,6 @@
 name: Benchmarking
 on:
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - reopened
-      - synchronize
+  - workflow_dispatch
 jobs:
   benchmark:
     runs-on: ubuntu-latest
