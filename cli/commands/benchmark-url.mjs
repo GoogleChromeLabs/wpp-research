@@ -221,7 +221,7 @@ function outputResults( opt, results ) {
 	}
 
 	const headings = [
-		'',
+		'URL',
 		'Success Rate',
 		'Response Time',
 		...Object.keys( allMetricNames ),
@@ -236,23 +236,20 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const tableRow = [
+		const vals = { ...allMetricNames };
+		for ( const metric of Object.keys( metrics ) ) {
+			vals[ metric ] = `${ round( calcMedian( metrics[ metric ] ), 2 ) }`;
+		}
+
+		tableData.push( [
 			url,
 			`${ completionRate }%`,
 			round( calcMedian( responseTimes ), 2 ),
-		];
-
-		for ( const metric of Object.keys( metrics ) ) {
-			const metricAvgMs = round( calcMedian( metrics[ metric ] ), 2 );
-			tableRow.push( metricAvgMs );
-		}
-
-		for ( let i = tableRow.length; i < headings.length; i++ ) {
-			tableRow.push( '' );
-		}
-
-		tableData.push( tableRow );
+			...Object.values( vals ),
+		] );
 	}
+
+	console.log( headings	,tableData );
 
 	log(
 		table(
