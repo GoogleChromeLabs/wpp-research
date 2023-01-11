@@ -21,6 +21,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ### 2023/01
 
 * [% of WordPress sites that lazy-load their LCP image](./2023/01/lazyloaded-lcp-opportunity.sql)
+* [% WordPress sites using a block theme](./2023/01/block-theme-usage.sql)
 
 ### 2022/12
 
