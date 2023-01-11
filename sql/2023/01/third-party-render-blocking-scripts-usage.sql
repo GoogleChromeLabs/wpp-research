@@ -1,4 +1,4 @@
-# HTTP Archive query to measure the impact of third-party render blocking scripts for WordPress sites.
+# HTTP Archive query to measure the usage of third-party render blocking scripts for WordPress sites.
 #
 # WPP Research, Copyright 2023 Google LLC
 #

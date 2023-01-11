@@ -20,7 +20,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ### 2023/01
 
-* [impact of third-party render blocking scripts](./2023/01/third-party-render-blocking-script.sql)
+* [% of WordPress sites that lazy-load their LCP image](./2023/01/lazyloaded-lcp-opportunity.sql)
+* [Usage of third-party render blocking scripts](./2023/01/third-party-render-blocking-scripts-usage.sql)
 
 ### 2022/12
 
