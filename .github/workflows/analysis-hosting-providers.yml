@@ -1,4 +1,4 @@
-name: Benchmarking
+name: Analysis - Hosting Providers
 on:
   - workflow_dispatch
 jobs:
