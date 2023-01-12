@@ -15,7 +15,6 @@
   "scripts": {
     "format": "wp-scripts format ./cli/**/*.mjs",
     "lint": "wp-scripts lint-js ./cli --ext mjs",
-    "research": "./cli/run.mjs",
-    "benchmark": "npm run research --silent -- benchmark-url"
+    "research": "./cli/run.mjs"
   }
 }
