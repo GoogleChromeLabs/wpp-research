@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See query results here: https://github.com/GoogleChromeLabs/wpp-research/issues/11
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/34
 SELECT
   reqFont AS num_webfonts,
   sp._TABLE_SUFFIX AS client,
