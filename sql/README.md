@@ -19,7 +19,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ## Query index
 
 ### 2023/01
-* [WebP adoption by WordPress version](./2013/01/webp-adoption-by-wordpress-version.sql)
+
+* [WebP adoption by WordPress version](./2023/01/webp-adoption-by-wordpress-version.sql)
 
 ### 2022/12
 
