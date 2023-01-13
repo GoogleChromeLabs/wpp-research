@@ -18,8 +18,8 @@
 SELECT
   reqFont AS num_webfonts,
   sp._TABLE_SUFFIX AS client,
-  COUNT( DISTINCT(sp.url) ) AS sites,
-  COUNT( DISTINCT(sp.url) )/total AS pct_sites
+  COUNT(DISTINCT sp.url) AS sites,
+  COUNT(DISTINCT sp.url)/total AS pct_sites
 FROM
   `httparchive.summary_pages.2022_12_01_*` AS sp
 JOIN
