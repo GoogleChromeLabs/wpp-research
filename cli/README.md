@@ -97,7 +97,7 @@ wpt-server-timing --test 221011_AiDcV7_GGM --include-runs
 
 ### `benchmark-url`
 
-Sends the selected number of requests with a certain concurrency to provided URLs to find out the median response time for each URL. It can also track Server-Timing metrics and get media values for each of them.
+Sends the selected number of requests with a certain concurrency to provided URLs to find out the median response time for each URL. It can also track Server-Timing metrics and get median values for each of them.
 
 #### Arguments
 
