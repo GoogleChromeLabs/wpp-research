@@ -44,67 +44,30 @@ FROM (
     REGEXP_EXTRACT(info, '(\\d.\\d).*') AS major_version,
     client,
     COUNT(DISTINCT url) AS origins,
-    COUNT(DISTINCT
-    IF
-      (good_fid, url, NULL)) AS origins_with_good_fid,
-    COUNT(DISTINCT
-    IF
-      (good_cls, url, NULL)) AS origins_with_good_cls,
-    COUNT(DISTINCT
-    IF
-      (good_lcp, url, NULL)) AS origins_with_good_lcp,
-    COUNT(DISTINCT
-    IF
-      (any_fid, url, NULL)) AS origins_with_any_fid,
-    COUNT(DISTINCT
-    IF
-      (any_cls, url, NULL)) AS origins_with_any_cls,
-    COUNT(DISTINCT
-    IF
-      (any_lcp, url, NULL)) AS origins_with_any_lcp,
-    COUNT(DISTINCT
-    IF
-      (good_cwv, url, NULL)) AS origins_with_good_cwv,
-    COUNT(DISTINCT
-    IF
-      (any_lcp
-        AND any_cls, url, NULL)) AS origins_eligible_for_cwv,
-    SAFE_DIVIDE(COUNTIF(good_cwv), COUNTIF(any_lcp
-        AND any_cls)) AS pct_eligible_origins_with_good_cwv
+    COUNT(DISTINCT IF (good_fid, url, NULL)) AS origins_with_good_fid,
+    COUNT(DISTINCT IF (good_cls, url, NULL)) AS origins_with_good_cls,
+    COUNT(DISTINCT IF (good_lcp, url, NULL)) AS origins_with_good_lcp,
+    COUNT(DISTINCT IF (any_fid, url, NULL)) AS origins_with_any_fid,
+    COUNT(DISTINCT IF (any_cls, url, NULL)) AS origins_with_any_cls,
+    COUNT(DISTINCT IF (any_lcp, url, NULL)) AS origins_with_any_lcp,
+    COUNT(DISTINCT IF (good_cwv, url, NULL)) AS origins_with_good_cwv,
+    COUNT(DISTINCT IF (any_lcp AND any_cls, url, NULL)) AS origins_eligible_for_cwv,
+    SAFE_DIVIDE(COUNTIF(good_cwv), COUNTIF(any_lcp AND any_cls)) AS pct_eligible_origins_with_good_cwv
   FROM (
     SELECT
       date,
       CONCAT(origin, '/') AS url,
-    IF
-      (device = 'desktop', 'desktop', 'mobile') AS client,
-      IS_NON_ZERO(fast_fid,
-        avg_fid,
-        slow_fid) AS any_fid,
-      IS_GOOD(fast_fid,
-        avg_fid,
-        slow_fid) AS good_fid,
-      IS_NON_ZERO(small_cls,
-        medium_cls,
-        large_cls) AS any_cls,
-      IS_GOOD(small_cls,
-        medium_cls,
-        large_cls) AS good_cls,
-      IS_NON_ZERO(fast_lcp,
-        avg_lcp,
-        slow_lcp) AS any_lcp,
-      IS_GOOD(fast_lcp,
-        avg_lcp,
-        slow_lcp) AS good_lcp,
-      (IS_GOOD(fast_fid,
-          avg_fid,
-          slow_fid)
+    IF (device = 'desktop', 'desktop', 'mobile') AS client,
+      IS_NON_ZERO(fast_fid, avg_fid, slow_fid) AS any_fid,
+      IS_GOOD(fast_fid, avg_fid, slow_fid) AS good_fid,
+      IS_NON_ZERO(small_cls, medium_cls, large_cls) AS any_cls,
+      IS_GOOD(small_cls, medium_cls, large_cls) AS good_cls,
+      IS_NON_ZERO(fast_lcp, avg_lcp, slow_lcp) AS any_lcp,
+      IS_GOOD(fast_lcp, avg_lcp, slow_lcp) AS good_lcp,
+      (IS_GOOD(fast_fid, avg_fid, slow_fid)
         OR fast_fid IS NULL)
-      AND IS_GOOD(small_cls,
-        medium_cls,
-        large_cls)
-      AND IS_GOOD(fast_lcp,
-        avg_lcp,
-        slow_lcp) AS good_cwv
+        AND IS_GOOD(small_cls, medium_cls, large_cls)
+        AND IS_GOOD(fast_lcp, avg_lcp, slow_lcp) AS good_cwv
     FROM
       `chrome-ux-report.materialized.device_summary`
     WHERE
