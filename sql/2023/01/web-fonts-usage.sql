@@ -17,9 +17,9 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/issues/11
 SELECT
   sp._TABLE_SUFFIX AS client,
-  COUNTIF(reqFont > 0) AS site_with_webfont,
+  COUNTIF(reqFont > 0) AS site_with_web_fonts,
   COUNT(distinct(th.url)) AS total,
-  COUNTIF(reqFont > 0) / COUNT(distinct(th.url)) AS pct_site_with_webfont
+  COUNTIF(reqFont > 0) / COUNT(distinct(th.url)) AS pct_site_with_web_fonts
 FROM
   `httparchive.summary_pages.2022_12_01_*` AS sp
 JOIN
