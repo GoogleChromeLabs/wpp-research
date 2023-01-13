@@ -104,7 +104,7 @@ Sends the selected number of requests with a certain concurrency to provided URL
 * `--url` (`-u`): An URL to benchmark.
 * `--concurrency` (`-c`): Number of requests to make at the same time.
 * `--number` (`-n`): Total number of requests to send.
-* `--file` (`-f`): File with URLs to run benchmark tests for.
+* `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
 * `--output` (`-o`): The output format.
 
 #### Examples
@@ -117,4 +117,9 @@ benchmark-url --url https://example.com/ -n 10 -c 2
 Same as above, but results are formatted as CSV:
 ```
 benchmark-url --url https://example.com/ -n 10 -c 2 --output csv
+```
+
+To run benchmark tests for URLs from a file:
+```
+benchmark-url -f path/to/urls.txt -n 5
 ```
