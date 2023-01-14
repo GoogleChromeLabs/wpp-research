@@ -21,11 +21,13 @@ CREATE TEMP FUNCTION
     needs_improvement FLOAT64,
     poor FLOAT64)
   RETURNS BOOL AS ( good / (good + needs_improvement + poor) >= 0.75 );
+
 CREATE TEMP FUNCTION
   IS_NON_ZERO(good FLOAT64,
     needs_improvement FLOAT64,
     poor FLOAT64)
   RETURNS BOOL AS ( good + needs_improvement + poor > 0 );
+
 SELECT
   major_version,
   client,
@@ -57,7 +59,7 @@ FROM (
     SELECT
       date,
       CONCAT(origin, '/') AS url,
-    IF (device = 'desktop', 'desktop', 'mobile') AS client,
+      IF (device = 'desktop', 'desktop', 'mobile') AS client,
       IS_NON_ZERO(fast_fid, avg_fid, slow_fid) AS any_fid,
       IS_GOOD(fast_fid, avg_fid, slow_fid) AS good_fid,
       IS_NON_ZERO(small_cls, medium_cls, large_cls) AS any_cls,
