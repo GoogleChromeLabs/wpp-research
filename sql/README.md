@@ -21,6 +21,9 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ### 2023/01
 
 * [% of WordPress sites that lazy-load their LCP image](./2023/01/lazyloaded-lcp-opportunity.sql)
+* [% WordPress sites using a block theme](./2023/01/block-theme-usage.sql)
+* [% of WordPress sites that have any deferred scripts](./2023/01/sites-with-deferred-scripts.sql)
+* [Distribution of number of external scripts and % of deferred scripts](./2023/01/external-deferred-scripts-distribution.sql)
 * [Usage of third-party render blocking scripts](./2023/01/third-party-render-blocking-scripts-usage.sql)
 
 ### 2022/12
