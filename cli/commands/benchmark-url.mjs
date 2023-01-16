@@ -28,11 +28,11 @@ import round from 'lodash-es/round.js';
  * Internal dependencies
  */
 import {
-   log,
-   formats,
-   table,
-   isValidTableFormat,
-   OUTPUT_FORMAT_TABLE,
+	log,
+	formats,
+	table,
+	isValidTableFormat,
+	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
 import { calcMedian } from '../lib/util/math.mjs';
 
@@ -210,7 +210,7 @@ function getServerTimingMetricsFromHeaders( headers ) {
 }
 
 /**
- * Ouptuts results of benchmarking.
+ * Outputs results of benchmarking.
  *
  * @param {BenchmarkCommandOptions} opt     Command options.
  * @param {Array.<Array>}           results A collection of benchmark results for each URL.
