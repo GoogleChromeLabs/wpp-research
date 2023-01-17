@@ -16,40 +16,25 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/34
 SELECT
-  reqFont AS num_webfonts,
+  percentile,
   sp._TABLE_SUFFIX AS client,
-  COUNT(DISTINCT sp.url) AS sites,
-  COUNT(DISTINCT sp.url)/total AS pct_sites
+  APPROX_QUANTILES(reqFont, 1000)[OFFSET(percentile * 10)] AS num_web_fonts
 FROM
-  `httparchive.summary_pages.2022_12_01_*` AS sp
+  `httparchive.summary_pages.2022_12_01_*` AS sp,
+  UNNEST([10, 25, 50, 75, 90, 95, 99,100]) AS percentile
 JOIN
   `httparchive.technologies.2022_12_01_*` AS th
 ON
   th.url = sp.url
   AND sp._TABLE_SUFFIX = th._TABLE_SUFFIX
-JOIN (
-  SELECT
-    _TABLE_SUFFIX,
-    COUNT(DISTINCT url) AS total
-  FROM
-    `httparchive.technologies.2022_10_01_*`
-  WHERE
-    app = "WordPress"
-    AND category = 'CMS'
-  GROUP BY
-    _TABLE_SUFFIX ) th2
-ON
-  sp._TABLE_SUFFIX = th2._TABLE_SUFFIX
 WHERE
   reqFont IS NOT NULL
-  AND reqFont > 0
   AND bytesFont IS NOT NULL
   AND th.app = 'WordPress'
   AND th.category = 'CMS'
 GROUP BY
-  sp._TABLE_SUFFIX,
-  reqFont,
-  total
+  percentile,
+  client
 ORDER BY
-  num_webfonts,
+  percentile,
   client
