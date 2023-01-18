@@ -17,9 +17,9 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/34
 SELECT
   sp._TABLE_SUFFIX AS client,
-  COUNTIF(reqFont > 0) AS site_with_web_fonts,
-  COUNT(DISTINCT th.url) AS total,
-  COUNTIF(reqFont > 0) / COUNT(DISTINCT th.url) AS pct_site_with_web_fonts
+  COUNTIF(reqFont > 0) AS with_web_fonts,
+  COUNT(DISTINCT th.url) AS total_wp_sites,
+  COUNTIF(reqFont > 0) / COUNT(DISTINCT th.url) AS pct_with_web_fonts
 FROM
   `httparchive.summary_pages.2022_12_01_*` AS sp
 JOIN
@@ -33,4 +33,6 @@ WHERE
   AND th.app = 'WordPress'
   AND th.category = 'CMS'
 GROUP BY
-  sp._TABLE_SUFFIX
+  client
+ORDER BY
+  client

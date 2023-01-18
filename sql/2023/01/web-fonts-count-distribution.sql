@@ -16,8 +16,8 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/34
 SELECT
-  percentile,
   sp._TABLE_SUFFIX AS client,
+  percentile,
   APPROX_QUANTILES(reqFont, 1000)[OFFSET(percentile * 10)] AS num_web_fonts
 FROM
   `httparchive.summary_pages.2022_12_01_*` AS sp,
@@ -33,8 +33,8 @@ WHERE
   AND th.app = 'WordPress'
   AND th.category = 'CMS'
 GROUP BY
-  percentile,
-  client
+  client,
+  percentile
 ORDER BY
-  percentile,
-  client
+  client,
+  percentile
