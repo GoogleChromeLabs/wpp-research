@@ -74,4 +74,5 @@ JOIN (
 USING
   (client)
 ORDER BY
+  client,
   pct DESC
