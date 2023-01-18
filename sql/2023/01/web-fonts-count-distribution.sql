@@ -21,7 +21,7 @@ SELECT
   APPROX_QUANTILES(reqFont, 1000)[OFFSET(percentile * 10)] AS num_web_fonts
 FROM
   `httparchive.summary_pages.2022_12_01_*` AS sp,
-  UNNEST([10, 25, 50, 75, 90, 95, 99,100]) AS percentile
+  UNNEST([10, 25, 50, 75, 90, 95, 99, 100]) AS percentile
 JOIN
   `httparchive.technologies.2022_12_01_*` AS th
 ON
