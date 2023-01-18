@@ -24,7 +24,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 * [% WordPress sites using a block theme](./2023/01/block-theme-usage.sql)
 * [% of WordPress sites that have any deferred scripts](./2023/01/sites-with-deferred-scripts.sql)
 * [Distribution of number of external scripts and % of deferred scripts](./2023/01/external-deferred-scripts-distribution.sql)
-* [Core Web Vital "good" rates by WordPress version.](./2023/01/cwvs-by-wordpress-version.sql)
+* [Core Web Vital "good" rates by WordPress version](./2023/01/cwvs-by-wordpress-version.sql)
 
 ### 2022/12
 
