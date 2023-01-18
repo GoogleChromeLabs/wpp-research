@@ -33,6 +33,7 @@ try {
   return [];
 }
 ''';
+
 SELECT
   client,
   font_display,
