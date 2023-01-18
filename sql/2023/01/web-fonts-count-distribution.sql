@@ -1,4 +1,4 @@
-# HTTP Archive query to get distribution of number of web fonts used per site only for WordPress sites that use at least 1 web font for a given month.
+# HTTP Archive query to get distribution of number of web fonts used per site only for WordPress sites that use at least 1 web font.
 #
 # WPP Research, Copyright 2023 Google LLC
 #
