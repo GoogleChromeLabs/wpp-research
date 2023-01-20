@@ -26,6 +26,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 * [Distribution of number of external scripts and % of deferred scripts](./2023/01/external-deferred-scripts-distribution.sql)
 * [% of WordPress sites not having fetchpriority='high' on LCP image (slightly more efficient)](./2023/01/lcp-image-without-fetchpriority-high-opportunity-more-efficient.sql)
 * [Core Web Vital "good" rates by WordPress version](./2023/01/cwvs-by-wordpress-version.sql)
+* [WebP adoption by WordPress version](./2023/01/webp-adoption-by-wordpress-version.sql)
 
 ### 2022/12
 
