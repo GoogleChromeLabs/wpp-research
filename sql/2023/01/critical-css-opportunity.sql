@@ -20,7 +20,7 @@ SELECT
   total_wp_sites,
   sites_with_critical_css,
   (total_wp_sites-sites_with_critical_css) AS sites_without_critical_css,
-  CONCAT(ROUND((total_wp_sites-sites_with_critical_css)*100/total_wp_sites, 3),' %') AS opportunity
+  (total_wp_sites - sites_with_critical_css) / total_wp_sites AS opportunity
 FROM (
   SELECT
     pages._TABLE_SUFFIX AS client,
