@@ -34,45 +34,59 @@ try {
 }
 ''';
 
+WITH rankings AS (
+  SELECT
+    client,
+    font_display,
+    pages,
+    total,
+    pages / total AS pct,
+    RANK() OVER (PARTITION BY client ORDER BY pages / total DESC) AS rank
+  FROM (
+    SELECT
+      th._TABLE_SUFFIX AS client,
+      font_display,
+      COUNT(DISTINCT page) AS pages
+    FROM
+      `httparchive.experimental_parsed_css.2022_12_01_*` AS parsed_css,
+      UNNEST(getFontDisplay(css)) AS font_display
+    JOIN
+      `httparchive.technologies.2022_12_01_*` AS th
+    ON
+      th.url = parsed_css.page
+      AND parsed_css.is_root_page = TRUE
+      AND parsed_css._TABLE_SUFFIX = th._TABLE_SUFFIX
+    WHERE
+      th.app = 'WordPress'
+      AND th.category = 'CMS'
+    GROUP BY
+      client,
+      font_display )
+  JOIN (
+    SELECT
+      _TABLE_SUFFIX AS client,
+      COUNT(DISTINCT url) AS total
+    FROM
+      `httparchive.technologies.2022_12_01_*`
+    WHERE
+      app = 'WordPress'
+      AND category = 'CMS'
+    GROUP BY
+      client)
+  USING
+    (client)
+)
+
 SELECT
   client,
   font_display,
   pages,
   total,
   pages / total AS pct
-FROM (
-  SELECT
-    th._TABLE_SUFFIX AS client,
-    font_display,
-    COUNT(DISTINCT page) AS pages
-  FROM
-    `httparchive.experimental_parsed_css.2022_12_01_*` AS parsed_css,
-    UNNEST(getFontDisplay(css)) AS font_display
-  JOIN
-    `httparchive.technologies.2022_12_01_*` AS th
-  ON
-    th.url = parsed_css.page
-    AND parsed_css.is_root_page = TRUE
-    AND parsed_css._TABLE_SUFFIX = th._TABLE_SUFFIX
-  WHERE
-    th.app = 'WordPress'
-    AND th.category = 'CMS'
-  GROUP BY
-    client,
-    font_display )
-JOIN (
-  SELECT
-    _TABLE_SUFFIX AS client,
-    COUNT(DISTINCT url) AS total
-  FROM
-    `httparchive.technologies.2022_12_01_*`
-  WHERE
-    app = 'WordPress'
-    AND category = 'CMS'
-  GROUP BY
-    client)
-USING
-  (client)
+FROM
+  rankings
+WHERE
+  rank <= 10
 ORDER BY
   client,
-  pct DESC
+  rank
