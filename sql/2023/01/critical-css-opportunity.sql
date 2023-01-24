@@ -19,7 +19,7 @@ SELECT
   client,
   total_wp_sites,
   sites_with_critical_css,
-  (total_wp_sites-sites_with_critical_css) AS sites_without_critical_css,
+  (total_wp_sites - sites_with_critical_css) AS sites_without_critical_css,
   (total_wp_sites - sites_with_critical_css) / total_wp_sites AS opportunity
 FROM (
   SELECT
