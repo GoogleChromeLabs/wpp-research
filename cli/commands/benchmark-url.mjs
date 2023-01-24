@@ -28,13 +28,18 @@ import round from 'lodash-es/round.js';
  * Internal dependencies
  */
 import {
-   log,
-   formats,
-   table,
-   isValidTableFormat,
-   OUTPUT_FORMAT_TABLE,
+	log,
+	formats,
+	table,
+	isValidTableFormat,
+	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
 import { calcMedian } from '../lib/util/math.mjs';
+
+/**
+ * Example for how to use this command in a GitHub workflow:
+ * https://gist.github.com/eugene-manuilov/7a2dded1cbe5e78ac51c39140e443c9b
+ */
 
 export const options = [
 	{
@@ -133,6 +138,7 @@ function benchmarkURL( params ) {
 	const metrics = {};
 	const responseTimes = [];
 	let completeRequests = 0;
+	let requestNum = 0;
 
 	const onHeaders = ( { headers } ) => {
 		const responseMetrics = getServerTimingMetricsFromHeaders( headers );
@@ -151,7 +157,16 @@ function benchmarkURL( params ) {
 	};
 
 	const instance = autocannon( {
-		method: 'POST', // The post method is needed to bypass CDN or full page cache.
+		requests: [
+			{
+				setupRequest( req ) {
+					return {
+						...req,
+						path: `${ req.path }?rnd=${ requestNum++ }`,
+					};
+				},
+			},
+		],
 		...params,
 		setupClient( client ) {
 			client.on( 'headers', onHeaders );
@@ -195,7 +210,7 @@ function getServerTimingMetricsFromHeaders( headers ) {
 }
 
 /**
- * Ouptuts results of benchmarking.
+ * Outputs results of benchmarking.
  *
  * @param {BenchmarkCommandOptions} opt     Command options.
  * @param {Array.<Array>}           results A collection of benchmark results for each URL.
@@ -210,23 +225,15 @@ function outputResults( opt, results ) {
 		}
 	}
 
-	const newRow = ( title ) => {
-		const line = new Array( len + 1 ).fill( '' );
-		line[ 0 ] = title;
-		return line;
-	};
-
 	const headings = [
-		'',
+		'URL',
 		'Success Rate',
 		'Response Time',
+		...Object.keys( allMetricNames ),
 	];
 
-	Object.keys( allMetricNames ).forEach( ( name ) => {
-		headings.push( name );
-	} );
-
 	const tableData = [];
+
 	for ( let i = 0; i < len; i++ ) {
 		const [ url, completeRequests, responseTimes, metrics ] = results[ i ];
 		const completionRate = round(
@@ -234,18 +241,17 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const tableRow = [
+		const vals = { ...allMetricNames };
+		for ( const metric of Object.keys( metrics ) ) {
+			vals[ metric ] = `${ round( calcMedian( metrics[ metric ] ), 2 ) }`;
+		}
+
+		tableData.push( [
 			url,
 			`${ completionRate }%`,
 			round( calcMedian( responseTimes ), 2 ),
-		];
-
-		for ( const metric of Object.keys( metrics ) ) {
-			const metricAvgMs = round( calcMedian( metrics[ metric ] ), 2 );
-			tableRow.push( metricAvgMs );
-		}
-
-		tableData.push( tableRow );
+			...Object.values( vals ),
+		] );
 	}
 
 	log(
