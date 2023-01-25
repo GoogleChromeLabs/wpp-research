@@ -22,6 +22,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 * [% of WordPress sites that lazy-load their LCP image](./2023/01/lazyloaded-lcp-opportunity.sql)
 * [% WordPress sites using a block theme](./2023/01/block-theme-usage.sql)
+* [% of WordPress sites that do not implement Critical CSS](./2023/01/critical-css-opportunity.sql)
 * [% of WordPress sites that have any deferred scripts](./2023/01/sites-with-deferred-scripts.sql)
 * [Distribution of number of external scripts and % of deferred scripts](./2023/01/external-deferred-scripts-distribution.sql)
 * [% of WordPress sites not having fetchpriority='high' on LCP image (slightly more efficient)](./2023/01/lcp-image-without-fetchpriority-high-opportunity-more-efficient.sql)
