@@ -28,6 +28,9 @@ Once you are ready to add a new query to the repository, open a pull request fol
 * [% of WordPress sites not having fetchpriority='high' on LCP image (slightly more efficient)](./2023/01/lcp-image-without-fetchpriority-high-opportunity-more-efficient.sql)
 * [Core Web Vital "good" rates by WordPress version](./2023/01/cwvs-by-wordpress-version.sql)
 * [WebP adoption by WordPress version](./2023/01/webp-adoption-by-wordpress-version.sql)
+* [% of WordPress sites that use any web fonts](./2023/01/web-fonts-usage.sql)
+* [Distribution of number of web fonts used per site](./2023/01/web-fonts-count-distribution.sql)
+* [% of WordPress sites that use various font-display strategy for any web fonts](./2023/01/font-display-strategy-usage.sql)
 * [Distribution of alloptions query time and its percentage of the total load time](./2023/01/alloptions-query-time-distribution.sql)
 * [Number of sites with slow alloptions queries (>10% of total load time)](./2023/01/sites-with-slow-alloptions-queries.sql)
 
