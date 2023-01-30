@@ -25,7 +25,7 @@ FROM (
   SELECT
     pages._TABLE_SUFFIX AS client,
     COUNT(pages.url) AS total_wp_sites,
-    COUNTIF( CAST(JSON_EXTRACT_SCALAR(payload, '$._renderBlockingCSS') AS INT64) = 0
+    COUNTIF( CAST(JSON_EXTRACT_SCALAR(payload, '$._externalCssInHead') AS INT64) = 0
       AND CAST(JSON_EXTRACT_SCALAR(payload, '$._inlineCssInHead') AS INT64) > 0
       AND ( CAST(JSON_EXTRACT_SCALAR(payload, '$._externalCssInHead') AS INT64) + CAST(JSON_EXTRACT_SCALAR(payload, '$._externalCssinBody') AS INT64) ) > 0 ) AS sites_with_critical_css
   FROM
