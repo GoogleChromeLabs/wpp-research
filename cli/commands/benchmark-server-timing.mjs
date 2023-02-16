@@ -36,11 +36,6 @@ import {
 } from '../lib/cli/logger.mjs';
 import { calcMedian } from '../lib/util/math.mjs';
 
-/**
- * Example for how to use this command in a GitHub workflow:
- * https://gist.github.com/eugene-manuilov/7a2dded1cbe5e78ac51c39140e443c9b
- */
-
 export const options = [
 	{
 		argname: '-u, --url <url>',
