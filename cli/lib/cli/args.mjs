@@ -17,12 +17,15 @@
  */
 
 /**
+ * External dependencies
+ */
+import fs from 'fs';
+import readline from 'readline';
+
+/**
  * Internal dependencies
  */
-import {
-	isTestId,
-	getTestIdFromResultUrl,
-} from '../wpt/result.mjs';
+import { isTestId, getTestIdFromResultUrl } from '../wpt/result.mjs';
 
 export function parseWptTestId( testIdOrUrl ) {
 	let testId;
@@ -31,9 +34,29 @@ export function parseWptTestId( testIdOrUrl ) {
 	} catch ( error ) {
 		testId = testIdOrUrl;
 		if ( ! isTestId( testId ) ) {
-			throw new Error( `The value ${ testId } is not a valid WebPageTest test result ID or URL.` );
+			throw new Error(
+				`The value ${ testId } is not a valid WebPageTest test result ID or URL.`
+			);
 		}
 	}
 	return testId;
 }
 
+export async function* getURLs( opt ) {
+	if ( !! opt.url ) {
+		yield opt.url;
+	}
+
+	if ( !! opt.file ) {
+		const rl = readline.createInterface( {
+			input: fs.createReadStream( opt.file ),
+			crlfDelay: Infinity,
+		} );
+
+		for await ( const url of rl ) {
+			if ( url.length > 0 ) {
+				yield url;
+			}
+		}
+	}
+}
