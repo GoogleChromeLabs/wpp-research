@@ -95,9 +95,9 @@ Get Server-Timing header medians _and_ all individual run values:
 wpt-server-timing --test 221011_AiDcV7_GGM --include-runs
 ```
 
-### `benchmark-url`
+### `benchmark-server-timing`
 
-Sends the selected number of requests with a certain concurrency to provided URLs to find out the median response time for each URL. It can also track Server-Timing metrics and get median values for each of them.
+Sends the selected number of requests with a certain concurrency to provided URLs to find out the median response time for each URL. It also tracks medians for any Server-Timing metrics present in the response.
 
 #### Arguments
 
@@ -111,15 +111,15 @@ Sends the selected number of requests with a certain concurrency to provided URL
 
 Send 10 request, 2 requests at the same time:
 ```
-benchmark-url --url https://example.com/ -n 10 -c 2
+benchmark-server-timing --url https://example.com/ -n 10 -c 2
 ```
 
 Same as above, but results are formatted as CSV:
 ```
-benchmark-url --url https://example.com/ -n 10 -c 2 --output csv
+benchmark-server-timing --url https://example.com/ -n 10 -c 2 --output csv
 ```
 
 To run benchmark tests for URLs from a file:
 ```
-benchmark-url -f path/to/urls.txt -n 5
+benchmark-server-timing -f path/to/urls.txt -n 5
 ```
