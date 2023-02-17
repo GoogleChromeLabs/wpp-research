@@ -101,7 +101,7 @@ Sends the selected number of requests with a certain concurrency to provided URL
 
 #### Arguments
 
-* `--url` (`-u`): An URL to benchmark.
+* `--url` (`-u`): A URL to benchmark.
 * `--concurrency` (`-c`): Number of requests to make at the same time.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
@@ -122,4 +122,32 @@ benchmark-server-timing --url https://example.com/ -n 10 -c 2 --output csv
 To run benchmark tests for URLs from a file:
 ```
 benchmark-server-timing -f path/to/urls.txt -n 5
+```
+
+### `benchmark-web-vitals`
+
+Loads the provided URLs in a headless browser several times to measure median Web Vitals metrics for each URL. Currently the results include load time metrics FCP, LCP, and TTFB.
+
+#### Arguments
+
+* `--url` (`-u`): A URL to benchmark.
+* `--number` (`-n`): Total number of requests to send.
+* `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
+* `--output` (`-o`): The output format.
+
+#### Examples
+
+Send 10 requests to a single URL:
+```
+benchmark-web-vitals --url https://example.com/ -n 10
+```
+
+Same as above, but results are formatted as CSV:
+```
+benchmark-web-vitals --url https://example.com/ -n 10 --output csv
+```
+
+To run benchmark tests for URLs from a file:
+```
+benchmark-web-vitals -f path/to/urls.txt -n 5
 ```
