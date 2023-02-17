@@ -102,6 +102,7 @@ async function benchmarkURL( browser, params ) {
 	 * In the future, additional Web Vitals like CLS, FID, and INP should be
 	 * added, however they are slightly more complex to retrieve through an
 	 * automated headless browser test.
+	 * See https://github.com/GoogleChromeLabs/wpp-research/pull/41.
 	 */
 	const metricsDefinition = {
 		FCP: {
