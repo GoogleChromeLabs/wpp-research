@@ -97,33 +97,19 @@ export async function handler( opt ) {
 }
 
 async function benchmarkURL( browser, params ) {
-	// TODO: CLS and INP are excluded for now since they require several interactions
-	// and therefore never show up in the current configuration.
+	/*
+	 * For now this only includes load time metrics.
+	 * In the future, additional Web Vitals like CLS, FID, and INP should be
+	 * added, however they are slightly more complex to retrieve through an
+	 * automated headless browser test.
+	 */
 	const metricsDefinition = {
-		/*CLS: {
-			listen: 'onCLS',
-			global: 'webVitalsCLS',
-			get: () => window.webVitalsCLS,
-			results: [],
-		},*/
 		FCP: {
 			listen: 'onFCP',
 			global: 'webVitalsFCP',
 			get: () => window.webVitalsFCP,
 			results: [],
 		},
-		FID: {
-			listen: 'onFID',
-			global: 'webVitalsFID',
-			get: () => window.webVitalsFID,
-			results: [],
-		},
-		/*INP: {
-			listen: 'onINP',
-			global: 'webVitalsINP',
-			get: () => window.webVitalsINP,
-			results: [],
-		},*/
 		LCP: {
 			listen: 'onLCP',
 			global: 'webVitalsLCP',
