@@ -141,7 +141,7 @@ async function benchmarkURL( browser, params ) {
 	let completeRequests = 0;
 	let requestNum = 0;
 
-	let scriptTag = `import {onCLS, onFCP, onFID, onINP, onLCP, onTTFB } from "https://unpkg.com/web-vitals@3?module";`;
+	let scriptTag = `import { ${ Object.values( metricsDefinition ).map( ( value ) => value.listen ).join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
 	Object.values( metricsDefinition ).forEach( ( value ) => {
 		scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
 	} )
