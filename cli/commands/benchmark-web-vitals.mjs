@@ -155,7 +155,11 @@ async function benchmarkURL( browser, params ) {
 				// Wait until global is populated.
 				await page.waitForFunction( `window.${ value.global } !== undefined` );
 
-				// Do a random click, since only that seems to trigger certain metrics like LCP.
+				/*
+				 * Do a random click, since only that triggers certain metrics
+				 * like LCP, as only a user interaction stops reporting new LCP
+				 * entries. See https://web.dev/lcp/.
+				 */
 				await page.click( 'body' );
 
 				// Get the metric value from the global.
