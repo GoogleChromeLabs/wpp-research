@@ -33,7 +33,8 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcMedian } from '../lib/util/math.mjs';
+import { calcPercentile } from '../lib/util/math.mjs';
+import { KEY_PERCENTILES, MEDIAN_PERCENTILES } from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
@@ -48,6 +49,10 @@ export const options = [
 	{
 		argname: '-f, --file <file>',
 		description: 'File with URLs to run benchmark tests for',
+	},
+	{
+		argname: '-p, --show-percentiles',
+		description: 'Whether to show more granular percentiles instead of only the median',
 	},
 	{
 		argname: '-o, --output <output>',
@@ -189,11 +194,29 @@ function outputResults( opt, results ) {
 		}
 	}
 
+	const percentiles = opt.showPercentiles ? KEY_PERCENTILES : MEDIAN_PERCENTILES;
+
 	const headings = [
 		'URL',
 		'Success Rate',
-		...Object.keys( allMetricNames ),
 	];
+
+	/*
+	 * Alternatively to the if-else below, we could simply iterate through
+	 * the percentiles unconditionally, however in case of median we should
+	 * rather use the easier-to-understand "(median)" label.
+	 */
+	if ( opt.showPercentiles ) {
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				headings.push( `${ metricName } (p${ percentile })` );
+			} );
+		} );
+	} else {
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			headings.push( `${ metricName } (median)` );
+		} );
+	}
 
 	const tableData = [];
 
@@ -204,16 +227,21 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const vals = { ...allMetricNames };
-		for ( const metric of Object.keys( metrics ) ) {
-			vals[ metric ] = `${ round( calcMedian( metrics[ metric ] ), 2 ) }`;
-		}
-
-		tableData.push( [
+		const tableRow = [
 			url,
 			`${ completionRate }%`,
-			...Object.values( vals ),
-		] );
+		];
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				if ( ! metrics[ metricName ] ) {
+					tableRow.push( '' );
+				} else {
+					tableRow.push( round( calcPercentile( percentile, metrics[ metricName ] ), 2 ) );
+				}
+			} );
+		} );
+
+		tableData.push( tableRow );
 	}
 
 	log( table( headings, tableData, opt.output, true ) );
