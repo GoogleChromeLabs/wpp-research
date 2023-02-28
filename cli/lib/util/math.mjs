@@ -24,25 +24,30 @@ export function calcPercentile( percentile, values ) {
 		return 0;
 	}
 
-	// If there is only one value, return that.
-	if ( len === 1 ) {
-		return notNullValues[ 0 ];
-	}
-
 	// Sort values with the lowest first.
 	const list = [ ...notNullValues ];
-	list.sort( ( a, b ) => b - a );
+	list.sort( ( a, b ) => a - b );
+
+	if ( percentile <= 0 ) {
+		return list[ 0 ];
+	}
+	if ( percentile >= 100 ) {
+		return list[ len - 1 ];
+	}
 
 	// Get the index of the highest value in the percentile.
-	const index = ( percentile / 100 ) * len - 1;
+	const index = ( percentile / 100 ) * ( len - 1 );
 
 	// If index is a whole number, return that value directly.
 	if ( index % 1 === 0 ) {
 		return list[ index ];
 	}
 
-	// Otherwise use the average of the two surrounding indexes.
-	return ( list[ Math.floor( index ) ] + list[ Math.ceil( index ) ] ) / 2;
+	// Otherwise use the weighted value from between the two surrounding indexes.
+	const lowerIndex = Math.floor( index );
+	const upperIndex = lowerIndex + 1;
+	const weight     = index % 1;
+	return list[ lowerIndex ] * ( 1 - weight ) + list[ upperIndex ] * weight;
 }
 
 export function calcMedian( values ) {
