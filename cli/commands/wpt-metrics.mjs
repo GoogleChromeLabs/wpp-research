@@ -17,6 +17,11 @@
  */
 
 /**
+ * External dependencies
+ */
+import round from 'lodash-es/round.js';
+
+/**
  * Internal dependencies
  */
 import {
@@ -120,7 +125,7 @@ export async function handler( opt ) {
 			headings.push( `Run ${ i + 1 }` );
 		}
 		parseTableData = ( metric ) => {
-			return [ metric.name, ...percentiles.map( percentile => metric[ `p${ percentile }` ] ), ...metric.runs ];
+			return [ metric.name, ...percentiles.map( percentile => round( metric[ `p${ percentile }` ], 2 ) ), ...metric.runs ];
 		};
 	} else if ( includeRuns ) {
 		headings = [ 'Metric', 'Median' ];
@@ -128,17 +133,17 @@ export async function handler( opt ) {
 			headings.push( `Run ${ i + 1 }` );
 		}
 		parseTableData = ( metric ) => {
-			return [ metric.name, metric.p50, ...metric.runs ];
+			return [ metric.name, round( metric.p50, 2 ), ...metric.runs ];
 		};
 	} else if ( showPercentiles ) {
 		headings = [ 'Metric', ...percentiles.map( percentile => `p${ percentile }` ) ];
 		parseTableData = ( metric ) => {
-			return [ metric.name, ...percentiles.map( percentile => metric[ `p${ percentile }` ] ) ];
+			return [ metric.name, ...percentiles.map( percentile => round( metric[ `p${ percentile }` ], 2 ) ) ];
 		};
 	} else {
 		headings = [ 'Metric', 'Median' ];
 		parseTableData = ( metric ) => {
-			return [ metric.name, metric.p50 ];
+			return [ metric.name, round( metric.p50, 2 ) ];
 		};
 	}
 
