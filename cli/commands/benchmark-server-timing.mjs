@@ -56,13 +56,13 @@ export const options = [
 		description: 'File with URLs to run benchmark tests for',
 	},
 	{
-		argname: '-p, --show-percentiles',
-		description: 'Whether to show more granular percentiles instead of only the median',
-	},
-	{
 		argname: '-o, --output <output>',
 		description: 'Output format: csv or table',
 		defaults: OUTPUT_FORMAT_TABLE,
+	},
+	{
+		argname: '-p, --show-percentiles',
+		description: 'Whether to show more granular percentiles instead of only the median',
 	},
 ];
 
