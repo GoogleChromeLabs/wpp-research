@@ -38,7 +38,7 @@ import { calcMedian } from '../lib/util/math.mjs';
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'An URL to run benchmark tests for',
+		description: 'A URL to run benchmark tests for',
 	},
 	{
 		argname: '-n, --number <number>',
