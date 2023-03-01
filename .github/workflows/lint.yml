@@ -3,7 +3,7 @@ name: Code Linting
 on:
   push:
     branches:
-      - trunk
+      - main
     paths:
       - '.github/workflows/lint.yml'
       - '**.js'
@@ -15,7 +15,7 @@ on:
       - 'package-lock.json'
   pull_request:
     branches:
-      - trunk
+      - main
       - 'feature/**'
     paths:
       - '.github/workflows/lint.yml'
