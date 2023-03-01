@@ -30,9 +30,13 @@ import {
 	formats,
 } from './lib/cli/logger.mjs';
 import {
-	handler as benchmarkUrlHandler,
-	options as benchmarkUrlOptions,
-} from './commands/benchmark-url.mjs';
+	handler as benchmarkServerTimingHandler,
+	options as benchmarkServerTimingOptions,
+} from './commands/benchmark-server-timing.mjs';
+import {
+	handler as benchmarkWebVitalsHandler,
+	options as benchmarkWebVitalsOptions,
+} from './commands/benchmark-web-vitals.mjs';
 import {
 	handler as wptMetricsHandler,
 	options as wptMetricsOptions,
@@ -66,9 +70,12 @@ const catchException = ( handler ) => {
 	};
 };
 
-withOptions( program.command( 'benchmark-url' ), benchmarkUrlOptions )
-	.description( 'Runs benchmarks for an URL' )
-	.action( catchException( benchmarkUrlHandler ) );
+withOptions( program.command( 'benchmark-server-timing' ), benchmarkServerTimingOptions )
+	.description( 'Runs Server Timing benchmarks for an URL' )
+	.action( catchException( benchmarkServerTimingHandler ) );
+withOptions( program.command( 'benchmark-web-vitals' ), benchmarkWebVitalsOptions )
+	.description( 'Runs Web Vitals benchmarks for an URL' )
+	.action( catchException( benchmarkWebVitalsHandler ) );
 withOptions( program.command( 'wpt-metrics' ), wptMetricsOptions )
 	.description( 'Gets performance metrics for a WebPageTest result' )
 	.action( catchException( wptMetricsHandler ) );

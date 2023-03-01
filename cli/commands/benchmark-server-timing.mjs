@@ -19,14 +19,13 @@
 /**
  * External dependencies
  */
-import fs from 'fs';
-import readline from 'readline';
 import autocannon from 'autocannon';
 import round from 'lodash-es/round.js';
 
 /**
  * Internal dependencies
  */
+import { getURLs } from '../lib/cli/args.mjs';
 import {
 	log,
 	formats,
@@ -36,15 +35,10 @@ import {
 } from '../lib/cli/logger.mjs';
 import { calcMedian } from '../lib/util/math.mjs';
 
-/**
- * Example for how to use this command in a GitHub workflow:
- * https://gist.github.com/eugene-manuilov/7a2dded1cbe5e78ac51c39140e443c9b
- */
-
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'An URL to run benchmark tests for',
+		description: 'A URL to run benchmark tests for',
 	},
 	{
 		argname: '-c, --concurrency <concurrency>',
@@ -101,39 +95,8 @@ export async function handler( opt ) {
 	} else {
 		outputResults( opt, results );
 	}
-};
-
-/**
- * Generates URLs to benchmark based on command arguments. If both "<url>" and "<file>" arguments
- * are passed to the command, then both will be used to generate URLs.
- *
- * @param {BenchmarkCommandOptions} opt Command options.
- */
-async function* getURLs( opt ) {
-	if ( !! opt.url ) {
-		yield opt.url;
-	}
-
-	if ( !! opt.file ) {
-		const rl = readline.createInterface( {
-			input: fs.createReadStream( opt.file ),
-			crlfDelay: Infinity,
-		} );
-
-		for await ( const url of rl ) {
-			if ( url.length > 0 ) {
-				yield url;
-			}
-		}
-	}
 }
 
-/**
- * Benchmarks an URL and returns response time and server-timing metrics for every request.
- *
- * @param {BenchmarkOptions} params Benchmark parameters.
- * @return {BenchmarkResults} Response times and metrics arrays.
- */
 function benchmarkURL( params ) {
 	const metrics = {};
 	const responseTimes = [];
@@ -209,12 +172,6 @@ function getServerTimingMetricsFromHeaders( headers ) {
 	return {};
 }
 
-/**
- * Outputs results of benchmarking.
- *
- * @param {BenchmarkCommandOptions} opt     Command options.
- * @param {Array.<Array>}           results A collection of benchmark results for each URL.
- */
 function outputResults( opt, results ) {
 	const len = results.length;
 	const allMetricNames = {};
@@ -254,12 +211,5 @@ function outputResults( opt, results ) {
 		] );
 	}
 
-	log(
-		table(
-			headings,
-			tableData,
-			opt.output,
-			true
-		)
-	);
+	log( table( headings, tableData, opt.output, true ) );
 }
