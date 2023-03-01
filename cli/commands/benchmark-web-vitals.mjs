@@ -72,13 +72,10 @@ export async function handler( opt ) {
 	const browser = await puppeteer.launch();
 
 	for await ( const url of getURLs( opt ) ) {
-		const { completeRequests, metrics } = await benchmarkURL(
-			browser,
-			{
-				url,
-				amount,
-			}
-		);
+		const { completeRequests, metrics } = await benchmarkURL( browser, {
+			url,
+			amount,
+		} );
 
 		results.push( [ url, completeRequests, metrics ] );
 	}
@@ -128,20 +125,29 @@ async function benchmarkURL( browser, params ) {
 	let completeRequests = 0;
 	let requestNum = 0;
 
-	let scriptTag = `import { ${ Object.values( metricsDefinition ).map( ( value ) => value.listen ).join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
+	let scriptTag = `import { ${ Object.values( metricsDefinition )
+		.map( ( value ) => value.listen )
+		.join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
 	Object.values( metricsDefinition ).forEach( ( value ) => {
 		scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
-	} )
+	} );
 
 	for ( requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
 		await page.setViewport( { width: 960, height: 700 } );
-		await page.mainFrame().waitForFunction( 'window.innerWidth === 960 && window.innerHeight === 700' );
+		await page
+			.mainFrame()
+			.waitForFunction(
+				'window.innerWidth === 960 && window.innerHeight === 700'
+			);
 
 		// Load the page.
-		const response = await page.goto( `${ params.url }?rnd=${ requestNum }`, { waitUntil: 'networkidle0' } );
+		const response = await page.goto(
+			`${ params.url }?rnd=${ requestNum }`,
+			{ waitUntil: 'networkidle0' }
+		);
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 		if ( response.status() !== 200 ) {
@@ -153,7 +159,9 @@ async function benchmarkURL( browser, params ) {
 		await Promise.all(
 			Object.values( metricsDefinition ).map( async ( value ) => {
 				// Wait until global is populated.
-				await page.waitForFunction( `window.${ value.global } !== undefined` );
+				await page.waitForFunction(
+					`window.${ value.global } !== undefined`
+				);
 
 				/*
 				 * Do a random click, since only that triggers certain metrics
@@ -166,7 +174,9 @@ async function benchmarkURL( browser, params ) {
 				const metric = await page.evaluate( value.get );
 				value.results.push( metric );
 			} )
-		).catch( ( err ) => { /* Ignore errors. */ } );
+		).catch( () => {
+			/* Ignore errors. */
+		} );
 	}
 
 	const metrics = {};

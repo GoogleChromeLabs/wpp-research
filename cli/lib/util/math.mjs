@@ -28,6 +28,6 @@ export function calcMedian( values ) {
 	list.sort( ( a, b ) => b - a );
 
 	return len % 2 === 0
-		? ( list[ len / 2 ] + list[ ( len / 2 ) - 1 ] ) / 2
+		? ( list[ len / 2 ] + list[ len / 2 - 1 ] ) / 2
 		: list[ Math.floor( len / 2 ) ];
 }
