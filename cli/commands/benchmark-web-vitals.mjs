@@ -39,7 +39,7 @@ import { KEY_PERCENTILES, MEDIAN_PERCENTILES } from '../lib/util/percentiles.mjs
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'An URL to run benchmark tests for',
+		description: 'A URL to run benchmark tests for',
 	},
 	{
 		argname: '-n, --number <number>',
