@@ -25,10 +25,7 @@ import { Command } from 'commander';
 /**
  * Internal dependencies
  */
-import {
-	log,
-	formats,
-} from './lib/cli/logger.mjs';
+import { log, formats } from './lib/cli/logger.mjs';
 import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
@@ -70,10 +67,16 @@ const catchException = ( handler ) => {
 	};
 };
 
-withOptions( program.command( 'benchmark-server-timing' ), benchmarkServerTimingOptions )
+withOptions(
+	program.command( 'benchmark-server-timing' ),
+	benchmarkServerTimingOptions
+)
 	.description( 'Runs Server Timing benchmarks for an URL' )
 	.action( catchException( benchmarkServerTimingHandler ) );
-withOptions( program.command( 'benchmark-web-vitals' ), benchmarkWebVitalsOptions )
+withOptions(
+	program.command( 'benchmark-web-vitals' ),
+	benchmarkWebVitalsOptions
+)
 	.description( 'Runs Web Vitals benchmarks for an URL' )
 	.action( catchException( benchmarkWebVitalsHandler ) );
 withOptions( program.command( 'wpt-metrics' ), wptMetricsOptions )

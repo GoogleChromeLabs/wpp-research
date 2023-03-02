@@ -29,7 +29,9 @@ export function isTestId( testId ) {
 }
 
 export function getTestIdFromResultUrl( resultUrl ) {
-	const match = resultUrl.match( /^https:\/\/www.webpagetest.org\/result\/([A-Za-z0-9_]+)/ );
+	const match = resultUrl.match(
+		/^https:\/\/www.webpagetest.org\/result\/([A-Za-z0-9_]+)/
+	);
 	if ( ! match || ! match[ 1 ] ) {
 		throw new Error( 'Invalid WebPageTest result URL.' );
 	}
@@ -41,7 +43,9 @@ export function getResultUrlForTestId( testId ) {
 }
 
 export function getJsonResultUrlForTestId( testId, pretty ) {
-	return `https://www.webpagetest.org/jsonResult.php?test=${ testId }${ pretty ? '&pretty=1' : '' }`;
+	return `https://www.webpagetest.org/jsonResult.php?test=${ testId }${
+		pretty ? '&pretty=1' : ''
+	}`;
 }
 
 export async function getResultJson( testId ) {
@@ -50,7 +54,8 @@ export async function getResultJson( testId ) {
 		throw new Error( 'Invalid result response' );
 	}
 	if ( result.statusCode !== 200 ) {
-		const errorPrefix = result.statusCode === 100 ? 'Test not completed yet: ' : '';
+		const errorPrefix =
+			result.statusCode === 100 ? 'Test not completed yet: ' : '';
 		throw new Error( `${ errorPrefix }${ result.statusText }` );
 	}
 	return result.data;
@@ -71,11 +76,13 @@ function createGetSingleMetricValue_( metric ) {
 		case 'LCP':
 		case 'lcp':
 		case 'Largest Contentful Paint':
-			return ( run ) => run.firstView['chromeUserTiming.LargestContentfulPaint'];
+			return ( run ) =>
+				run.firstView[ 'chromeUserTiming.LargestContentfulPaint' ];
 		case 'CLS':
 		case 'cls':
 		case 'Cumulative Layout Shift':
-			return ( run ) => run.firstView['chromeUserTiming.CumulativeLayoutShift'];
+			return ( run ) =>
+				run.firstView[ 'chromeUserTiming.CumulativeLayoutShift' ];
 		case 'TBT':
 		case 'tbt':
 		case 'Total Blocking Time':
@@ -143,9 +150,13 @@ function createGetSingleMetricValue_( metric ) {
 			const stHeader = getServerTimingHeader( run );
 			const stIndex = stHeader.indexOf( `${ stMetric };dur=` );
 			if ( stIndex < 0 ) {
-				throw new Error( `Server-Timing metric ${ stMetric } not present in run` );
+				throw new Error(
+					`Server-Timing metric ${ stMetric } not present in run`
+				);
 			}
-			let stValue = stHeader.substring( stIndex + `${ stMetric };dur=`.length );
+			let stValue = stHeader.substring(
+				stIndex + `${ stMetric };dur=`.length
+			);
 			const nextIndex = stValue.indexOf( ',' );
 			if ( nextIndex >= 0 ) {
 				stValue = stValue.substring( 0, nextIndex );
@@ -168,11 +179,11 @@ function createGetMetricValue_( metric ) {
 		return first.trim();
 	} );
 
-	const toAddCallbacks = toAdd.map( ( metric ) => {
-		return createGetSingleMetricValue_( metric );
+	const toAddCallbacks = toAdd.map( ( m ) => {
+		return createGetSingleMetricValue_( m );
 	} );
-	const toSubtractCallbacks = toSubtract.map( ( metric ) => {
-		return createGetSingleMetricValue_( metric );
+	const toSubtractCallbacks = toSubtract.map( ( m ) => {
+		return createGetSingleMetricValue_( m );
 	} );
 
 	// Simple scenario of just one metric.
@@ -181,9 +192,16 @@ function createGetMetricValue_( metric ) {
 	}
 
 	return ( run ) => {
-		const toAddValues = toAddCallbacks.map( ( getValue ) => getValue( run ) );
-		const toSubtractValues = toSubtractCallbacks.map( ( getValue ) => getValue( run ) );
-		if ( toAddValues.includes( undefined ) || toSubtractValues.includes( undefined ) ) {
+		const toAddValues = toAddCallbacks.map( ( getValue ) =>
+			getValue( run )
+		);
+		const toSubtractValues = toSubtractCallbacks.map( ( getValue ) =>
+			getValue( run )
+		);
+		if (
+			toAddValues.includes( undefined ) ||
+			toSubtractValues.includes( undefined )
+		) {
 			return undefined;
 		}
 		let total = 0;
@@ -199,12 +217,20 @@ function createGetMetricValue_( metric ) {
 
 function createGetResponseHeader_( headerName ) {
 	return ( run ) => {
-		if ( ! run.firstView.requests.length || ! run.firstView.requests[ 0 ].headers.response.length ) {
+		if (
+			! run.firstView.requests.length ||
+			! run.firstView.requests[ 0 ].headers.response.length
+		) {
 			throw new Error( 'No response headers found' );
 		}
-		const st = run.firstView.requests[ 0 ].headers.response.find( ( header ) => {
-			return header.startsWith( `${ headerName }: ` ) || header.startsWith( `${ headerName.toLowerCase() }: ` );
-		} );
+		const st = run.firstView.requests[ 0 ].headers.response.find(
+			( header ) => {
+				return (
+					header.startsWith( `${ headerName }: ` ) ||
+					header.startsWith( `${ headerName.toLowerCase() }: ` )
+				);
+			}
+		);
 		if ( ! st ) {
 			throw new Error( `No response header ${ headerName } found` );
 		}
@@ -216,7 +242,9 @@ export function mergeResultMetrics( percentiles, ...resultMetrics ) {
 	const merged = resultMetrics.reduce(
 		( acc, metric ) => {
 			if ( metric.name !== acc.name ) {
-				throw new Error( `Cannot merge metric ${ metric.name } into metric ${ acc.name }` );
+				throw new Error(
+					`Cannot merge metric ${ metric.name } into metric ${ acc.name }`
+				);
 			}
 
 			acc.runs = [ ...acc.runs, ...metric.runs ];
@@ -288,7 +316,9 @@ export function getResultServerTiming( percentiles, result ) {
 		stValue = stValue.trim();
 		const sepIndex = stValue.indexOf( ';' );
 		if ( sepIndex < 0 ) {
-			throw new Error( `Invalid Server-Timing header ${ stHeaders[ 0 ] }` );
+			throw new Error(
+				`Invalid Server-Timing header ${ stHeaders[ 0 ] }`
+			);
 		}
 		const name = stValue.substring( 0, sepIndex );
 		metrics[ name ] = {
@@ -307,7 +337,9 @@ export function getResultServerTiming( percentiles, result ) {
 			const name = parts[ 0 ].trim();
 			const value = parts[ 1 ].replace( 'dur=', '' ).trim();
 			if ( ! metrics[ name ] ) {
-				throw new Error( `Invalid Server-Timing header: Metric ${ name } not present in every run` );
+				throw new Error(
+					`Invalid Server-Timing header: Metric ${ name } not present in every run`
+				);
 			}
 			metrics[ name ].runs.push( parseFloat( value ) );
 		} );
@@ -315,7 +347,9 @@ export function getResultServerTiming( percentiles, result ) {
 
 	return Object.values( metrics ).map( ( metric ) => {
 		if ( metric.runs.length !== result.testRuns ) {
-			throw new Error( `Invalid Server-Timing header: Metric ${ metric.name } not present in every run` );
+			throw new Error(
+				`Invalid Server-Timing header: Metric ${ metric.name } not present in every run`
+			);
 		}
 
 		const data = { ...metric };
