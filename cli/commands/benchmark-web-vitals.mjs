@@ -34,7 +34,10 @@ import {
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
 import { calcPercentile } from '../lib/util/math.mjs';
-import { KEY_PERCENTILES, MEDIAN_PERCENTILES } from '../lib/util/percentiles.mjs';
+import {
+	KEY_PERCENTILES,
+	MEDIAN_PERCENTILES,
+} from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
@@ -57,7 +60,8 @@ export const options = [
 	},
 	{
 		argname: '-p, --show-percentiles',
-		description: 'Whether to show more granular percentiles instead of only the median',
+		description:
+			'Whether to show more granular percentiles instead of only the median',
 	},
 ];
 
@@ -204,12 +208,11 @@ function outputResults( opt, results ) {
 		}
 	}
 
-	const percentiles = opt.showPercentiles ? KEY_PERCENTILES : MEDIAN_PERCENTILES;
+	const percentiles = opt.showPercentiles
+		? KEY_PERCENTILES
+		: MEDIAN_PERCENTILES;
 
-	const headings = [
-		'URL',
-		'Success Rate',
-	];
+	const headings = [ 'URL', 'Success Rate' ];
 
 	/*
 	 * Alternatively to the if-else below, we could simply iterate through
@@ -237,16 +240,18 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const tableRow = [
-			url,
-			`${ completionRate }%`,
-		];
+		const tableRow = [ url, `${ completionRate }%` ];
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			percentiles.forEach( ( percentile ) => {
 				if ( ! metrics[ metricName ] ) {
 					tableRow.push( '' );
 				} else {
-					tableRow.push( round( calcPercentile( percentile, metrics[ metricName ] ), 2 ) );
+					tableRow.push(
+						round(
+							calcPercentile( percentile, metrics[ metricName ] ),
+							2
+						)
+					);
 				}
 			} );
 		} );

@@ -37,7 +37,10 @@ import {
 	getResultServerTiming,
 	mergeResultMetrics,
 } from '../lib/wpt/result.mjs';
-import { KEY_PERCENTILES, MEDIAN_PERCENTILES } from '../lib/util/percentiles.mjs';
+import {
+	KEY_PERCENTILES,
+	MEDIAN_PERCENTILES,
+} from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
@@ -53,7 +56,8 @@ export const options = [
 	},
 	{
 		argname: '-p, --show-percentiles',
-		description: 'Whether to show more granular percentiles instead of only the median',
+		description:
+			'Whether to show more granular percentiles instead of only the median',
 	},
 	{
 		argname: '-i, --include-runs',
@@ -115,12 +119,21 @@ export async function handler( opt ) {
 
 	let headings, parseTableData;
 	if ( showPercentiles && includeRuns ) {
-		headings = [ 'Metric', ...percentiles.map( percentile => `p${ percentile }` ) ];
+		headings = [
+			'Metric',
+			...percentiles.map( ( percentile ) => `p${ percentile }` ),
+		];
 		for ( let i = 0; i < accTestRuns; i++ ) {
 			headings.push( `Run ${ i + 1 }` );
 		}
 		parseTableData = ( metric ) => {
-			return [ metric.name, ...percentiles.map( percentile => round( metric[ `p${ percentile }` ], 2 ) ), ...metric.runs ];
+			return [
+				metric.name,
+				...percentiles.map( ( percentile ) =>
+					round( metric[ `p${ percentile }` ], 2 )
+				),
+				...metric.runs,
+			];
 		};
 	} else if ( includeRuns ) {
 		headings = [ 'Metric', 'Median' ];
@@ -131,9 +144,17 @@ export async function handler( opt ) {
 			return [ metric.name, round( metric.p50, 2 ), ...metric.runs ];
 		};
 	} else if ( showPercentiles ) {
-		headings = [ 'Metric', ...percentiles.map( percentile => `p${ percentile }` ) ];
+		headings = [
+			'Metric',
+			...percentiles.map( ( percentile ) => `p${ percentile }` ),
+		];
 		parseTableData = ( metric ) => {
-			return [ metric.name, ...percentiles.map( percentile => round( metric[ `p${ percentile }` ], 2 ) ) ];
+			return [
+				metric.name,
+				...percentiles.map( ( percentile ) =>
+					round( metric[ `p${ percentile }` ], 2 )
+				),
+			];
 		};
 	} else {
 		headings = [ 'Metric', 'Median' ];

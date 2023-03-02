@@ -257,7 +257,10 @@ export function mergeResultMetrics( percentiles, ...resultMetrics ) {
 	);
 
 	percentiles.forEach( ( percentile ) => {
-		merged[ `p${ percentile }` ] = calcPercentile( percentile, merged.runs );
+		merged[ `p${ percentile }` ] = calcPercentile(
+			percentile,
+			merged.runs
+		);
 	} );
 
 	return merged;
@@ -354,7 +357,10 @@ export function getResultServerTiming( percentiles, result ) {
 
 		const data = { ...metric };
 		percentiles.forEach( ( percentile ) => {
-			data[ `p${ percentile }` ] = calcPercentile( percentile, metric.runs );
+			data[ `p${ percentile }` ] = calcPercentile(
+				percentile,
+				metric.runs
+			);
 		} );
 		return data;
 	} );

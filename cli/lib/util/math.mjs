@@ -46,7 +46,7 @@ export function calcPercentile( percentile, values ) {
 	// Otherwise use the weighted value from between the two surrounding indexes.
 	const lowerIndex = Math.floor( index );
 	const upperIndex = lowerIndex + 1;
-	const weight     = index % 1;
+	const weight = index % 1;
 	return list[ lowerIndex ] * ( 1 - weight ) + list[ upperIndex ] * weight;
 }
 
