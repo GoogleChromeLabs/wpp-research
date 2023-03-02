@@ -126,7 +126,7 @@ benchmark-server-timing -f path/to/urls.txt -n 5
 
 ### `benchmark-web-vitals`
 
-Loads the provided URLs in a headless browser several times to measure median Web Vitals metrics for each URL. Currently the results cover load time metrics FCP, LCP, and TTFB. Including additional metrics is explored in a [follow up pull request](https://github.com/GoogleChromeLabs/wpp-research/pull/41).
+Loads the provided URLs in a headless browser several times to measure median Web Vitals metrics for each URL. Currently the results cover metrics CLS, FCP, FID, INP, LCP, and TTFB.
 
 #### Arguments
 

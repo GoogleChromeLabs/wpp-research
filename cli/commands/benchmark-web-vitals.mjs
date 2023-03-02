@@ -97,18 +97,29 @@ export async function handler( opt ) {
 }
 
 async function benchmarkURL( browser, params ) {
-	/*
-	 * For now this only includes load time metrics.
-	 * In the future, additional Web Vitals like CLS, FID, and INP should be
-	 * added, however they are slightly more complex to retrieve through an
-	 * automated headless browser test.
-	 * See https://github.com/GoogleChromeLabs/wpp-research/pull/41.
-	 */
 	const metricsDefinition = {
+		CLS: {
+			listen: 'onCLS',
+			global: 'webVitalsCLS',
+			get: () => window.webVitalsCLS,
+			results: [],
+		},
 		FCP: {
 			listen: 'onFCP',
 			global: 'webVitalsFCP',
 			get: () => window.webVitalsFCP,
+			results: [],
+		},
+		FID: {
+			listen: 'onFID',
+			global: 'webVitalsFID',
+			get: () => window.webVitalsFID,
+			results: [],
+		},
+		INP: {
+			listen: 'onINP',
+			global: 'webVitalsINP',
+			get: () => window.webVitalsINP,
 			results: [],
 		},
 		LCP: {
