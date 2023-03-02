@@ -21,7 +21,7 @@
  */
 import chalk from 'chalk';
 import { table as formatTable } from 'table';
-import { stringify as formatCsv } from 'csv-stringify/sync';
+import { stringify as formatCsv } from 'csv-stringify/sync'; // eslint-disable-line import/no-unresolved
 
 export const log = console.log; // eslint-disable-line no-console
 
