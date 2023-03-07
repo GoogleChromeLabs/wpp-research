@@ -20,7 +20,7 @@
  * Internal dependencies
  */
 import { fetchJson } from '../util/fetch.mjs';
-import { calcMedian } from '../util/math.mjs';
+import { calcPercentile } from '../util/math.mjs';
 
 let getServerTimingHeader;
 
@@ -238,7 +238,7 @@ function createGetResponseHeader_( headerName ) {
 	};
 }
 
-export function mergeResultMetrics( ...resultMetrics ) {
+export function mergeResultMetrics( percentiles, ...resultMetrics ) {
 	const merged = resultMetrics.reduce(
 		( acc, metric ) => {
 			if ( metric.name !== acc.name ) {
@@ -252,16 +252,21 @@ export function mergeResultMetrics( ...resultMetrics ) {
 		},
 		{
 			name: resultMetrics[ 0 ].name,
-			median: 0,
 			runs: [],
 		}
 	);
 
-	merged.median = calcMedian( merged.runs );
+	percentiles.forEach( ( percentile ) => {
+		merged[ `p${ percentile }` ] = calcPercentile(
+			percentile,
+			merged.runs
+		);
+	} );
+
 	return merged;
 }
 
-export function getResultMetrics( result, ...metrics ) {
+export function getResultMetrics( percentiles, result, ...metrics ) {
 	if ( ! metrics || ! metrics.length ) {
 		return [];
 	}
@@ -289,15 +294,18 @@ export function getResultMetrics( result, ...metrics ) {
 			values.push( value );
 		} );
 
-		return {
+		const data = {
 			name: metric,
-			median: calcMedian( values ),
 			runs: values,
 		};
+		percentiles.forEach( ( percentile ) => {
+			data[ `p${ percentile }` ] = calcPercentile( percentile, values );
+		} );
+		return data;
 	} );
 }
 
-export function getResultServerTiming( result ) {
+export function getResultServerTiming( percentiles, result ) {
 	const runs = getResultRuns_( result );
 	if ( ! getServerTimingHeader ) {
 		getServerTimingHeader = createGetResponseHeader_( 'Server-Timing' );
@@ -318,7 +326,6 @@ export function getResultServerTiming( result ) {
 		const name = stValue.substring( 0, sepIndex );
 		metrics[ name ] = {
 			name,
-			median: 0,
 			runs: [],
 		};
 	} );
@@ -348,9 +355,13 @@ export function getResultServerTiming( result ) {
 			);
 		}
 
-		return {
-			...metric,
-			median: calcMedian( metric.runs ),
-		};
+		const data = { ...metric };
+		percentiles.forEach( ( percentile ) => {
+			data[ `p${ percentile }` ] = calcPercentile(
+				percentile,
+				metric.runs
+			);
+		} );
+		return data;
 	} );
 }

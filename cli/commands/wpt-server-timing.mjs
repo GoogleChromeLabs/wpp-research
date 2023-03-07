@@ -17,6 +17,11 @@
  */
 
 /**
+ * External dependencies
+ */
+import round from 'lodash-es/round.js';
+
+/**
  * Internal dependencies
  */
 import {
@@ -32,6 +37,10 @@ import {
 	getResultServerTiming,
 	mergeResultMetrics,
 } from '../lib/wpt/result.mjs';
+import {
+	KEY_PERCENTILES,
+	MEDIAN_PERCENTILES,
+} from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
@@ -46,6 +55,11 @@ export const options = [
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 	{
+		argname: '-p, --show-percentiles',
+		description:
+			'Whether to show more granular percentiles instead of only the median',
+	},
+	{
 		argname: '-i, --include-runs',
 		description: 'Whether to also show the full results for all runs',
 	},
@@ -56,7 +70,7 @@ export const options = [
 ];
 
 export async function handler( opt ) {
-	const { test, format, includeRuns, rowsAsColumns } = opt;
+	const { test, format, showPercentiles, includeRuns, rowsAsColumns } = opt;
 
 	let testIds;
 	try {
@@ -75,52 +89,84 @@ export async function handler( opt ) {
 		return;
 	}
 
+	const percentiles = showPercentiles ? KEY_PERCENTILES : MEDIAN_PERCENTILES;
+
 	// Usually only one test ID is passed, but multiple are supported. This can be useful to merge results from
 	// multiple WebPageTest tests, typically with similar configuration, to get more than 9 test runs.
 	let accTestRuns = 0;
-	const accMedianMetrics = {};
+	const accResultMetrics = {};
 	await Promise.all(
 		testIds.map( async ( testId ) => {
 			const result = await getResultJson( testId );
-			const medianMetrics = getResultServerTiming( result );
+			const resultMetrics = getResultServerTiming( percentiles, result );
 
 			accTestRuns += result.testRuns;
-			medianMetrics.forEach( ( metric ) => {
-				if ( ! accMedianMetrics[ metric.name ] ) {
-					accMedianMetrics[ metric.name ] = [];
+			resultMetrics.forEach( ( metric ) => {
+				if ( ! accResultMetrics[ metric.name ] ) {
+					accResultMetrics[ metric.name ] = [];
 				}
-				accMedianMetrics[ metric.name ].push( metric );
+				accResultMetrics[ metric.name ].push( metric );
 			} );
 		} )
 	);
-	const mergedMedianMetrics = Object.values( accMedianMetrics ).map(
-		( medianMetrics ) => {
-			return medianMetrics.length > 1
-				? mergeResultMetrics( ...medianMetrics )
-				: medianMetrics.shift();
+	const mergedResultMetrics = Object.values( accResultMetrics ).map(
+		( resultMetrics ) => {
+			return resultMetrics.length > 1
+				? mergeResultMetrics( percentiles, ...resultMetrics )
+				: resultMetrics.shift();
 		}
 	);
 
 	let headings, parseTableData;
-	if ( includeRuns ) {
+	if ( showPercentiles && includeRuns ) {
+		headings = [
+			'Metric',
+			...percentiles.map( ( percentile ) => `p${ percentile }` ),
+		];
+		for ( let i = 0; i < accTestRuns; i++ ) {
+			headings.push( `Run ${ i + 1 }` );
+		}
+		parseTableData = ( metric ) => {
+			return [
+				metric.name,
+				...percentiles.map( ( percentile ) =>
+					round( metric[ `p${ percentile }` ], 2 )
+				),
+				...metric.runs,
+			];
+		};
+	} else if ( includeRuns ) {
 		headings = [ 'Metric', 'Median' ];
 		for ( let i = 0; i < accTestRuns; i++ ) {
 			headings.push( `Run ${ i + 1 }` );
 		}
 		parseTableData = ( metric ) => {
-			return [ metric.name, metric.median, ...metric.runs ];
+			return [ metric.name, round( metric.p50, 2 ), ...metric.runs ];
+		};
+	} else if ( showPercentiles ) {
+		headings = [
+			'Metric',
+			...percentiles.map( ( percentile ) => `p${ percentile }` ),
+		];
+		parseTableData = ( metric ) => {
+			return [
+				metric.name,
+				...percentiles.map( ( percentile ) =>
+					round( metric[ `p${ percentile }` ], 2 )
+				),
+			];
 		};
 	} else {
 		headings = [ 'Metric', 'Median' ];
 		parseTableData = ( metric ) => {
-			return [ metric.name, metric.median ];
+			return [ metric.name, round( metric.p50, 2 ) ];
 		};
 	}
 
 	log(
 		table(
 			headings,
-			mergedMedianMetrics.map( parseTableData ),
+			mergedResultMetrics.map( parseTableData ),
 			format,
 			rowsAsColumns
 		)

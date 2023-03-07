@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-export function calcMedian( values ) {
+export function calcPercentile( percentile, values ) {
 	const notNullValues = values.filter( ( value ) => value !== null );
 
 	const len = notNullValues.length;
@@ -24,10 +24,32 @@ export function calcMedian( values ) {
 		return 0;
 	}
 
+	// Sort values with the lowest first.
 	const list = [ ...notNullValues ];
-	list.sort( ( a, b ) => b - a );
+	list.sort( ( a, b ) => a - b );
 
-	return len % 2 === 0
-		? ( list[ len / 2 ] + list[ len / 2 - 1 ] ) / 2
-		: list[ Math.floor( len / 2 ) ];
+	if ( percentile <= 0 ) {
+		return list[ 0 ];
+	}
+	if ( percentile >= 100 ) {
+		return list[ len - 1 ];
+	}
+
+	// Get the index of the highest value in the percentile.
+	const index = ( percentile / 100 ) * ( len - 1 );
+
+	// If index is a whole number, return that value directly.
+	if ( index % 1 === 0 ) {
+		return list[ index ];
+	}
+
+	// Otherwise use the weighted value from between the two surrounding indexes.
+	const lowerIndex = Math.floor( index );
+	const upperIndex = lowerIndex + 1;
+	const weight = index % 1;
+	return list[ lowerIndex ] * ( 1 - weight ) + list[ upperIndex ] * weight;
+}
+
+export function calcMedian( values ) {
+	return calcPercentile( 50, values );
 }

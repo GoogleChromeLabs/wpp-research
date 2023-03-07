@@ -33,7 +33,11 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcMedian } from '../lib/util/math.mjs';
+import { calcPercentile } from '../lib/util/math.mjs';
+import {
+	KEY_PERCENTILES,
+	MEDIAN_PERCENTILES,
+} from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
@@ -58,6 +62,11 @@ export const options = [
 		argname: '-o, --output <output>',
 		description: 'Output format: csv or table',
 		defaults: OUTPUT_FORMAT_TABLE,
+	},
+	{
+		argname: '-p, --show-percentiles',
+		description:
+			'Whether to show more granular percentiles instead of only the median',
 	},
 ];
 
@@ -182,12 +191,32 @@ function outputResults( opt, results ) {
 		}
 	}
 
-	const headings = [
-		'URL',
-		'Success Rate',
-		'Response Time',
-		...Object.keys( allMetricNames ),
-	];
+	const percentiles = opt.showPercentiles
+		? KEY_PERCENTILES
+		: MEDIAN_PERCENTILES;
+
+	const headings = [ 'URL', 'Success Rate' ];
+
+	/*
+	 * Alternatively to the if-else below, we could simply iterate through
+	 * the percentiles unconditionally, however in case of median we should
+	 * rather use the easier-to-understand "(median)" label.
+	 */
+	if ( opt.showPercentiles ) {
+		percentiles.forEach( ( percentile ) => {
+			headings.push( `Response Time (p${ percentile })` );
+		} );
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				headings.push( `${ metricName } (p${ percentile })` );
+			} );
+		} );
+	} else {
+		headings.push( 'Response Time (median)' );
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			headings.push( `${ metricName } (median)` );
+		} );
+	}
 
 	const tableData = [];
 
@@ -198,17 +227,29 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const vals = { ...allMetricNames };
-		for ( const metric of Object.keys( metrics ) ) {
-			vals[ metric ] = `${ round( calcMedian( metrics[ metric ] ), 2 ) }`;
-		}
-
-		tableData.push( [
+		const tableRow = [
 			url,
 			`${ completionRate }%`,
-			round( calcMedian( responseTimes ), 2 ),
-			...Object.values( vals ),
-		] );
+			...percentiles.map( ( percentile ) =>
+				round( calcPercentile( percentile, responseTimes ), 2 )
+			),
+		];
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				if ( ! metrics[ metricName ] ) {
+					tableRow.push( '' );
+				} else {
+					tableRow.push(
+						round(
+							calcPercentile( percentile, metrics[ metricName ] ),
+							2
+						)
+					);
+				}
+			} );
+		} );
+
+		tableData.push( tableRow );
 	}
 
 	log( table( headings, tableData, opt.output, true ) );
