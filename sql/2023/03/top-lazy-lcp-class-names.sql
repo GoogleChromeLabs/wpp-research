@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/45
 CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING LANGUAGE js AS '''
   try {
     const data = JSON.parse(attributes);
