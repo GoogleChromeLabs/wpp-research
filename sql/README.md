@@ -18,6 +18,9 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/03
+* [Top class names used on lazy loaded LCP images](./2023/03/top-lazy-lcp-class-names.sql)
+
 ### 2023/01
 
 * [% of WordPress sites that lazy-load their LCP image](./2023/01/lazyloaded-lcp-opportunity.sql)
