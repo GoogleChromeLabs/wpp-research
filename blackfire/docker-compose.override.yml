@@ -32,7 +32,7 @@ services:
   # The PHP container.
   ##
   php:
-    image: spacedmonkey/wpdev-docker-images-blackfire:${LOCAL_PHP-latest}
+    image: spacedmonkey/php-blackfire:${LOCAL_PHP-latest}
     networks:
       - wpdevnet
 
