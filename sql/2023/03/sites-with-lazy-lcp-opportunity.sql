@@ -27,6 +27,7 @@ CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING
 
 WITH lazypress AS (
   SELECT
+    client,
     page,
     getAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes'), 'loading') = 'lazy' AS native_lazy,
     getAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes'), 'class') AS class,
@@ -36,34 +37,45 @@ WITH lazypress AS (
     UNNEST(technologies) AS t
   WHERE
     date = '2023-02-01' AND
-    client = 'desktop' AND
     is_root_page AND
     t.technology = 'WordPress'
 ),
 
 lazy_loaded_lcp AS (
   SELECT
+    client,
     COUNT(DISTINCT page) AS total
   FROM
     lazypress
   WHERE
     img_lcp
     AND native_lazy
+  GROUP BY
+    client
 ),
 
 total_lcp AS (
   SELECT
+    client,
     COUNT(DISTINCT page) AS total
   FROM
     lazypress
   WHERE
     img_lcp
+  GROUP BY
+    client
 )
 
 SELECT
+  client,
   lazy_loaded_lcp.total AS lazy_loaded_lcp,
   total_lcp.total AS total_lcp,
   lazy_loaded_lcp.total / total_lcp.total AS pct_lazy_loaded
 FROM
-  lazy_loaded_lcp,
+  lazy_loaded_lcp
+JOIN
   total_lcp
+USING
+  (client)
+ORDER BY
+  client ASC
