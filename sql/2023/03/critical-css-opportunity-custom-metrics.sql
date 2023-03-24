@@ -1,4 +1,4 @@
-# HTTP Archive query to get % of WordPress sites not having Critical CSS implementation.
+# HTTP Archive query to get % of WordPress sites not having Critical CSS implementation via custom metrics.
 #
 # WPP Research, Copyright 2023 Google LLC
 #
