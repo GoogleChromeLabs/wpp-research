@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/16
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/25
 SELECT
   client,
   total_wp_sites,
