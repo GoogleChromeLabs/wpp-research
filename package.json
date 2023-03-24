@@ -10,10 +10,11 @@
     "csv-stringify": "^6.2.0",
     "lodash-es": "4.17.21",
     "node-fetch": "^3.3.0",
+    "puppeteer": "^19",
     "table": "^6.8.0"
   },
   "scripts": {
-    "format": "wp-scripts format ./cli/**/*.mjs",
+    "format": "wp-scripts format ./cli/*.mjs ./cli/**/*.mjs ./cli/**/**/*.mjs",
     "lint": "wp-scripts lint-js ./cli --ext mjs",
     "research": "./cli/run.mjs"
   }

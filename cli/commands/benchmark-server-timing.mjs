@@ -19,14 +19,13 @@
 /**
  * External dependencies
  */
-import fs from 'fs';
-import readline from 'readline';
 import autocannon from 'autocannon';
 import round from 'lodash-es/round.js';
 
 /**
  * Internal dependencies
  */
+import { getURLs } from '../lib/cli/args.mjs';
 import {
 	log,
 	formats,
@@ -34,17 +33,16 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcMedian } from '../lib/util/math.mjs';
-
-/**
- * Example for how to use this command in a GitHub workflow:
- * https://gist.github.com/eugene-manuilov/7a2dded1cbe5e78ac51c39140e443c9b
- */
+import { calcPercentile } from '../lib/util/math.mjs';
+import {
+	KEY_PERCENTILES,
+	MEDIAN_PERCENTILES,
+} from '../lib/util/percentiles.mjs';
 
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'An URL to run benchmark tests for',
+		description: 'A URL to run benchmark tests for',
 	},
 	{
 		argname: '-c, --concurrency <concurrency>',
@@ -64,6 +62,11 @@ export const options = [
 		argname: '-o, --output <output>',
 		description: 'Output format: csv or table',
 		defaults: OUTPUT_FORMAT_TABLE,
+	},
+	{
+		argname: '-p, --show-percentiles',
+		description:
+			'Whether to show more granular percentiles instead of only the median',
 	},
 ];
 
@@ -101,39 +104,8 @@ export async function handler( opt ) {
 	} else {
 		outputResults( opt, results );
 	}
-};
-
-/**
- * Generates URLs to benchmark based on command arguments. If both "<url>" and "<file>" arguments
- * are passed to the command, then both will be used to generate URLs.
- *
- * @param {BenchmarkCommandOptions} opt Command options.
- */
-async function* getURLs( opt ) {
-	if ( !! opt.url ) {
-		yield opt.url;
-	}
-
-	if ( !! opt.file ) {
-		const rl = readline.createInterface( {
-			input: fs.createReadStream( opt.file ),
-			crlfDelay: Infinity,
-		} );
-
-		for await ( const url of rl ) {
-			if ( url.length > 0 ) {
-				yield url;
-			}
-		}
-	}
 }
 
-/**
- * Benchmarks an URL and returns response time and server-timing metrics for every request.
- *
- * @param {BenchmarkOptions} params Benchmark parameters.
- * @return {BenchmarkResults} Response times and metrics arrays.
- */
 function benchmarkURL( params ) {
 	const metrics = {};
 	const responseTimes = [];
@@ -209,12 +181,6 @@ function getServerTimingMetricsFromHeaders( headers ) {
 	return {};
 }
 
-/**
- * Outputs results of benchmarking.
- *
- * @param {BenchmarkCommandOptions} opt     Command options.
- * @param {Array.<Array>}           results A collection of benchmark results for each URL.
- */
 function outputResults( opt, results ) {
 	const len = results.length;
 	const allMetricNames = {};
@@ -225,12 +191,32 @@ function outputResults( opt, results ) {
 		}
 	}
 
-	const headings = [
-		'URL',
-		'Success Rate',
-		'Response Time',
-		...Object.keys( allMetricNames ),
-	];
+	const percentiles = opt.showPercentiles
+		? KEY_PERCENTILES
+		: MEDIAN_PERCENTILES;
+
+	const headings = [ 'URL', 'Success Rate' ];
+
+	/*
+	 * Alternatively to the if-else below, we could simply iterate through
+	 * the percentiles unconditionally, however in case of median we should
+	 * rather use the easier-to-understand "(median)" label.
+	 */
+	if ( opt.showPercentiles ) {
+		percentiles.forEach( ( percentile ) => {
+			headings.push( `Response Time (p${ percentile })` );
+		} );
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				headings.push( `${ metricName } (p${ percentile })` );
+			} );
+		} );
+	} else {
+		headings.push( 'Response Time (median)' );
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			headings.push( `${ metricName } (median)` );
+		} );
+	}
 
 	const tableData = [];
 
@@ -241,25 +227,30 @@ function outputResults( opt, results ) {
 			1
 		);
 
-		const vals = { ...allMetricNames };
-		for ( const metric of Object.keys( metrics ) ) {
-			vals[ metric ] = `${ round( calcMedian( metrics[ metric ] ), 2 ) }`;
-		}
-
-		tableData.push( [
+		const tableRow = [
 			url,
 			`${ completionRate }%`,
-			round( calcMedian( responseTimes ), 2 ),
-			...Object.values( vals ),
-		] );
+			...percentiles.map( ( percentile ) =>
+				round( calcPercentile( percentile, responseTimes ), 2 )
+			),
+		];
+		Object.keys( allMetricNames ).forEach( ( metricName ) => {
+			percentiles.forEach( ( percentile ) => {
+				if ( ! metrics[ metricName ] ) {
+					tableRow.push( '' );
+				} else {
+					tableRow.push(
+						round(
+							calcPercentile( percentile, metrics[ metricName ] ),
+							2
+						)
+					);
+				}
+			} );
+		} );
+
+		tableData.push( tableRow );
 	}
 
-	log(
-		table(
-			headings,
-			tableData,
-			opt.output,
-			true
-		)
-	);
+	log( table( headings, tableData, opt.output, true ) );
 }
