@@ -36,4 +36,3 @@ FROM (
     JSON_EXTRACT(pages.payload, '$._detected_apps.WordPress') IS NOT NULL
   GROUP BY
     pages._TABLE_SUFFIX )
-
