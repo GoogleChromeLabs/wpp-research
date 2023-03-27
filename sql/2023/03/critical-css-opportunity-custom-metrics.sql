@@ -1,4 +1,4 @@
-# HTTP Archive query to get % of WordPress sites not having Critical CSS implementation.
+# HTTP Archive query to get % of WordPress sites not having Critical CSS implementation via custom metrics.
 #
 # WPP Research, Copyright 2023 Google LLC
 #
@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/25
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/38
 SELECT
   client,
   total_wp_sites,
@@ -25,10 +25,13 @@ FROM (
   SELECT
     pages._TABLE_SUFFIX AS client,
     COUNT(pages.url) AS total_wp_sites,
-    COUNTIF( CAST(JSON_EXTRACT_SCALAR(payload, '$._renderBlockingCSS') AS INT64) = 0
-      AND CAST(JSON_EXTRACT_SCALAR(payload, '$._inline_style_bytes') AS INT64) > 0 ) AS sites_with_critical_css
+    COUNTIF(
+      CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInHead') AS INT64) = 0
+      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.inlineCssInHead') AS INT64) > 0
+      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInBody') AS INT64) > 0
+    ) AS sites_with_critical_css
   FROM
-    `httparchive.pages.2022_10_01_*` AS pages
+    `httparchive.pages.2022_03_01_*` AS pages
   WHERE
     JSON_EXTRACT(pages.payload, '$._detected_apps.WordPress') IS NOT NULL
   GROUP BY
