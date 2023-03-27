@@ -26,10 +26,10 @@ FROM (
     pages._TABLE_SUFFIX AS client,
     COUNT(pages.url) AS total_wp_sites,
     COUNTIF(
-	      CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInHead') AS INT64) = 0
-	      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.inlineCssInHead') AS INT64) > 0
-	      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInBody') AS INT64) > 0
-	    ) AS sites_with_critical_css
+      CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInHead') AS INT64) = 0
+      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.inlineCssInHead') AS INT64) > 0
+      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInBody') AS INT64) > 0
+    ) AS sites_with_critical_css
   FROM
     `httparchive.pages.2022_03_01_*` AS pages
   WHERE
