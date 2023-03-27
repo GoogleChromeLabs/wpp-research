@@ -19,6 +19,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 ## Query index
 
 ### 2023/03
+
+* [% of WordPress sites that have loading='lazy' on LCP image](./2023/03/sites-with-lazy-lcp-opportunity.sql)
 * [Top class names used on lazy loaded LCP images](./2023/03/top-lazy-lcp-class-names.sql)
 * [% of WordPress sites that do not implement Critical CSS via custom metrics](./2023/03/critical-css-opportunity-custom-metrics.sql)
 * [% of WordPress sites that do not implement Critical CSS via custom metrics (using `$._renderBlockingCSS`)](./2023/03/critical-css-opportunity-custom-metrics-alternative.sql)
