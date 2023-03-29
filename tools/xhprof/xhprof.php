@@ -1,16 +1,4 @@
 <?php
-/**
- * Plugin Name: Performance Lab Advanced Cache Drop-In
- * Plugin URI: https://github.com/WordPress/performance
- * Description: Performance Lab drop-in to start XHProf profiler.
- * Version: 1
- * Author: WordPress Performance Team
- * Author URI: https://make.wordpress.org/performance/
- * License: GPLv2 or later
- * License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
- *
- * Advanced cache drop-in from Performance Lab plugin.
- */
 
 $path = '/var/xhgui/vendor/autoload.php';
 

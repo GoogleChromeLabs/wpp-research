@@ -10,8 +10,7 @@ Using XHProf with the WordPress core development environment
 3. Start environment, using `npm run env:start`
 4. Go to http://localhost:8889 and setup site.
 5. Stop environment, using `npm run env:stop`
-6. Copy docker-compose.override.yml into the root of wordpress-develop directory.
-7. Copy advanced-cache.php into the src/wp-content directory.
-8. Add `define( 'WP_CACHE', true );` to wp-config.php ( to enable profiler ).
-9. Start environment, using `npm run env:start`
-10. Go to http://localhost:8142/ to see profiler UI. 
+6. Copy [docker-compose.override.yml](docker-compose.override.yml) and [xhprof.php](xhprof.php) into the root of wordpress-develop directory.
+7. Add `require_once  __DIR__ . '/xprof.php';` to wp-config.php ( to enable profiler ).
+8. Start environment, using `npm run env:start`
+9. Go to http://localhost:8142/ to see profiler UI.
