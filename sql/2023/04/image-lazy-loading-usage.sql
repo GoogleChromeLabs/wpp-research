@@ -33,7 +33,8 @@ return result;
 SELECT
   _TABLE_SUFFIX AS client,
   COUNT(DISTINCT url) AS urls_with_images,
-  COUNT(DISTINCT IF (loading = 'lazy', url, NULL)) AS urls_with_loading_lazy
+  COUNT(DISTINCT IF (loading = 'lazy', url, NULL)) AS urls_with_loading_lazy,
+  COUNT(DISTINCT IF (loading = 'lazy', url, NULL)) / COUNT(DISTINCT url) AS pct_with_loading_lazy
 FROM
   `httparchive.pages.2023_03_01_*`,
   UNNEST(get_image_loading_attributes(JSON_EXTRACT_SCALAR(payload, '$._Images'))) AS image_loading
