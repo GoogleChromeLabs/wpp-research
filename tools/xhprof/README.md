@@ -1,7 +1,7 @@
 Using XHProf with the WordPress core development environment
 ============================================================
 
-[XHProf](https://www.php.net/manual/en/book.xhprof.php) is an open source PHP profile.
+[XHProf](https://www.php.net/manual/en/book.xhprof.php) is an open source PHP profiler.
 
 ### Setup with WordPress core development environment
 
@@ -11,6 +11,6 @@ Using XHProf with the WordPress core development environment
 4. Go to http://localhost:8889 and setup site.
 5. Stop environment, using `npm run env:stop`
 6. Copy [docker-compose.override.yml](docker-compose.override.yml) and [xhprof.php](xhprof.php) into the root of wordpress-develop directory.
-7. Add `require_once  __DIR__ . '/xprof.php';` to wp-config.php ( to enable profiler ).
+7. Add `require_once  __DIR__ . '/xhprof.php';` to wp-config.php ( to enable profiler ).
 8. Start environment, using `npm run env:start`
 9. Go to http://localhost:8142/ to see profiler UI.

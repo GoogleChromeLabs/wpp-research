@@ -25,6 +25,8 @@ try {
 			'profiler.flags'      => array(
 				ProfilingFlags::CPU,
 				ProfilingFlags::MEMORY,
+				// Uncomment the following line to ignore built in PHP functions.
+				// ProfilingFlags::NO_BUILTINS,
 			),
 		)
 	);
