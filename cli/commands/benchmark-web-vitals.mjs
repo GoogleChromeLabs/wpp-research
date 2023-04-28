@@ -176,9 +176,10 @@ async function benchmarkURL( browser, params ) {
 				 * Do a random click, since only that triggers certain metrics
 				 * like LCP, as only a user interaction stops reporting new LCP
 				 * entries. See https://web.dev/lcp/.
+				 *
+				 * Click off screen to prevent clicking a link by accident and navigating away.
 				 */
-				await page.click( 'body' );
-
+				await page.click( 'body', { offset: { x: -500, y: -500 } } );
 				// Get the metric value from the global.
 				const metric = await page.evaluate( value.get );
 				value.results.push( metric );
