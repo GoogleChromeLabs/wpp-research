@@ -26,6 +26,7 @@ FROM
 WHERE
   date = "2023-04-01"
   AND technology.technology = "WordPress"
+  AND is_root_page = true
 GROUP BY
   client
 ORDER BY
