@@ -136,7 +136,7 @@ async function benchmarkURL( browser, params ) {
 	 * a combination of other metrics.
 	 */
 	const aggregateMetricsDefinition = {
-		'LCP - TTFB': {
+		'LCP-TTFB': {
 			add: [ 'LCP' ],
 			subtract: [ 'TTFB' ],
 		},
