@@ -131,6 +131,17 @@ async function benchmarkURL( browser, params ) {
 		},
 	};
 
+	/*
+	 * Aggregate metrics are metrics which are calculated for every request as
+	 * a combination of other metrics.
+	 */
+	const aggregateMetricsDefinition = {
+		'LCP-TTFB': {
+			add: [ 'LCP' ],
+			subtract: [ 'TTFB' ],
+		},
+	};
+
 	let completeRequests = 0;
 	let requestNum = 0;
 
@@ -195,6 +206,53 @@ async function benchmarkURL( browser, params ) {
 			metrics[ key ] = value.results;
 		}
 	} );
+
+	Object.entries( aggregateMetricsDefinition ).forEach(
+		( [ key, value ] ) => {
+			// Bail if any of the necessary partial metrics are not provided.
+			const partialMetrics = [
+				...( value.add || [] ),
+				...( value.subtract || [] ),
+			];
+			if ( ! partialMetrics.length ) {
+				return;
+			}
+			for ( const metricKey of partialMetrics ) {
+				if ( ! metrics[ metricKey ] ) {
+					return;
+				}
+			}
+
+			// Initialize all values for the metric as 0.
+			metrics[ key ] = [];
+			const numResults = value.add
+				? metrics[ value.add[ 0 ] ].length
+				: metrics[ value.subtract[ 0 ] ].length;
+			for ( let n = 0; n < numResults; n++ ) {
+				metrics[ key ].push( 0.0 );
+			}
+
+			// Add and subtract all values.
+			if ( value.add ) {
+				value.add.forEach( ( metricKey ) => {
+					metrics[ metricKey ].forEach(
+						( metricValue, metricIndex ) => {
+							metrics[ key ][ metricIndex ] += metricValue;
+						}
+					);
+				} );
+			}
+			if ( value.subtract ) {
+				value.subtract.forEach( ( metricKey ) => {
+					metrics[ metricKey ].forEach(
+						( metricValue, metricIndex ) => {
+							metrics[ key ][ metricIndex ] -= metricValue;
+						}
+					);
+				} );
+			}
+		}
+	);
 
 	return { completeRequests, metrics };
 }
