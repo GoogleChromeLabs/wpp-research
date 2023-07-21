@@ -63,7 +63,19 @@ export const options = [
 		description:
 			'Whether to show more granular percentiles instead of only the median',
 	},
+	{
+		argname: '-c, --connect <browserWSEndpoint>',
+		description: 'Connect to an existing browser instance',
+	},
 ];
+
+async function getBrowser( opt ) {
+	return opt.connect
+		? puppeteer.connect( {
+				browserWSEndpoint: opt.connect,
+		  } )
+		: puppeteer.launch();
+}
 
 export async function handler( opt ) {
 	if ( ! isValidTableFormat( opt.output ) ) {
@@ -78,7 +90,7 @@ export async function handler( opt ) {
 	const { number: amount } = opt;
 	const results = [];
 
-	const browser = await puppeteer.launch();
+	const browser = await getBrowser( opt );
 
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL( browser, {
