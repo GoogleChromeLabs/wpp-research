@@ -72,8 +72,8 @@ export const options = [
 async function getBrowser( opt ) {
 	return opt.connect
 		? puppeteer.connect( {
-			browserWSEndpoint: opt.connect,
-		} )
+				browserWSEndpoint: opt.connect,
+		  } )
 		: puppeteer.launch();
 }
 
