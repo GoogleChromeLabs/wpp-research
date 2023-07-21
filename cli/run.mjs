@@ -61,7 +61,8 @@ const catchException = ( handler ) => {
 		try {
 			await handler( ...args );
 		} catch ( error ) {
-			log( formats.error( error ) );
+			log( formats.error( `Error: ${ error.message }` ) );
+			console.error( error ); // eslint-disable-line no-console
 			process.exitCode = 1;
 		}
 	};
