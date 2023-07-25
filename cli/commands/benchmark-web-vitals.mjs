@@ -169,18 +169,22 @@ async function benchmarkURL( browser, params ) {
 
 		// Make sure any username and password in the URL is passed along for authentication.
 		if ( url.username && url.password ) {
-			await page.authenticate( { username: url.username, password: url.password } );
+			await page.authenticate( {
+				username: url.username,
+				password: url.password,
+			} );
 		}
 
-		const response = await page.goto(
-			url.toString(),
-			{ waitUntil: 'networkidle0' }
-		);
+		const response = await page.goto( url.toString(), {
+			waitUntil: 'networkidle0',
+		} );
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 		if ( response.status() !== 200 ) {
 			log(
-				formats.error( `Request to ${ params.url } returned status ${ response.status() }.` )
+				formats.error(
+					`Request to ${ url } returned status ${ response.status() }.`
+				)
 			);
 			continue;
 		}
