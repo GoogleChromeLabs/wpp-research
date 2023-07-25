@@ -164,8 +164,11 @@ async function benchmarkURL( browser, params ) {
 			);
 
 		// Load the page.
+		const url = new URL( params.url );
+		url.searchParams.append( 'rnd', String( requestNum ) );
+
 		const response = await page.goto(
-			`${ params.url }?rnd=${ requestNum }`,
+			url.toString(),
 			{ waitUntil: 'networkidle0' }
 		);
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
