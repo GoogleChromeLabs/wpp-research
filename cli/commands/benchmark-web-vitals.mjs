@@ -171,6 +171,9 @@ async function benchmarkURL( browser, params ) {
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 		if ( response.status() !== 200 ) {
+			log(
+				formats.error( `Request to ${ params.url } returned status ${ response.status() }.` )
+			);
 			continue;
 		}
 
