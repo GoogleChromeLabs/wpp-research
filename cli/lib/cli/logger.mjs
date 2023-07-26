@@ -28,7 +28,7 @@ export const log = console.log; // eslint-disable-line no-console
 export const formats = {
 	title: chalk.bold,
 	error: chalk.bold.red,
-	warning: chalk.bold.hex('#FFA500'),
+	warning: chalk.bold.hex( '#FFA500' ),
 	success: chalk.bold.green,
 };
 
