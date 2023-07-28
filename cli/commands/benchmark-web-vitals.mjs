@@ -249,7 +249,7 @@ async function benchmarkURL( browser, params ) {
 				 *
 				 * Click off screen to prevent clicking a link by accident and navigating away.
 				 */
-				await page.click( 'body', { offset: { x: -500, y: -500 } } ); // TODO: Options seems invalid. Should be {delay?: number, button?: MouseButton, clickCount?: number}.
+				await page.click( 'body', { offset: { x: -500, y: -500 } } );
 				// Get the metric value from the global.
 				const metric = await page.evaluate( value.get );
 				value.results.push( metric );
