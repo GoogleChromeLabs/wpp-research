@@ -159,6 +159,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
 * `--output` (`-o`): The output format: Either "table" or "csv".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
+* `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
 
 #### Examples
 

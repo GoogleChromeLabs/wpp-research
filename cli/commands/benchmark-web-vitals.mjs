@@ -19,7 +19,7 @@
 /**
  * External dependencies
  */
-import puppeteer from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import round from 'lodash-es/round.js';
 
 /**
@@ -63,28 +63,83 @@ export const options = [
 		description:
 			'Whether to show more granular percentiles instead of only the median',
 	},
+	{
+		argname: '-t, --throttle-cpu <factor>',
+		description: 'Enable CPU throttling to emulate slow CPUs',
+	},
 ];
 
-export async function handler( opt ) {
-	if ( ! isValidTableFormat( opt.output ) ) {
-		log(
-			formats.error(
-				'The output format provided via the --output (-o) argument must be either "table" or "csv".'
-			)
+/**
+ * @typedef Params
+ * @property {string}  output            - See above.
+ * @property {number}  amount            - See above.
+ * @property {?string} file              - See above.
+ * @property {boolean} showPercentiles   - See above.
+ * @property {?number} cpuThrottleFactor - See above.
+ * @property {?string} url               - See above.
+ */
+
+/**
+ * @param {Object}        opt
+ * @param {?string}       opt.url
+ * @param {string|number} opt.number
+ * @param {?string}       opt.file
+ * @param {string}        opt.output
+ * @param {boolean}       opt.showPercentiles
+ * @param {?string}       opt.throttleCpu
+ * @return {Params} Parameters.
+ */
+function getParamsFromOptions( opt ) {
+	const params = {
+		url: opt.url,
+		amount: parseInt( opt.number, 10 ),
+		file: opt.file,
+		output: opt.output,
+		showPercentiles: Boolean( opt.showPercentiles ),
+		cpuThrottleFactor: null,
+	};
+
+	if ( isNaN( params.amount ) ) {
+		throw new Error(
+			`Supplied number "${ opt.number }" is not an integer.`
 		);
-		return;
 	}
 
-	const { number: amount } = opt;
+	if ( ! isValidTableFormat( params.output ) ) {
+		throw new Error(
+			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table" or "csv".`
+		);
+	}
+
+	if ( ! params.file && ! params.url ) {
+		throw new Error(
+			'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
+		);
+	}
+
+	if ( opt.throttleCpu ) {
+		params.cpuThrottleFactor = parseFloat( opt.throttleCpu );
+		if ( isNaN( params.cpuThrottleFactor ) ) {
+			throw new Error(
+				`Supplied CPU throttle factor "${ opt.throttleCpu }" is not a number.`
+			);
+		}
+	}
+
+	return params;
+}
+
+export async function handler( opt ) {
+	const params = getParamsFromOptions( opt );
 	const results = [];
 
 	const browser = await puppeteer.launch();
 
 	for await ( const url of getURLs( opt ) ) {
-		const { completeRequests, metrics } = await benchmarkURL( browser, {
-			url,
-			amount,
-		} );
+		const { completeRequests, metrics } = await benchmarkURL(
+			browser,
+			params
+		);
 
 		results.push( [ url, completeRequests, metrics ] );
 	}
@@ -92,16 +147,17 @@ export async function handler( opt ) {
 	await browser.close();
 
 	if ( results.length === 0 ) {
-		log(
-			formats.error(
-				'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
-			)
-		);
+		log( formats.error( 'No results returned.' ) );
 	} else {
 		outputResults( opt, results );
 	}
 }
 
+/**
+ * @param {Browser} browser
+ * @param {Params}  params
+ * @return {Promise<{completeRequests: number, metrics: {}}>} Results
+ */
 async function benchmarkURL( browser, params ) {
 	/*
 	 * For now this only includes load time metrics.
@@ -154,6 +210,9 @@ async function benchmarkURL( browser, params ) {
 
 	for ( requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
+		if ( params.cpuThrottleFactor ) {
+			await page.emulateCPUThrottling( params.cpuThrottleFactor );
+		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
 		await page.setViewport( { width: 960, height: 700 } );
