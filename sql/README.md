@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/08
+
+* [WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
+
 ### 2023/04
 
 * [Number of WordPress sites on version >= 5.5 that use any images and lazy-load them](./2023/04/image-lazy-loading-usage.sql)
