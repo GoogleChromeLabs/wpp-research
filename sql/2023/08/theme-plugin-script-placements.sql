@@ -44,12 +44,12 @@ WITH all_placements AS (
     GET_SCRIPT_PLACEMENTS(custom_metrics) AS placements,
   FROM
     `httparchive.all.pages`,
-  UNNEST(technologies) AS technology
-WHERE
-  date = CAST("2023-07-01" AS DATE)
-  AND technology.technology = "WordPress"
-  AND is_root_page = TRUE
-  )
+    UNNEST(technologies) AS technology
+  WHERE
+    date = CAST("2023-07-01" AS DATE)
+    AND technology.technology = "WordPress"
+    AND is_root_page = TRUE
+)
 
 SELECT
   placement,
