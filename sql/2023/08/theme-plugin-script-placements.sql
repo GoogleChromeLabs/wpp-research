@@ -43,7 +43,7 @@ WITH all_placements AS (
   SELECT
     GET_SCRIPT_PLACEMENTS(custom_metrics) AS placements,
   FROM
-    `httparchive.all.pages` /*TABLESAMPLE SYSTEM (1 PERCENT)*/,
+    `httparchive.all.pages`,
   UNNEST(technologies) AS technology
 WHERE
   date = CAST("2023-07-01" AS DATE)

@@ -55,7 +55,7 @@ WITH all_sources AS (
   SELECT
     GET_BLOCKING_HEAD_SOURCES(custom_metrics) AS sources,
   FROM
-    `httparchive.all.pages` /*TABLESAMPLE SYSTEM (1 PERCENT)*/,
+    `httparchive.all.pages`,
     UNNEST(technologies) AS technology
   WHERE
   date = CAST("2023-07-01" AS DATE)
