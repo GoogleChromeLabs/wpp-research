@@ -19,7 +19,7 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
 import round from 'lodash-es/round.js';
 
 /**
@@ -67,16 +67,22 @@ export const options = [
 		argname: '-t, --throttle-cpu <factor>',
 		description: 'Enable CPU throttling to emulate slow CPUs',
 	},
+	{
+		argname: '-c, --network-condition <predefined>',
+		description:
+			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
+	},
 ];
 
 /**
  * @typedef Params
- * @property {string}  output            - See above.
- * @property {number}  amount            - See above.
- * @property {?string} file              - See above.
- * @property {boolean} showPercentiles   - See above.
- * @property {?number} cpuThrottleFactor - See above.
- * @property {?string} url               - See above.
+ * @property {?string}                url               - See above.
+ * @property {number}                 amount            - See above.
+ * @property {?string}                file              - See above.
+ * @property {string}                 output            - See above.
+ * @property {boolean}                showPercentiles   - See above.
+ * @property {?number}                cpuThrottleFactor - See above.
+ * @property {?("Slow 3G"|"Fast 3G")} networkCondition  - See above.
  */
 
 /**
@@ -87,6 +93,7 @@ export const options = [
  * @param {string}        opt.output
  * @param {boolean}       opt.showPercentiles
  * @param {?string}       opt.throttleCpu
+ * @param {?string}       opt.networkCondition
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -97,6 +104,7 @@ function getParamsFromOptions( opt ) {
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		cpuThrottleFactor: null,
+		networkCondition: null,
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -124,6 +132,16 @@ function getParamsFromOptions( opt ) {
 				`Supplied CPU throttle factor "${ opt.throttleCpu }" is not a number.`
 			);
 		}
+	}
+
+	if ( opt.networkCondition ) {
+		if ( ! ( opt.networkCondition in PredefinedNetworkConditions ) ) {
+			throw new Error(
+				`Unrecognized predefined network condition: ${ opt.networkCondition }`
+			);
+		}
+		params.networkCondition =
+			PredefinedNetworkConditions[ opt.networkCondition ];
 	}
 
 	return params;
@@ -212,6 +230,10 @@ async function benchmarkURL( browser, params ) {
 		const page = await browser.newPage();
 		if ( params.cpuThrottleFactor ) {
 			await page.emulateCPUThrottling( params.cpuThrottleFactor );
+		}
+
+		if ( params.networkCondition ) {
+			await page.emulateNetworkConditions( params.networkCondition );
 		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
