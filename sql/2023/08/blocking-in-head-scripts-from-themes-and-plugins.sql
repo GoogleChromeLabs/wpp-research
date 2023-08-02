@@ -72,6 +72,6 @@ FROM
 GROUP BY
   source
 HAVING
-  source_count >= 500
+  source_count >= 10000
 ORDER BY
   source_count DESC
