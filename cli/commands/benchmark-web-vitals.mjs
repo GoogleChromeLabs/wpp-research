@@ -76,13 +76,13 @@ export const options = [
 
 /**
  * @typedef {Object} Params
- * @property {?string}                url                - See above.
- * @property {number}                 amount             - See above.
- * @property {?string}                file               - See above.
- * @property {string}                 output             - See above.
- * @property {boolean}                showPercentiles    - See above.
- * @property {?number}                cpuThrottleFactor  - See above.
- * @property {?("Slow 3G"|"Fast 3G")} networkConditions  - See above.
+ * @property {?string} url               - See above.
+ * @property {number}  amount            - See above.
+ * @property {?string} file              - See above.
+ * @property {string}  output            - See above.
+ * @property {boolean} showPercentiles   - See above.
+ * @property {?number} cpuThrottleFactor - See above.
+ * @property {?string} networkConditions - See above.
  */
 
 /**
