@@ -165,21 +165,26 @@ Loads the provided URLs in a headless browser several times to measure median We
 #### Examples
 
 Send 10 requests to a single URL:
-```
+```bash
 benchmark-web-vitals --url https://example.com/ -n 10
 ```
 
 Same as above, but results are formatted as CSV:
-```
+```bash
 benchmark-web-vitals --url https://example.com/ -n 10 --output csv
 ```
 
 To include more granular percentiles rather than only the median for each metric:
-```
+```bash
 benchmark-web-vitals --url https://example.com/ -n 10 --show-percentiles
 ```
 
 To run benchmark tests for URLs from a file:
-```
+```bash
 benchmark-web-vitals -f path/to/urls.txt -n 5
+```
+
+To make a request that throttles the CPU 4x while also emulating Fast 3G network conditions:
+```bash
+benchmark-web-vitals --url https://example.com/ -t 4 -c "Fast 3G"
 ```
