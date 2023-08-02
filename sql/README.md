@@ -20,8 +20,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ### 2023/08
 
-* [WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
-* [Blocking in head scripts from themes and plugins](./2023/08/blocking-in-head-scripts-from-themes-and-plugins.sql)
+* [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
+* [Counts of theme/plugin scripts blocking in head](./2023/08/blocking-in-head-scripts-from-themes-and-plugins.sql)
 
 ### 2023/04
 
