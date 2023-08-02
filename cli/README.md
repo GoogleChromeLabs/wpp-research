@@ -160,7 +160,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--output` (`-o`): The output format: Either "table" or "csv".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
-* `--network-condition` (`-c`): Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G").
+* `--network-conditions` (`-c`): Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G").
 
 #### Examples
 

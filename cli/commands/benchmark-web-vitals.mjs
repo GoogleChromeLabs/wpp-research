@@ -68,21 +68,21 @@ export const options = [
 		description: 'Enable CPU throttling to emulate slow CPUs',
 	},
 	{
-		argname: '-c, --network-condition <predefined>',
+		argname: '-c, --network-conditions <predefined>',
 		description:
 			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
 	},
 ];
 
 /**
- * @typedef Params
- * @property {?string}                url               - See above.
- * @property {number}                 amount            - See above.
- * @property {?string}                file              - See above.
- * @property {string}                 output            - See above.
- * @property {boolean}                showPercentiles   - See above.
- * @property {?number}                cpuThrottleFactor - See above.
- * @property {?("Slow 3G"|"Fast 3G")} networkCondition  - See above.
+ * @typedef {Object} Params
+ * @property {?string}                url                - See above.
+ * @property {number}                 amount             - See above.
+ * @property {?string}                file               - See above.
+ * @property {string}                 output             - See above.
+ * @property {boolean}                showPercentiles    - See above.
+ * @property {?number}                cpuThrottleFactor  - See above.
+ * @property {?("Slow 3G"|"Fast 3G")} networkConditions  - See above.
  */
 
 /**
@@ -93,7 +93,7 @@ export const options = [
  * @param {string}        opt.output
  * @param {boolean}       opt.showPercentiles
  * @param {?string}       opt.throttleCpu
- * @param {?string}       opt.networkCondition
+ * @param {?string}       opt.networkConditions
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -104,7 +104,7 @@ function getParamsFromOptions( opt ) {
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		cpuThrottleFactor: null,
-		networkCondition: null,
+		networkConditions: null,
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -134,14 +134,14 @@ function getParamsFromOptions( opt ) {
 		}
 	}
 
-	if ( opt.networkCondition ) {
-		if ( ! ( opt.networkCondition in PredefinedNetworkConditions ) ) {
+	if ( opt.networkConditions ) {
+		if ( ! ( opt.networkConditions in PredefinedNetworkConditions ) ) {
 			throw new Error(
-				`Unrecognized predefined network condition: ${ opt.networkCondition }`
+				`Unrecognized predefined network condition: ${ opt.networkConditions }`
 			);
 		}
-		params.networkCondition =
-			PredefinedNetworkConditions[ opt.networkCondition ];
+		params.networkConditions =
+			PredefinedNetworkConditions[ opt.networkConditions ];
 	}
 
 	return params;
@@ -232,8 +232,8 @@ async function benchmarkURL( browser, params ) {
 			await page.emulateCPUThrottling( params.cpuThrottleFactor );
 		}
 
-		if ( params.networkCondition ) {
-			await page.emulateNetworkConditions( params.networkCondition );
+		if ( params.networkConditions ) {
+			await page.emulateNetworkConditions( params.networkConditions );
 		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
