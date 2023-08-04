@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/08
+
+* [Counts for types of WordPress inline scripts](./2023/08/inline-script-types.sql)
+
 ### 2023/04
 
 * [Number of WordPress sites on version >= 5.5 that use any images and lazy-load them](./2023/04/image-lazy-loading-usage.sql)
