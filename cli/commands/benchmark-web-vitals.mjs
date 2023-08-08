@@ -210,6 +210,7 @@ async function benchmarkURL( browser, params ) {
 
 	for ( requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
+		await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 		if ( params.cpuThrottleFactor ) {
 			await page.emulateCPUThrottling( params.cpuThrottleFactor );
 		}
