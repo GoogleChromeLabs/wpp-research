@@ -1,0 +1,127 @@
+name: Compare WP performance
+
+on:
+  workflow_dispatch:
+    inputs:
+      old:
+        description: "Old version to compare"
+        type: string
+        default: "latest"
+        required: true
+      new:
+        description: "New version to compare"
+        type: string
+        default: "trunk"
+        required: true
+
+jobs:
+  benchmarks:
+    name: "Benchmarks"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install wp-env globally
+        run: npm -g i @wordpress/env
+
+      - name: Configure WordPress versions
+        working-directory: tools/compare-wp-performance
+        run: |
+          echo "Old version: $OLD_VERSION"
+          echo "Old version: $OLD_VERSION" >> $GITHUB_STEP_SUMMARY
+          if [[ $OLD_VERSION != 'latest' ]]; then
+            if [[ "$OLD_VERSION" == *".zip"* ]]; then
+              echo "{\"core\":\"$OLD_VERSION\"}" >> old/.wp-env.override.json
+            else
+              echo "{\"core\":\"WordPress/WordPress#$OLD_VERSION\"}" >> old/.wp-env.override.json
+            fi
+          fi
+
+          echo "New version: $NEW_VERSION"
+          echo "New version: $NEW_VERSION" >> $GITHUB_STEP_SUMMARY
+          if [[ "$NEW_VERSION" == *".zip"* ]]; then
+            echo "{\"core\":\"$NEW_VERSION\"}" >> new/.wp-env.override.json
+          else
+            echo "{\"core\":\"WordPress/WordPress#$NEW_VERSION\"}" >> new/.wp-env.override.json
+          fi
+        env:
+          OLD_VERSION: ${{ inputs.old == 'trunk' && 'master' || inputs.old }}
+          NEW_VERSION: ${{ inputs.new == 'trunk' && 'master' || inputs.new }}
+
+      - name: Install WordPress
+        working-directory: tools/compare-wp-performance
+        run: |
+          chmod -R 767 old/ # TODO: Possibly integrate in wp-env
+          chmod -R 767 new/ # TODO: Possibly integrate in wp-env
+          (cd old && wp-env start)
+          (cd new && wp-env start)
+
+      - name: Update permalink structure
+        working-directory: tools/compare-wp-performance
+        run: |
+          (cd old && wp-env run tests-cli wp rewrite structure '/%postname%/' -- --hard)
+          (cd new && wp-env run tests-cli wp rewrite structure '/%postname%/' -- --hard)
+
+      - name: Import mock data
+        working-directory: tools/compare-wp-performance
+        run: |
+          (cd old && wp-env run tests-cli curl https://raw.githubusercontent.com/WordPress/theme-test-data/b9752e0533a5acbb876951a8cbb5bcc69a56474c/themeunittestdata.wordpress.xml -- --output /tmp/themeunittestdata.wordpress.xml)
+          (cd old && wp-env run tests-cli wp import /tmp/themeunittestdata.wordpress.xml -- --authors=create)
+          (cd new && wp-env run tests-cli curl https://raw.githubusercontent.com/WordPress/theme-test-data/b9752e0533a5acbb876951a8cbb5bcc69a56474c/themeunittestdata.wordpress.xml -- --output /tmp/themeunittestdata.wordpress.xml)
+          (cd new && wp-env run tests-cli wp import /tmp/themeunittestdata.wordpress.xml -- --authors=create)
+
+      - name: Deactivate WordPress Importer
+        working-directory: tools/compare-wp-performance
+        run: |
+          (cd old && wp-env run tests-cli wp plugin deactivate wordpress-importer)
+          (cd new && wp-env run tests-cli wp plugin deactivate wordpress-importer)
+
+      - name: Install block theme
+        working-directory: tools/compare-wp-performance
+        run: |
+          (cd old && wp-env run tests-cli wp theme activate twentytwentythree)
+          (cd new && wp-env run tests-cli wp theme activate twentytwentythree)
+
+      - name: Benchmark Web Vitals
+        run: |
+          npm run research --silent -- benchmark-web-vitals -u http://localhost:8881/ -n 20 -p -o csv > before.csv
+          npm run research --silent -- benchmark-web-vitals -u http://localhost:8891/ -n 20 -p -o csv > after.csv
+          node tools/compare-wp-performance/scripts/results.js "Web Vitals (Block Theme)" before.csv after.csv > summary.md
+          cat summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Benchmark Server-Timing
+        run: |
+          npm run research --silent  -- benchmark-server-timing -u http://localhost:8881/ -n 100 -p -o csv > before.csv
+          npm run research --silent  -- benchmark-server-timing -u http://localhost:8891/ -n 100 -p -o csv > after.csv
+          node tools/compare-wp-performance/scripts/results.js "Server-Timing (Block Theme)" before.csv after.csv > summary.md
+          cat summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Install classic theme
+        working-directory: tools/compare-wp-performance
+        run: |
+          (cd old && wp-env run tests-cli wp theme activate twentytwentyone)
+          (cd new && wp-env run tests-cli wp theme activate twentytwentyone)
+
+      - name: Benchmark Web Vitals
+        run: |
+          npm run research --silent -- benchmark-web-vitals -u http://localhost:8881/ -n 20 -p -o csv > before.csv
+          npm run research --silent -- benchmark-web-vitals -u http://localhost:8891/ -n 20 -p -o csv > after.csv
+          node tools/compare-wp-performance/scripts/results.js "Web Vitals (Classic Theme)" before.csv after.csv > summary.md
+          cat summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Benchmark Server-Timing
+        run: |
+          npm run research --silent -- benchmark-server-timing -u http://localhost:8881/ -n 100 -p -o csv > before.csv
+          npm run research --silent -- benchmark-server-timing -u http://localhost:8891/ -n 100 -p -o csv > after.csv
+          node tools/compare-wp-performance/scripts/results.js "Server-Timing (Classic Theme)" before.csv after.csv > summary.md
+          cat summary.md >> $GITHUB_STEP_SUMMARY

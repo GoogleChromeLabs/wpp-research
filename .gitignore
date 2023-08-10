@@ -57,3 +57,9 @@ temp/
 ._*
 .Trashes
 .svn
+
+############
+## WP version benchmarking script
+############
+
+tools/compare-wp-performance/*/.wp-env.override.json
