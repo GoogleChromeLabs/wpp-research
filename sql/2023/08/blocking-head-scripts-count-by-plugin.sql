@@ -21,13 +21,13 @@ RETURNS ARRAY<STRING>
 LANGUAGE js
 AS '''
 
-const sourceRegExp = new RegExp( '/wp-content/(?<type>plugin|theme)s/(?<slug>[^/]+)/(?<path>[^\?]+)' );
+const sourceRegExp = new RegExp( '/wp-content/(?<type>plugin)s/(?<slug>[^/]+)/(?<path>[^\?]+)' );
 
 /**
- * Get slug of extension prefixed by theme/plugin from URL.
+ * Get slug of extension prefixed by plugin from URL.
  *
  * @param {string} src Script URL.
- * @return {?{type: "plugin"|"theme", slug: string, path: string}} Source info if matched.
+ * @return {?{type: "plugin", slug: string, path: string}} Source info if matched.
  */
 function getSource(src) {
   const matches = src.match( sourceRegExp );
