@@ -20,6 +20,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ### 2023/08
 
+* [Counts for WordPress blocking head scripts counted by plugin](./2023/08/blocking-in-head-scripts-by-plugin.sql)
 * [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
 * [Counts of theme/plugin scripts blocking in head](./2023/08/blocking-in-head-scripts-from-themes-and-plugins.sql)
 
