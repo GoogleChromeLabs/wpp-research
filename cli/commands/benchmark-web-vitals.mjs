@@ -102,7 +102,7 @@ export const options = [
 function getParamsFromOptions( opt ) {
 	const params = {
 		url: opt.url,
-		amount: parseInt( opt.number, 10 ),
+		amount: typeof opt.number === 'number' ? opt.number : parseInt( opt.number, 10 ),
 		file: opt.file,
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
