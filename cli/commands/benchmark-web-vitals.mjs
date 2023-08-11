@@ -220,7 +220,6 @@ async function benchmarkURL( browser, params ) {
 	};
 
 	let completeRequests = 0;
-	let requestNum = 0;
 
 	let scriptTag = `import { ${ Object.values( metricsDefinition )
 		.map( ( value ) => value.listen )
@@ -229,7 +228,7 @@ async function benchmarkURL( browser, params ) {
 		scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
 	} );
 
-	for ( requestNum = 0; requestNum < params.amount; requestNum++ ) {
+	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
 		if ( params.cpuThrottleFactor ) {
 			await page.emulateCPUThrottling( params.cpuThrottleFactor );
