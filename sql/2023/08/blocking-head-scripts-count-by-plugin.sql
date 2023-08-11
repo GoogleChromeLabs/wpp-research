@@ -99,7 +99,7 @@ WITH
   ),
   plugin_source_counts AS (
     SELECT
-      REGEXP_EXTRACT(source, r'plugin:(.+):') AS plugin,
+      source AS plugin,
       SUM(source_count) AS blocking_scripts
     FROM source_counts
     GROUP BY plugin
