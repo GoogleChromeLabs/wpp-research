@@ -191,19 +191,16 @@ async function benchmarkURL( browser, params ) {
 		FCP: {
 			listen: 'onFCP',
 			global: 'webVitalsFCP',
-			get: () => window.webVitalsFCP,
 			results: [],
 		},
 		LCP: {
 			listen: 'onLCP',
 			global: 'webVitalsLCP',
-			get: () => window.webVitalsLCP,
 			results: [],
 		},
 		TTFB: {
 			listen: 'onTTFB',
 			global: 'webVitalsTTFB',
-			get: () => window.webVitalsTTFB,
 			results: [],
 		},
 	};
@@ -275,7 +272,11 @@ async function benchmarkURL( browser, params ) {
 				 */
 				await page.click( 'body', { offset: { x: -500, y: -500 } } );
 				// Get the metric value from the global.
-				const metric = await page.evaluate( value.get );
+				/** @type {number} */
+				const metric = await page.evaluate(
+					( global ) => /** @type {number} */ window[ global ],
+					value.global
+				);
 				value.results.push( metric );
 			} )
 		).catch( () => {
