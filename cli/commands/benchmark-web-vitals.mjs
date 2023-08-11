@@ -22,6 +22,9 @@
 import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
 import round from 'lodash-es/round.js';
 
+/** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
+/** @typedef {keyof typeof import("puppeteer").networkConditions} NetworkConditionName */
+
 /**
  * Internal dependencies
  */
@@ -76,24 +79,24 @@ export const options = [
 
 /**
  * @typedef {Object} Params
- * @property {?string} url               - See above.
- * @property {number}  amount            - See above.
- * @property {?string} file              - See above.
- * @property {string}  output            - See above.
- * @property {boolean} showPercentiles   - See above.
- * @property {?number} cpuThrottleFactor - See above.
- * @property {?string} networkConditions - See above.
+ * @property {?string} url                          - See above.
+ * @property {number}  amount                       - See above.
+ * @property {?string} file                         - See above.
+ * @property {string}  output                       - See above.
+ * @property {boolean} showPercentiles              - See above.
+ * @property {?number} cpuThrottleFactor            - See above.
+ * @property {?NetworkConditions} networkConditions - See above.
  */
 
 /**
- * @param {Object}        opt
- * @param {?string}       opt.url
- * @param {string|number} opt.number
- * @param {?string}       opt.file
- * @param {string}        opt.output
- * @param {boolean}       opt.showPercentiles
- * @param {?string}       opt.throttleCpu
- * @param {?string}       opt.networkConditions
+ * @param {Object}                opt
+ * @param {?string}               opt.url
+ * @param {string|number}         opt.number
+ * @param {?string}               opt.file
+ * @param {string}                opt.output
+ * @param {boolean}               opt.showPercentiles
+ * @param {?string}               opt.throttleCpu
+ * @param {?NetworkConditionName} opt.networkConditions
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
