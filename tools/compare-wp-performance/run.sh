@@ -90,13 +90,13 @@ fi
 
 npm run research --silent -- benchmark-web-vitals -u http://localhost:8881/ -n 20 -p -o csv > before.csv
 npm run research --silent -- benchmark-web-vitals -u http://localhost:8891/ -n 20 -p -o csv > after.csv
-node "$SCRIPT_DIR/scripts/results.js"  "Web Vitals (Block Theme)" before.csv after.csv
+node "$SCRIPT_DIR/scripts/results.mjs"  "Web Vitals (Block Theme)" before.csv after.csv
 
 # Benchmark Server-Timing
 
 npm run research --silent  -- benchmark-server-timing -u http://localhost:8881/ -n 100 -p -o csv > before.csv
 npm run research --silent  -- benchmark-server-timing -u http://localhost:8891/ -n 100 -p -o csv > after.csv
-node "$SCRIPT_DIR/scripts/results.js"  "Server-Timing (Block Theme)" before.csv after.csv
+node "$SCRIPT_DIR/scripts/results.mjs"  "Server-Timing (Block Theme)" before.csv after.csv
 
 # Install classic theme
 
@@ -107,13 +107,13 @@ node "$SCRIPT_DIR/scripts/results.js"  "Server-Timing (Block Theme)" before.csv 
 
 npm run research --silent -- benchmark-web-vitals -u http://localhost:8881/ -n 20 -p -o csv > before.csv
 npm run research --silent -- benchmark-web-vitals -u http://localhost:8891/ -n 20 -p -o csv > after.csv
-node "$SCRIPT_DIR/scripts/results.js"  "Web Vitals (Classic Theme)" before.csv after.csv
+node "$SCRIPT_DIR/scripts/results.mjs"  "Web Vitals (Classic Theme)" before.csv after.csv
 
 # Benchmark Server-Timing
 
 npm run research --silent  -- benchmark-server-timing -u http://localhost:8881/ -n 100 -p -o csv > before.csv
 npm run research --silent  -- benchmark-server-timing -u http://localhost:8891/ -n 100 -p -o csv > after.csv
-node "$SCRIPT_DIR/scripts/results.js" "Server-Timing (Classic Theme)" before.csv after.csv
+node "$SCRIPT_DIR/scripts/results.mjs" "Server-Timing (Classic Theme)" before.csv after.csv
 
 # Shutdown sites again
 

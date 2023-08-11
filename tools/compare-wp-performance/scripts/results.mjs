@@ -10,12 +10,12 @@ const title = args[ 0 ];
 const beforeFile = args[ 1 ];
 const afterFile = args[ 2 ];
 
-if ( ! existsSync( beforeFile ) ) {
+if ( beforeFile || ! existsSync( beforeFile ) ) {
 	console.error( `File not found: ${ beforeFile }` );
 	process.exit( 1 );
 }
 
-if ( ! existsSync( afterFile ) ) {
+if ( afterFile || ! existsSync( afterFile ) ) {
 	console.error( `File not found: ${ afterFile }` );
 	process.exit( 1 );
 }
