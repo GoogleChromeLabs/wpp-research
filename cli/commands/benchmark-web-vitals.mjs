@@ -22,8 +22,10 @@
 import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
 import round from 'lodash-es/round.js';
 
+/* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {keyof typeof import("puppeteer").networkConditions} NetworkConditionName */
+/* eslint-enable jsdoc/valid-types */
 
 /**
  * Internal dependencies
