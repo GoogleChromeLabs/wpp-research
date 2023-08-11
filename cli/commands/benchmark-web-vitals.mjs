@@ -79,12 +79,12 @@ export const options = [
 
 /**
  * @typedef {Object} Params
- * @property {?string} url                          - See above.
- * @property {number}  amount                       - See above.
- * @property {?string} file                         - See above.
- * @property {string}  output                       - See above.
- * @property {boolean} showPercentiles              - See above.
- * @property {?number} cpuThrottleFactor            - See above.
+ * @property {?string}            url               - See above.
+ * @property {number}             amount            - See above.
+ * @property {?string}            file              - See above.
+ * @property {string}             output            - See above.
+ * @property {boolean}            showPercentiles   - See above.
+ * @property {?number}            cpuThrottleFactor - See above.
  * @property {?NetworkConditions} networkConditions - See above.
  */
 
@@ -102,7 +102,10 @@ export const options = [
 function getParamsFromOptions( opt ) {
 	const params = {
 		url: opt.url,
-		amount: typeof opt.number === 'number' ? opt.number : parseInt( opt.number, 10 ),
+		amount:
+			typeof opt.number === 'number'
+				? opt.number
+				: parseInt( opt.number, 10 ),
 		file: opt.file,
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
