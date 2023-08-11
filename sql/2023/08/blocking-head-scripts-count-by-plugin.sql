@@ -57,7 +57,7 @@ function getBlockingHeadScriptSources(data) {
 
     // Blocking script in head only.
     if (!script.in_footer && !script.async && !script.defer) {
-      sources.push( [ source.type, source.slug ].join( ':' ) );
+      sources.push( source.slug );
     }
   }
   return sources;
