@@ -133,7 +133,7 @@ export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
 
-	const browser = await puppeteer.launch();
+	const browser = await puppeteer.launch( { headless: 'new' } );
 
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL(
