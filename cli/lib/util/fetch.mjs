@@ -17,11 +17,6 @@
  */
 
 /**
- * External dependencies
- */
-import fetch from 'node-fetch';
-
-/**
  * Internal dependencies
  */
 import { UrlFetchApp } from './gas.mjs';
