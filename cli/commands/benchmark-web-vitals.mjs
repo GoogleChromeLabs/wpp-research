@@ -251,7 +251,7 @@ async function benchmarkURL( browser, params ) {
 
 		// Load the page.
 		const url = new URL( params.url );
-		url.searchParams.append( 'rnd', String( requestNum ) );
+		url.searchParams.append( 'rnd', String( Math.random() ) );
 
 		// Make sure any username and password in the URL is passed along for authentication.
 		if ( url.username && url.password ) {
