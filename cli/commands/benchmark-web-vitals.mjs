@@ -250,10 +250,20 @@ async function benchmarkURL( browser, params ) {
 			);
 
 		// Load the page.
-		const response = await page.goto(
-			`${ params.url }?rnd=${ requestNum }`,
-			{ waitUntil: 'networkidle0' }
-		);
+		const url = new URL( params.url );
+		url.searchParams.append( 'rnd', String( Math.random() ) );
+
+		// Make sure any username and password in the URL is passed along for authentication.
+		if ( url.username && url.password ) {
+			await page.authenticate( {
+				username: url.username,
+				password: url.password,
+			} );
+		}
+
+		const response = await page.goto( url.toString(), {
+			waitUntil: 'networkidle0',
+		} );
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 		if ( response.status() !== 200 ) {
