@@ -37,7 +37,7 @@ FROM
   `httparchive.pages.all`,
   UNNEST(technologies) AS technology
 WHERE
-  technology = "WordPress"
+  technology.technology = "WordPress"
 ```
 
 Even though you unnest, you then limit results to the “WordPress” technology which should only be present once per matching URL.
