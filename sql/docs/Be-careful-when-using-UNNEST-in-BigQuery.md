@@ -187,3 +187,14 @@ CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, ca
 * The function can be used to match records of a specific CMS, e.g. like `IS_CMS(technologies, "WordPress", "")`
 * The function can be used to match records of a specific CMS and specific version, e.g. like `IS_CMS(technologies, "WordPress", "6.3")`
 * Note that the above would not match e.g. 6.3.1. To achieve that, the function can also be used to match records of a specific CMS and specific version with a simple wildcard mechanism, e.g. like `IS_CMS(technologies, "WordPress", "6.3.x")` (will match 6.3, 6.3.0, 6.3.1 etc.)
+
+This makes queries like the above examples a lot simpler. Below is a full example:
+
+```sql
+SELECT
+  client, page
+FROM
+  `httparchive.pages.all`
+WHERE
+  IS_CMS(technologies, "WordPress", "6.3.x")
+```
