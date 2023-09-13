@@ -160,8 +160,30 @@ WHERE
       UNNEST(technology.info) AS version
     WHERE
       technology.technology = "WordPress"
-      AND version = "6.3
+      AND version = "6.3"
   )
 ```
 
 This is the safest way to query for values within a repeated field (array field) without risking any duplicated rows, by using an EXISTS subquery and only using UNNEST there. This way the unnesting only affects the subquery and thus there is no risk of duplicated rows.
+
+## Reusable helper function
+
+For the common task of limiting to only sites of a specific CMS or platform, consider using the following helper function in your queries:
+
+```sql
+CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, categories ARRAY<STRING>, info ARRAY<STRING>>>, cms STRING, version STRING) RETURNS BOOL AS (
+  EXISTS(
+    SELECT * FROM UNNEST(technologies) AS technology, UNNEST(technology.info) AS info
+    WHERE technology.technology = cms
+    AND (
+      version = ""
+      OR ENDS_WITH(version, ".x") AND (STARTS_WITH(info, RTRIM(version, "x")) OR info = RTRIM(version, ".x"))
+      OR info = version
+    )
+  )
+);
+```
+
+* The function can be used to match records of a specific CMS, e.g. like `IS_CMS(technologies, "WordPress", "")`
+* The function can be used to match records of a specific CMS and specific version, e.g. like `IS_CMS(technologies, "WordPress", "6.3")`
+* Note that the above would not match e.g. 6.3.1. To achieve that, the function can also be used to match records of a specific CMS and specific version with a simple wildcard mechanism, e.g. like `IS_CMS(technologies, "WordPress", "6.3.x")` (will match 6.3, 6.3.0, 6.3.1 etc.)
