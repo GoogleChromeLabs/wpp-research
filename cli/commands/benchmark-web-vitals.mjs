@@ -164,7 +164,7 @@ export async function handler( opt ) {
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL(
 			browser,
-			params
+			params // TODO: This should be passing the url and not params.url.
 		);
 
 		results.push( [ url, completeRequests, metrics ] );
@@ -242,7 +242,7 @@ async function benchmarkURL( browser, params ) {
 		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
-		await page.setViewport( { width: 960, height: 700 } );
+		await page.setViewport( { width: 960, height: 700 } ); // @todo This should be configurable via command options so that mobile viewport can be loaded.
 		await page
 			.mainFrame()
 			.waitForFunction(

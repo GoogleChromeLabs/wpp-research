@@ -27,6 +27,10 @@ import { Command } from 'commander';
  */
 import { log, formats } from './lib/cli/logger.mjs';
 import {
+	handler as analyzeImageOptimizationHandler,
+	options as analyzeImageOptimizationOptions,
+} from './commands/analyze-image-optimization.mjs';
+import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
 } from './commands/benchmark-server-timing.mjs';
@@ -67,6 +71,12 @@ const catchException = ( handler ) => {
 	};
 };
 
+withOptions(
+	program.command( 'analyze-image-optimization' ),
+	analyzeImageOptimizationOptions
+)
+	.description( 'Analyzes issues with image optimization' )
+	.action( catchException( analyzeImageOptimizationHandler ) );
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions
