@@ -19,8 +19,13 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
 import round from 'lodash-es/round.js';
+
+/* eslint-disable jsdoc/valid-types */
+/** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
+/** @typedef {keyof typeof import("puppeteer").networkConditions} NetworkConditionName */
+/* eslint-enable jsdoc/valid-types */
 
 /**
  * Internal dependencies
@@ -67,36 +72,47 @@ export const options = [
 		argname: '-t, --throttle-cpu <factor>',
 		description: 'Enable CPU throttling to emulate slow CPUs',
 	},
+	{
+		argname: '-c, --network-conditions <predefined>',
+		description:
+			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
+	},
 ];
 
 /**
- * @typedef Params
- * @property {string}  output            - See above.
- * @property {number}  amount            - See above.
- * @property {?string} file              - See above.
- * @property {boolean} showPercentiles   - See above.
- * @property {?number} cpuThrottleFactor - See above.
- * @property {?string} url               - See above.
+ * @typedef {Object} Params
+ * @property {?string}            url               - See above.
+ * @property {number}             amount            - See above.
+ * @property {?string}            file              - See above.
+ * @property {string}             output            - See above.
+ * @property {boolean}            showPercentiles   - See above.
+ * @property {?number}            cpuThrottleFactor - See above.
+ * @property {?NetworkConditions} networkConditions - See above.
  */
 
 /**
- * @param {Object}        opt
- * @param {?string}       opt.url
- * @param {string|number} opt.number
- * @param {?string}       opt.file
- * @param {string}        opt.output
- * @param {boolean}       opt.showPercentiles
- * @param {?string}       opt.throttleCpu
+ * @param {Object}                opt
+ * @param {?string}               opt.url
+ * @param {string|number}         opt.number
+ * @param {?string}               opt.file
+ * @param {string}                opt.output
+ * @param {boolean}               opt.showPercentiles
+ * @param {?string}               opt.throttleCpu
+ * @param {?NetworkConditionName} opt.networkConditions
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
 	const params = {
 		url: opt.url,
-		amount: parseInt( opt.number, 10 ),
+		amount:
+			typeof opt.number === 'number'
+				? opt.number
+				: parseInt( opt.number, 10 ),
 		file: opt.file,
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		cpuThrottleFactor: null,
+		networkConditions: null,
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -126,6 +142,16 @@ function getParamsFromOptions( opt ) {
 		}
 	}
 
+	if ( opt.networkConditions ) {
+		if ( ! ( opt.networkConditions in PredefinedNetworkConditions ) ) {
+			throw new Error(
+				`Unrecognized predefined network condition: ${ opt.networkConditions }`
+			);
+		}
+		params.networkConditions =
+			PredefinedNetworkConditions[ opt.networkConditions ];
+	}
+
 	return params;
 }
 
@@ -133,7 +159,7 @@ export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
 
-	const browser = await puppeteer.launch();
+	const browser = await puppeteer.launch( { headless: 'new' } );
 
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL(
@@ -170,19 +196,16 @@ async function benchmarkURL( browser, params ) {
 		FCP: {
 			listen: 'onFCP',
 			global: 'webVitalsFCP',
-			get: () => window.webVitalsFCP,
 			results: [],
 		},
 		LCP: {
 			listen: 'onLCP',
 			global: 'webVitalsLCP',
-			get: () => window.webVitalsLCP,
 			results: [],
 		},
 		TTFB: {
 			listen: 'onTTFB',
 			global: 'webVitalsTTFB',
-			get: () => window.webVitalsTTFB,
 			results: [],
 		},
 	};
@@ -199,7 +222,6 @@ async function benchmarkURL( browser, params ) {
 	};
 
 	let completeRequests = 0;
-	let requestNum = 0;
 
 	let scriptTag = `import { ${ Object.values( metricsDefinition )
 		.map( ( value ) => value.listen )
@@ -208,10 +230,15 @@ async function benchmarkURL( browser, params ) {
 		scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
 	} );
 
-	for ( requestNum = 0; requestNum < params.amount; requestNum++ ) {
+	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
+		await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 		if ( params.cpuThrottleFactor ) {
 			await page.emulateCPUThrottling( params.cpuThrottleFactor );
+		}
+
+		if ( params.networkConditions ) {
+			await page.emulateNetworkConditions( params.networkConditions );
 		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
@@ -223,10 +250,20 @@ async function benchmarkURL( browser, params ) {
 			);
 
 		// Load the page.
-		const response = await page.goto(
-			`${ params.url }?rnd=${ requestNum }`,
-			{ waitUntil: 'networkidle0' }
-		);
+		const url = new URL( params.url );
+		url.searchParams.append( 'rnd', String( Math.random() ) );
+
+		// Make sure any username and password in the URL is passed along for authentication.
+		if ( url.username && url.password ) {
+			await page.authenticate( {
+				username: url.username,
+				password: url.password,
+			} );
+		}
+
+		const response = await page.goto( url.toString(), {
+			waitUntil: 'networkidle0',
+		} );
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 		if ( response.status() !== 200 ) {
@@ -251,7 +288,11 @@ async function benchmarkURL( browser, params ) {
 				 */
 				await page.click( 'body', { offset: { x: -500, y: -500 } } );
 				// Get the metric value from the global.
-				const metric = await page.evaluate( value.get );
+				/** @type {number} */
+				const metric = await page.evaluate(
+					( global ) => /** @type {number} */ window[ global ],
+					value.global
+				);
 				value.results.push( metric );
 			} )
 		).catch( () => {
