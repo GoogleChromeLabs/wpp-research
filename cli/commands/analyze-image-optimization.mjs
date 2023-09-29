@@ -318,18 +318,11 @@ async function analyze( browser, url, { width, height } ) {
 		`window.webVitalsLCP !== undefined`
 	);
 
-	/** @type {object} */
-	const report = await page.evaluate(
-		( global ) => /** @type {object} */ window[ global ],
-		'webVitalsLCP'
-	);
-
-	const fetchPriorityElements = await page.$$( 'img[fetchpriority="high"]' );
-
+	/** @type {DeviceAnalysis} */
 	const result = {
-		lcpMetric: Number( report.delta ),
+		lcpMetric: 0,
 		lcpElement: '',
-		fetchPriorityCount: fetchPriorityElements.length,
+		fetchPriorityCount: 0,
 		fetchPriorityIsLcp: 0,
 		fetchPriorityOutsideViewport: 0,
 		lazyLoadableCount: 0,
@@ -340,6 +333,16 @@ async function analyze( browser, url, { width, height } ) {
 	};
 
 	// @TODO Combine the following into a single call.
+
+	/** @type {object} */
+	const report = await page.evaluate(
+		( global ) => /** @type {object} */ window[ global ],
+		'webVitalsLCP'
+	);
+
+	result.fetchPriorityCount = (await page.$$( 'img[fetchpriority="high"]' )).length;
+
+	result.lcpMetric = Number( report.delta );
 
 	// Tag name for the LCP element.
 	result.lcpElement = await page.evaluate(
