@@ -229,6 +229,7 @@ export async function handler( opt ) {
  * @property {number}  lcpMetric
  * @property {string}  lcpElement
  * @property {number}  fetchPriorityIsLcp TODO: Better as boolean.
+ * @property {number}  fetchPriorityCount
  * @property {number}  fetchPriorityInsideViewport
  * @property {number}  fetchPriorityOutsideViewport
  * @property {number}  lazyLoadableCount
@@ -320,8 +321,7 @@ async function analyze( browser, url, { width, height } ) {
 		`window['webVitalsLCP'] !== undefined`
 	);
 
-	/** @type {DeviceAnalysis} */
-	const result = await page.evaluate(
+	return await page.evaluate(
 		( global ) => {
 
 			/**
@@ -329,7 +329,7 @@ async function analyze( browser, url, { width, height } ) {
 			 *
 			 * @todo This should return a percentage of how much the element is in the viewport.
 			 *
-			 * @param {HTMLElement} element
+			 * @param {HTMLElement|HTMLIFrameElementWithLoadingAttribute} element
 			 * @returns {boolean}
 			 */
 			function isElementInViewport( element ) {
@@ -347,10 +347,11 @@ async function analyze( browser, url, { width, height } ) {
 			const webVitalsLCP = /** @type {LCPMetricWithAttribution} */ window[ global ];
 
 			/** @type {DeviceAnalysis} */
-			const result = {
+			const analysis = {
 				lcpMetric: 0,
 				lcpElement: '',
 				fetchPriorityIsLcp: 0,
+				fetchPriorityCount: 0,
 				fetchPriorityInsideViewport: 0,
 				fetchPriorityOutsideViewport: 0,
 				lazyLoadableCount: 0,
@@ -361,88 +362,27 @@ async function analyze( browser, url, { width, height } ) {
 			};
 
 			// Obtain lcpMetric.
-			result.lcpMetric = Number( webVitalsLCP.delta );
+			analysis.lcpMetric = Number( webVitalsLCP.delta );
 
 			// Obtain lcpElement.
-			result.lcpElement = webVitalsLCP.attribution.lcpEntry.element.tagName;
+			analysis.lcpElement = webVitalsLCP.attribution.lcpEntry.element.tagName;
 
-			// Obtain fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
+			// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
 			/** @type NodeListOf<HTMLImageElement> */
 			const fetchpriorityHighImages = document.body.querySelectorAll(  'img[fetchpriority="high"]' );
 			for ( const img of fetchpriorityHighImages ) {
+				analysis.fetchPriorityCount++;
+
 				if ( img === webVitalsLCP.attribution.lcpEntry.element ) {
-					result.fetchPriorityIsLcp = 1; // TODO: Boolean.
+					analysis.fetchPriorityIsLcp = 1; // TODO: Boolean.
 				}
 
 				if ( isElementInViewport( img ) ) {
-					result.fetchPriorityInsideViewport++;
+					analysis.fetchPriorityInsideViewport++;
 				} else {
-					result.fetchPriorityOutsideViewport++;
+					analysis.fetchPriorityOutsideViewport++;
 				}
 			}
-
-			return result;
-		},
-		'webVitalsLCP'
-	);
-
-
-	// @TODO Combine the following into a single call.
-	//
-	// /** @type {object} */
-	// const report = await page.evaluate(
-	// 	( global ) => /** @type {object} */ window[ global ],
-	// 	'webVitalsLCP'
-	// );
-
-	//
-	// result.lcpMetric = Number( report.delta );
-
-	// Count of images with fetchpriority=high which are the LCP element. There can be one or none.
-	// result.fetchPriorityIsLcp = await page.evaluate(
-	// 	( global ) => {
-	// 		for ( const img of document.querySelectorAll( 'img[fetchpriority="high"]' ) ) {
-	// 			if ( img === window[ global ].attribution.lcpEntry.element ) {
-	// 				return 1;
-	// 			}
-	// 		}
-	// 		return 0;
-	// 	},
-	// 	'webVitalsLCP'
-	// );
-
-	// Count of images with fetchpriority=high which are outside the viewport. Usually one or none.
-	// result.fetchPriorityOutsideViewport = await page.evaluate(
-	// 	() => {
-	// 		let count = 0;
-	// 		for ( const element of document.body.querySelectorAll( 'img[fetchpriority="high"]') ) {
-	// 			const rect = element.getBoundingClientRect();
-	// 			if ( ! (
-	// 				rect.top >= 0 &&
-	// 				rect.bottom <= window.innerHeight &&
-	// 				rect.left >= 0 &&
-	// 				rect.right <= window.innerWidth &&
-	// 				rect.width > 0 &&
-	// 				rect.height > 0
-	// 			) ) {
-	// 				count++;
-	// 			}
-	// 		}
-	// 		return count;
-	// 	}
-	// );
-
-	// Rate success for lazy-loading, where initial-viewport images omit loading=lazy and out-of-viewport images include it.
-	Object.assign(
-		result,
-		await page.evaluate( () => {
-			const counts = {
-				lazyLoadableCount: 0,
-				lazyLoadedInsideViewport: 0,
-				lazyLoadedOutsideViewport: 0,
-				eagerLoadedInsideViewport: 0,
-				eagerLoadedOutsideViewport: 0,
-			};
 
 			/** @type NodeListOf<HTMLImageElement|HTMLIFrameElementWithLoadingAttribute> */
 			const elements = document.body.querySelectorAll( 'img, iframe' );
@@ -453,43 +393,28 @@ async function analyze( browser, url, { width, height } ) {
 					continue;
 				}
 
-				counts.lazyLoadableCount++;
+				analysis.lazyLoadableCount++;
 
-				const rect = element.getBoundingClientRect();
-				const isInsideViewport = (
-					rect.top >= 0 &&
-					rect.bottom <= window.innerHeight &&
-					rect.left >= 0 &&
-					rect.right <= window.innerWidth &&
-					rect.width > 0 &&
-					rect.height > 0
-				);
-
+				const isInsideViewport = isElementInViewport( element );
 				const isLazyLoaded = element.loading === 'lazy';
 
 				if ( isLazyLoaded ) {
 					if ( isInsideViewport ) {
-						counts.lazyLoadedInsideViewport++;
+						analysis.lazyLoadedInsideViewport++;
 					} else {
-						counts.lazyLoadedOutsideViewport++;
+						analysis.lazyLoadedOutsideViewport++;
 					}
 				} else {
 					if ( isInsideViewport ) {
-						counts.eagerLoadedInsideViewport++;
+						analysis.eagerLoadedInsideViewport++;
 					} else {
-						counts.eagerLoadedOutsideViewport++;
+						analysis.eagerLoadedOutsideViewport++;
 					}
 				}
 			}
 
-			return counts;
-		} )
+			return analysis;
+		},
+		'webVitalsLCP'
 	);
-
-	// Two cases for lazy-loading:
-	// images outside viewport should have loading=lazy
-	// images inside viewport should not have loading=lazy
-
-
-	return result;
 }
