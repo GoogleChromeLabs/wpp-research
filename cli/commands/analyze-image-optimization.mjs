@@ -147,7 +147,6 @@ export async function handler( opt ) {
 		// TODO: Add typedef.
 		const aggregation = {
 			lcpMetric: [],
-			lazyLoadableElementsInsideViewport: [],
 			fetchPriorityCount: [],
 			fetchPriorityIsLcp: [],
 			fetchPriorityOutsideViewport: [],
@@ -176,14 +175,12 @@ export async function handler( opt ) {
 			aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
 
 			aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
-			aggregation.lazyLoadableElementsInsideViewport.push( result.lazyLoadableElementsInsideViewport );
 		}
 
 		// TODO: Add typedef. Avoid string indexes.
 		analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
 		analysis['average:fetchPriorityCount'] = average( aggregation.fetchPriorityCount );
 		analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
-		analysis['average:lazyLoadableElementsInsideViewport'] = average( aggregation.lazyLoadableElementsInsideViewport );
 		analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
 		analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
 
@@ -206,18 +203,18 @@ export async function handler( opt ) {
 		// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
 		// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
 		// were lazy-loaded, only reduce by half that much.
-		if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
-			const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
-
-			analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
-
-			/*
-			 * If success rate was 100% then multiply by 1.
-			 * If success rate was 50% then multiply by 0.875
-			 * If success rate was 0% then multiply by 0.75.
-			 */
-			analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
-		}
+		// if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
+		// 	const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
+		//
+		// 	analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
+		//
+		// 	/*
+		// 	 * If success rate was 100% then multiply by 1.
+		// 	 * If success rate was 50% then multiply by 0.875
+		// 	 * If success rate was 0% then multiply by 0.75.
+		// 	 */
+		// 	analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
+		// }
 
 		console.info( analysis );
 	}
@@ -229,7 +226,6 @@ export async function handler( opt ) {
  * @typedef {Object} DeviceAnalysis
  * @property {number}  lcpMetric
  * @property {string}  lcpElement
- * @property {number}  lazyLoadableElementsInsideViewport
  * @property {number}  fetchPriorityCount
  * @property {number}  fetchPriorityIsLcp TODO: Better as boolean.
  * @property {number}  fetchPriorityOutsideViewport
@@ -336,8 +332,11 @@ async function analyze( browser, url, { width, height } ) {
 		fetchPriorityCount: fetchPriorityElements.length,
 		fetchPriorityIsLcp: 0,
 		fetchPriorityOutsideViewport: 0,
-		lazyLoadableElementsInsideViewport: 0,
+		lazyLoadableCount: 0,
 		lazyLoadedInsideViewport: 0,
+		lazyLoadedOutsideViewport: 0,
+		eagerLoadedInsideViewport: 0,
+		eagerLoadedOutsideViewport: 0,
 	};
 
 	// @TODO Combine the following into a single call.
@@ -377,50 +376,6 @@ async function analyze( browser, url, { width, height } ) {
 					rect.width > 0 &&
 					rect.height > 0
 				) ) {
-					count++;
-				}
-			}
-			return count;
-		}
-	);
-
-	// TODO: Do we really need this?
-	// Number of images and iframes inside the viewport.
-	result.lazyLoadableElementsInsideViewport = await page.evaluate(
-		( global ) => {
-			let count = 0;
-			for ( const element of document.body.querySelectorAll( 'img, iframe') ) {
-				const rect = element.getBoundingClientRect();
-				if (
-					rect.top >= 0 &&
-					rect.bottom <= window.innerHeight &&
-					rect.left >= 0 &&
-					rect.right <= window.innerWidth &&
-					rect.width > 0 &&
-					rect.height > 0
-				) {
-					count++;
-				}
-			}
-			return count;
-		},
-		'webVitalsLCP'
-	);
-
-	// Count of lazy-loaded elements (images and iframes) which are in the viewport.
-	result.lazyLoadedInsideViewport = await page.evaluate(
-		() => {
-			let count = 0;
-			for ( const element of document.body.querySelectorAll( '[loading="lazy"]') ) {
-				const rect = element.getBoundingClientRect();
-				if (
-					rect.top >= 0 &&
-					rect.bottom <= window.innerHeight &&
-					rect.left >= 0 &&
-					rect.right <= window.innerWidth &&
-					rect.width > 0 &&
-					rect.height > 0
-				) {
 					count++;
 				}
 			}
