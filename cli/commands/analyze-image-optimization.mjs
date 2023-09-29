@@ -39,6 +39,19 @@ import {
 	MEDIAN_PERCENTILES,
 } from '../lib/util/percentiles.mjs';
 
+/**
+ * Extension to TypeScript's HTMLIFrameElement with the addition of the missing loading attribute.
+ *
+ * @typedef {object} HTMLIFrameElementWithLoadingAttribute
+ * @extends HTMLIFrameElement
+ * @property {'eager'|'lazy'} loading
+ */
+
+/**
+ * Command-line arguments.
+ *
+ * @type {object}
+ */
 export const options = [
 	{
 		argname: '-u, --url <url>',
@@ -55,6 +68,7 @@ export const options = [
 	},
 ];
 
+// TODO: Add user agents as well. Important for wp_is_mobile().
 const viewports = {
 	mobile: {
 		width: 360,
@@ -102,6 +116,19 @@ function getParamsFromOptions( opt ) {
 	return params;
 }
 
+/**
+ * Compute average from numbers.
+ *
+ * @param {Number[]} numbers
+ * @return {Number|null} Average or null if no numbers were passed.
+ */
+function average( numbers ) {
+	if ( numbers.length === 0 ) {
+		return null;
+	}
+	return numbers.reduce( ( a, b ) => a + b ) / numbers.length
+}
+
 export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
@@ -113,27 +140,105 @@ export async function handler( opt ) {
 	} );
 
 	for await (const url of getURLs(opt)) {
-		for await ( const [ viewportName, viewportDimensions ] of Object.entries( viewports ) ) {
+		const analysis = {
+			url,
+		};
+
+		// TODO: Add typedef.
+		const aggregation = {
+			lcpMetric: [],
+			lazyLoadableElementsInsideViewport: [],
+			fetchPriorityCount: [],
+			fetchPriorityIsLcp: [],
+			fetchPriorityOutsideViewport: [],
+			lazyLoadedInsideViewport: [],
+		};
+
+		for await ( const [ device, viewportDimensions ] of Object.entries( viewports ) ) {
 			const result = await analyze(
 				browser,
 				url,
 				viewportDimensions
 			);
 
-			// TODO: Better table needed.
-			// TODO: Combine results in some way, in particular compare mobile vs desktop for fetchPriorityIsLcp and fetchPriorityInViewport.
-			console.log(
-				{
-					url,
-					viewportName,
-					...result
-				}
-			);
+			for ( const [ key, value ] of Object.entries( result ) ) {
+				analysis[ `${device}:${key}` ] = value;
+			}
+
+			aggregation.lcpMetric.push( result.lcpMetric );
+			aggregation.fetchPriorityCount.push( result.fetchPriorityCount );
+
+			// If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
+			// TODO: If not, should we just aggregate a 1?
+			if ( result.lcpElement === 'IMG' ) {
+				aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
+			}
+			aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
+
+			aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
+			aggregation.lazyLoadableElementsInsideViewport.push( result.lazyLoadableElementsInsideViewport );
 		}
+
+		// TODO: Add typedef. Avoid string indexes.
+		analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
+		analysis['average:fetchPriorityCount'] = average( aggregation.fetchPriorityCount );
+		analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
+		analysis['average:lazyLoadableElementsInsideViewport'] = average( aggregation.lazyLoadableElementsInsideViewport );
+		analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
+		analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
+
+		analysis.score = 100;
+
+		// If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
+		// and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
+		// on the LCP image, but mobile did not, then the score should go down to 50.
+		if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
+			analysis.score *= analysis['average:fetchPriorityIsLcp'];
+		}
+
+		// If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
+		// as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
+		// no such images outside the viewport.
+		if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
+			analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
+		}
+
+		// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
+		// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
+		// were lazy-loaded, only reduce by half that much.
+		if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
+			const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
+
+			analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
+
+			/*
+			 * If success rate was 100% then multiply by 1.
+			 * If success rate was 50% then multiply by 0.875
+			 * If success rate was 0% then multiply by 0.75.
+			 */
+			analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
+		}
+
+		console.info( analysis );
 	}
 
 	await browser.close();
 }
+
+/**
+ * @typedef {Object} DeviceAnalysis
+ * @property {number}  lcpMetric
+ * @property {string}  lcpElement
+ * @property {number}  lazyLoadableElementsInsideViewport
+ * @property {number}  fetchPriorityCount
+ * @property {number}  fetchPriorityIsLcp TODO: Better as boolean.
+ * @property {number}  fetchPriorityOutsideViewport
+ * @property {number}  lazyLoadableCount
+ * @property {number}  lazyLoadedInsideViewport
+ * @property {number}  lazyLoadedOutsideViewport
+ * @property {number}  eagerLoadedInsideViewport
+ * @property {number}  eagerLoadedOutsideViewport
+ */
 
 /**
  * Analyze a given URL for LCP image issues.
@@ -150,7 +255,7 @@ export async function handler( opt ) {
  * @param {object}  dimensions
  * @param {number}  dimensions.width
  * @param {number}  dimensions.height
- * @return {Promise<{}>} Results
+ * @return {Promise<DeviceAnalysis>} Results
  */
 async function analyze( browser, url, { width, height } ) {
 	const scriptTag = /* language=JS */ `
@@ -226,30 +331,88 @@ async function analyze( browser, url, { width, height } ) {
 	const fetchPriorityElements = await page.$$( 'img[fetchpriority="high"]' );
 
 	const result = {
-		lcpMetric: report.delta,
+		lcpMetric: Number( report.delta ),
+		lcpElement: '',
 		fetchPriorityCount: fetchPriorityElements.length,
-		fetchPriorityIsLcp: false,
-		fetchPriorityInViewport: 0,
-		lazyLoadedInViewport: 0,
+		fetchPriorityIsLcp: 0,
+		fetchPriorityOutsideViewport: 0,
+		lazyLoadableElementsInsideViewport: 0,
+		lazyLoadedInsideViewport: 0,
 	};
 
-	result.fetchPriorityIsLcp = await page.evaluate(
+	// @TODO Combine the following into a single call.
+
+	// Tag name for the LCP element.
+	result.lcpElement = await page.evaluate(
 		( global ) => {
-			for ( const img of document.querySelectorAll( 'img[fetchpriority="high"]' ) ) {
-				if ( img === window[ global ].attribution.lcpEntry.element ) {
-					return true;
-				}
-			}
-			return false;
+			return window[ global ].attribution.lcpEntry.element.tagName;
 		},
 		'webVitalsLCP'
 	);
 
-	result.fetchPriorityInViewport = await page.evaluate(
+	// Count of images with fetchpriority=high which are the LCP element. There can be one or none.
+	result.fetchPriorityIsLcp = await page.evaluate(
+		( global ) => {
+			for ( const img of document.querySelectorAll( 'img[fetchpriority="high"]' ) ) {
+				if ( img === window[ global ].attribution.lcpEntry.element ) {
+					return 1;
+				}
+			}
+			return 0;
+		},
+		'webVitalsLCP'
+	);
+
+	// Count of images with fetchpriority=high which are outside the viewport. Usually one or none.
+	result.fetchPriorityOutsideViewport = await page.evaluate(
 		() => {
 			let count = 0;
-			for ( const img of document.querySelectorAll( 'img[fetchpriority="high"]') ) {
-				const rect = img.getBoundingClientRect();
+			for ( const element of document.body.querySelectorAll( 'img[fetchpriority="high"]') ) {
+				const rect = element.getBoundingClientRect();
+				if ( ! (
+					rect.top >= 0 &&
+					rect.bottom <= window.innerHeight &&
+					rect.left >= 0 &&
+					rect.right <= window.innerWidth &&
+					rect.width > 0 &&
+					rect.height > 0
+				) ) {
+					count++;
+				}
+			}
+			return count;
+		}
+	);
+
+	// TODO: Do we really need this?
+	// Number of images and iframes inside the viewport.
+	result.lazyLoadableElementsInsideViewport = await page.evaluate(
+		( global ) => {
+			let count = 0;
+			for ( const element of document.body.querySelectorAll( 'img, iframe') ) {
+				const rect = element.getBoundingClientRect();
+				if (
+					rect.top >= 0 &&
+					rect.bottom <= window.innerHeight &&
+					rect.left >= 0 &&
+					rect.right <= window.innerWidth &&
+					rect.width > 0 &&
+					rect.height > 0
+				) {
+					count++;
+				}
+			}
+			return count;
+		},
+		'webVitalsLCP'
+	);
+
+	// Count of lazy-loaded elements (images and iframes) which are in the viewport.
+	result.lazyLoadedInsideViewport = await page.evaluate(
+		() => {
+			let count = 0;
+			for ( const element of document.body.querySelectorAll( '[loading="lazy"]') ) {
+				const rect = element.getBoundingClientRect();
 				if (
 					rect.top >= 0 &&
 					rect.bottom <= window.innerHeight &&
@@ -265,25 +428,64 @@ async function analyze( browser, url, { width, height } ) {
 		}
 	);
 
-	result.lazyLoadedInViewport = await page.evaluate(
-		() => {
-			let count = 0;
-			for ( const img of document.querySelectorAll( 'img[loading="lazy"]') ) {
-				const rect = img.getBoundingClientRect();
-				if (
+	// Rate success for lazy-loading, where initial-viewport images omit loading=lazy and out-of-viewport images include it.
+	Object.assign(
+		result,
+		await page.evaluate( () => {
+			const counts = {
+				lazyLoadableCount: 0,
+				lazyLoadedInsideViewport: 0,
+				lazyLoadedOutsideViewport: 0,
+				eagerLoadedInsideViewport: 0,
+				eagerLoadedOutsideViewport: 0,
+			};
+
+			/** @type NodeListOf<HTMLImageElement|HTMLIFrameElementWithLoadingAttribute> */
+			const elements = document.body.querySelectorAll( 'img, iframe' );
+			for ( const element of elements ) {
+
+				// Skip consideration of tracking pixels.
+				if ( element instanceof HTMLImageElement && element.width === 1 && element.height === 1 ) {
+					continue;
+				}
+
+				counts.lazyLoadableCount++;
+
+				const rect = element.getBoundingClientRect();
+				const isInsideViewport = (
 					rect.top >= 0 &&
 					rect.bottom <= window.innerHeight &&
 					rect.left >= 0 &&
 					rect.right <= window.innerWidth &&
 					rect.width > 0 &&
 					rect.height > 0
-				) {
-					count++;
+				);
+
+				const isLazyLoaded = element.loading === 'lazy';
+
+				if ( isLazyLoaded ) {
+					if ( isInsideViewport ) {
+						counts.lazyLoadedInsideViewport++;
+					} else {
+						counts.lazyLoadedOutsideViewport++;
+					}
+				} else {
+					if ( isInsideViewport ) {
+						counts.eagerLoadedInsideViewport++;
+					} else {
+						counts.eagerLoadedOutsideViewport++;
+					}
 				}
 			}
-			return count;
-		}
+
+			return counts;
+		} )
 	);
+
+	// Two cases for lazy-loading:
+	// images outside viewport should have loading=lazy
+	// images inside viewport should not have loading=lazy
+
 
 	return result;
 }
