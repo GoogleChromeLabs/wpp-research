@@ -72,15 +72,29 @@ export const options = [
 	},
 ];
 
-// TODO: Add user agents as well. Important for wp_is_mobile().
-const viewports = {
+/**
+ * @typedef {object} Device
+ * @property {string} userAgent
+ * @property {number} width
+ * @property {number} height
+ * @property {boolean} isMobile
+ */
+
+/**
+ * @type {Object<string, Device>}
+ */
+const devices = {
 	mobile: {
 		width: 360,
 		height: 800,
+		userAgent: 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.140 Mobile Safari/537.36',
+		isMobile: true,
 	},
 	desktop: {
 		width: 1920,
 		height: 1080,
+		userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+		isMobile: false,
 	}
 };
 
@@ -157,15 +171,15 @@ export async function handler( opt ) {
 			lazyLoadedInsideViewport: [],
 		};
 
-		for await ( const [ device, viewportDimensions ] of Object.entries( viewports ) ) {
+		for await ( const [ deviceName, device ] of Object.entries( devices ) ) {
 			const result = await analyze(
 				browser,
 				url,
-				viewportDimensions
+				device
 			);
 
 			for ( const [ key, value ] of Object.entries( result ) ) {
-				analysis[ `${device}:${key}` ] = value;
+				analysis[ `${deviceName}:${key}` ] = value;
 			}
 
 			aggregation.lcpMetric.push( result.lcpMetric );
@@ -228,7 +242,7 @@ export async function handler( opt ) {
  * @typedef {Object} DeviceAnalysis
  * @property {number}  lcpMetric
  * @property {string}  lcpElement
- * @property {number}  fetchPriorityIsLcp TODO: Better as boolean.
+ * @property {boolean} fetchPriorityIsLcp
  * @property {number}  fetchPriorityCount
  * @property {number}  fetchPriorityInsideViewport
  * @property {number}  fetchPriorityOutsideViewport
@@ -251,12 +265,10 @@ export async function handler( opt ) {
  *
  * @param {Browser} browser
  * @param {string}  url
- * @param {object}  dimensions
- * @param {number}  dimensions.width
- * @param {number}  dimensions.height
+ * @param {Device}  device
  * @return {Promise<DeviceAnalysis>} Results
  */
-async function analyze( browser, url, { width, height } ) {
+async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	const scriptTag = /* language=JS */ `
 		import { onLCP, onFCP } from "https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module";
 		onFCP( ( report ) => {
@@ -269,8 +281,12 @@ async function analyze( browser, url, { width, height } ) {
 	`;
 
 	const page = await browser.newPage();
+	await page.setUserAgent( userAgent );
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 	await page.setViewport( { width, height } );
+	await page.setExtraHTTPHeaders(
+		{ 'Sec-CH-UA-Mobile': isMobile ? '?1' : '?0' }
+	);
 	await page
 		.mainFrame()
 		.waitForFunction(
@@ -350,7 +366,7 @@ async function analyze( browser, url, { width, height } ) {
 			const analysis = {
 				lcpMetric: 0,
 				lcpElement: '',
-				fetchPriorityIsLcp: 0,
+				fetchPriorityIsLcp: false,
 				fetchPriorityCount: 0,
 				fetchPriorityInsideViewport: 0,
 				fetchPriorityOutsideViewport: 0,
@@ -374,7 +390,7 @@ async function analyze( browser, url, { width, height } ) {
 				analysis.fetchPriorityCount++;
 
 				if ( img === webVitalsLCP.attribution.lcpEntry.element ) {
-					analysis.fetchPriorityIsLcp = 1; // TODO: Boolean.
+					analysis.fetchPriorityIsLcp = true;
 				}
 
 				if ( isElementInViewport( img ) ) {
