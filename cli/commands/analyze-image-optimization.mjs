@@ -52,27 +52,6 @@ import {
  */
 
 /**
- * Command-line arguments.
- *
- * @type {object}
- */
-export const options = [
-	{
-		argname: '-u, --url <url>',
-		description: 'A URL to check',
-	},
-	{
-		argname: '-f, --file <file>',
-		description: 'File with URLs to check',
-	},
-	{
-		argname: '-o, --output <output>',
-		description: 'Output format: csv or table',
-		defaults: OUTPUT_FORMAT_TABLE,
-	},
-];
-
-/**
  * @typedef {object} Device
  * @property {string} userAgent
  * @property {number} width
@@ -97,6 +76,27 @@ const devices = {
 		isMobile: false,
 	}
 };
+
+/**
+ * Command-line arguments.
+ *
+ * @type {object}
+ */
+export const options = [
+	{
+		argname: '-u, --url <url>',
+		description: 'A URL to check',
+	},
+	{
+		argname: '-f, --file <file>',
+		description: 'File with URLs to check',
+	},
+	{
+		argname: '-o, --output <output>',
+		description: 'Output format: csv or table',
+		defaults: OUTPUT_FORMAT_TABLE,
+	},
+];
 
 /**
  * @typedef {Object} Params
@@ -284,9 +284,9 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	await page.setUserAgent( userAgent );
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 	await page.setViewport( { width, height } );
-	await page.setExtraHTTPHeaders(
-		{ 'Sec-CH-UA-Mobile': isMobile ? '?1' : '?0' }
-	);
+	await page.setExtraHTTPHeaders( {
+		'Sec-CH-UA-Mobile': isMobile ? '?1' : '?0',
+	} );
 	await page
 		.mainFrame()
 		.waitForFunction(
