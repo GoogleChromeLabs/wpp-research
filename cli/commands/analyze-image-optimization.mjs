@@ -303,7 +303,7 @@ async function analyze( browser, url, { width, height } ) {
 	// TODO: If this is not done, then onLCP never fires for some reason.
 	await page.waitForFunction(
 		// language=JS
-		`window.webVitalsFCP !== undefined`
+		`window['webVitalsFCP'] !== undefined`
 	);
 
 	/*
@@ -362,7 +362,7 @@ async function analyze( browser, url, { width, height } ) {
 			};
 
 			// Obtain lcpMetric.
-			analysis.lcpMetric = Number( webVitalsLCP.delta );
+			analysis.lcpMetric = webVitalsLCP.delta;
 
 			// Obtain lcpElement.
 			analysis.lcpElement = webVitalsLCP.attribution.lcpEntry.element.tagName;
