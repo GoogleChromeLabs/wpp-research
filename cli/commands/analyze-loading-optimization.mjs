@@ -82,46 +82,39 @@ export const options = [
 		description: 'A URL to check',
 	},
 	{
-		argname: '-f, --file <file>',
-		description: 'File with URLs to check',
-	},
-	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv or table',
+		description: 'Output format: csv, table, or json',
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 ];
 
 /**
  * @typedef {Object} Params
- * @property {?string}            url               - See above.
- * @property {?string}            file              - See above.
- * @property {string}             output            - See above.
+ * @property {string} url               - See above.
+ * @property {string} output            - See above.
  */
 
 /**
- * @param {Object}                opt
- * @param {?string}               opt.url
- * @param {?string}               opt.file
- * @param {string}                opt.output
+ * @param {Object} opt
+ * @param {string} opt.url
+ * @param {string} opt.output
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
 	const params = {
 		url: opt.url,
-		file: opt.file,
 		output: opt.output,
 	};
 
-	if ( ! isValidTableFormat( params.output ) ) {
+	if ( ! isValidTableFormat( params.output ) && 'json' !== params.output ) {
 		throw new Error(
-			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table" or "csv".`
+			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", or "json".`
 		);
 	}
 
-	if ( ! params.file && ! params.url ) {
+	if ( ! params.url ) {
 		throw new Error(
-			'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
+			'You need to provide a URL to analyze via the --url (-u) argument.'
 		);
 	}
 
@@ -149,104 +142,90 @@ function average( numbers ) {
 export async function handler( opt ) {
 	const params   = getParamsFromOptions( opt );
 
-	/** @type {Array<{url: string, deviceAnalyses: Object<string, DeviceAnalysis>}>} */
-	const urlReports = [];
-
 	const browser = await puppeteer.launch( {
 		headless: 'new'
 		// TODO: Command is not working when opening in non-headless mode. The LCP never fires.
 		// headless: false, devtools: true
 	} );
 
-	for await (const url of getURLs( opt )) {
-		const urlReport = {
-			url,
-			deviceAnalyses: {},
-		};
+	const urlReport = {
+		url: params.url,
+		deviceAnalyses: {},
+	};
 
-		// TODO: Add typedef.
-		// const aggregation = {
-		// 	lcpMetric: [],
-		// 	fetchPriorityCount: [],
-		// 	fetchPriorityIsLcp: [],
-		// 	fetchPriorityOutsideViewport: [],
-		// 	lazyLoadedInsideViewport: [],
-		// };
+	// TODO: Add typedef.
+	// const aggregation = {
+	// 	lcpMetric: [],
+	// 	fetchPriorityCount: [],
+	// 	fetchPriorityIsLcp: [],
+	// 	fetchPriorityOutsideViewport: [],
+	// 	lazyLoadedInsideViewport: [],
+	// };
 
-		for await ( const [ deviceName, device ] of Object.entries( devices ) ) {
-			const analysis = await analyze(
-				browser,
-				url,
-				device
-			);
+	for await ( const [ deviceName, device ] of Object.entries( devices ) ) {
+		urlReport.deviceAnalyses[ deviceName ] = await analyze(
+			browser,
+			params.url,
+			device
+		);
 
-			urlReport.deviceAnalyses[ deviceName ] = analysis;
-
-			// for ( const [ key, value ] of Object.entries( analysis ) ) {
-			//
-			// }
-
-			// aggregation.lcpMetric.push( result.lcpMetric );
-			//
-			// // If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
-			// // TODO: If not, should we just aggregate a 1?
-			// if ( result.lcpElement === 'IMG' ) {
-			// 	aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
-			// }
-			// aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
-			//
-			// aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
-		}
-
-		// // TODO: Add typedef. Avoid string indexes.
-		// analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
-		// analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
-		// analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
-		// analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
-
-		// analysis.score = 100;
+		// for ( const [ key, value ] of Object.entries( analysis ) ) {
 		//
-		// // If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
-		// // and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
-		// // on the LCP image, but mobile did not, then the score should go down to 50.
-		// if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
-		// 	analysis.score *= analysis['average:fetchPriorityIsLcp'];
-		// }
-		//
-		// // If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
-		// // as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
-		// // no such images outside the viewport.
-		// if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
-		// 	analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
 		// }
 
-		// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
-		// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
-		// were lazy-loaded, only reduce by half that much.
-		// if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
-		// 	const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
+		// aggregation.lcpMetric.push( result.lcpMetric );
 		//
-		// 	analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
-		//
-		// 	/*
-		// 	 * If success rate was 100% then multiply by 1.
-		// 	 * If success rate was 50% then multiply by 0.875
-		// 	 * If success rate was 0% then multiply by 0.75.
-		// 	 */
-		// 	analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
+		// // If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
+		// // TODO: If not, should we just aggregate a 1?
+		// if ( result.lcpElement === 'IMG' ) {
+		// 	aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
 		// }
-
-		urlReports.push( urlReport );
-		break; // TODO: Remove support for obtaining multiple URLs at a time.
+		// aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
+		//
+		// aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
 	}
+
+	// // TODO: Add typedef. Avoid string indexes.
+	// analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
+	// analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
+	// analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
+	// analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
+
+	// analysis.score = 100;
+	//
+	// // If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
+	// // and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
+	// // on the LCP image, but mobile did not, then the score should go down to 50.
+	// if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
+	// 	analysis.score *= analysis['average:fetchPriorityIsLcp'];
+	// }
+	//
+	// // If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
+	// // as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
+	// // no such images outside the viewport.
+	// if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
+	// 	analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
+	// }
+
+	// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
+	// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
+	// were lazy-loaded, only reduce by half that much.
+	// if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
+	// 	const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
+	//
+	// 	analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
+	//
+	// 	/*
+	// 	 * If success rate was 100% then multiply by 1.
+	// 	 * If success rate was 50% then multiply by 0.875
+	// 	 * If success rate was 0% then multiply by 0.75.
+	// 	 */
+	// 	analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
+	// }
 
 	await browser.close();
 
-	if ( urlReports.length === 0 ) {
-		log( formats.error( 'No results returned.' ) );
-	} else {
-		outputResults( params, urlReports[0] );
-	}
+	outputResults( params, urlReport );
 }
 
 /**
@@ -256,6 +235,11 @@ export async function handler( opt ) {
  * @param {URLReport} urlReport
  */
 function outputResults( params, urlReport ) {
+	if ( params.output === 'json' ) {
+		log( urlReport );
+		return;
+	}
+
 	const deviceNames = Object.keys( devices );
 	const fieldNames = Object.keys( urlReport.deviceAnalyses[ deviceNames[0] ] );
 	const headings = [ 'field', ...deviceNames ];
