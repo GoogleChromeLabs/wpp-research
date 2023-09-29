@@ -19,8 +19,7 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
-import round from 'lodash-es/round.js';
+import puppeteer, { Browser } from 'puppeteer';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("web-vitals").LCPMetricWithAttribution} LCPMetricWithAttribution */
@@ -31,17 +30,12 @@ import round from 'lodash-es/round.js';
  */
 import { getURLs } from '../lib/cli/args.mjs';
 import {
-	log,
 	formats,
-	table,
 	isValidTableFormat,
+	log,
+	table,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcPercentile } from '../lib/util/math.mjs';
-import {
-	KEY_PERCENTILES,
-	MEDIAN_PERCENTILES,
-} from '../lib/util/percentiles.mjs';
 
 /**
  * Extension to TypeScript's HTMLIFrameElement with the addition of the missing loading attribute.
@@ -147,9 +141,16 @@ function average( numbers ) {
 	return numbers.reduce( ( a, b ) => a + b ) / numbers.length
 }
 
+/**
+ *
+ * @param {Object} opt
+ * @returns {Promise<void>}
+ */
 export async function handler( opt ) {
-	const params = getParamsFromOptions( opt );
-	const results = [];
+	const params   = getParamsFromOptions( opt );
+
+	/** @type {Array<{url: string, deviceAnalyses: Object<string, DeviceAnalysis>}>} */
+	const urlReports = [];
 
 	const browser = await puppeteer.launch( {
 		headless: 'new'
@@ -157,64 +158,67 @@ export async function handler( opt ) {
 		// headless: false, devtools: true
 	} );
 
-	for await (const url of getURLs(opt)) {
-		const analysis = {
+	for await (const url of getURLs( opt )) {
+		const urlReport = {
 			url,
+			deviceAnalyses: {},
 		};
 
 		// TODO: Add typedef.
-		const aggregation = {
-			lcpMetric: [],
-			fetchPriorityCount: [],
-			fetchPriorityIsLcp: [],
-			fetchPriorityOutsideViewport: [],
-			lazyLoadedInsideViewport: [],
-		};
+		// const aggregation = {
+		// 	lcpMetric: [],
+		// 	fetchPriorityCount: [],
+		// 	fetchPriorityIsLcp: [],
+		// 	fetchPriorityOutsideViewport: [],
+		// 	lazyLoadedInsideViewport: [],
+		// };
 
 		for await ( const [ deviceName, device ] of Object.entries( devices ) ) {
-			const result = await analyze(
+			const analysis = await analyze(
 				browser,
 				url,
 				device
 			);
 
-			for ( const [ key, value ] of Object.entries( result ) ) {
-				analysis[ `${deviceName}:${key}` ] = value;
-			}
+			urlReport.deviceAnalyses[ deviceName ] = analysis;
 
-			aggregation.lcpMetric.push( result.lcpMetric );
+			// for ( const [ key, value ] of Object.entries( analysis ) ) {
+			//
+			// }
 
-			// If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
-			// TODO: If not, should we just aggregate a 1?
-			if ( result.lcpElement === 'IMG' ) {
-				aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
-			}
-			aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
-
-			aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
+			// aggregation.lcpMetric.push( result.lcpMetric );
+			//
+			// // If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
+			// // TODO: If not, should we just aggregate a 1?
+			// if ( result.lcpElement === 'IMG' ) {
+			// 	aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
+			// }
+			// aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
+			//
+			// aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
 		}
 
-		// TODO: Add typedef. Avoid string indexes.
-		analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
-		analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
-		analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
-		analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
+		// // TODO: Add typedef. Avoid string indexes.
+		// analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
+		// analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
+		// analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
+		// analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
 
-		analysis.score = 100;
-
-		// If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
-		// and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
-		// on the LCP image, but mobile did not, then the score should go down to 50.
-		if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
-			analysis.score *= analysis['average:fetchPriorityIsLcp'];
-		}
-
-		// If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
-		// as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
-		// no such images outside the viewport.
-		if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
-			analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
-		}
+		// analysis.score = 100;
+		//
+		// // If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
+		// // and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
+		// // on the LCP image, but mobile did not, then the score should go down to 50.
+		// if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
+		// 	analysis.score *= analysis['average:fetchPriorityIsLcp'];
+		// }
+		//
+		// // If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
+		// // as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
+		// // no such images outside the viewport.
+		// if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
+		// 	analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
+		// }
 
 		// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
 		// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
@@ -232,10 +236,40 @@ export async function handler( opt ) {
 		// 	analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
 		// }
 
-		console.info( analysis );
+		urlReports.push( urlReport );
+		break; // TODO: Remove support for obtaining multiple URLs at a time.
 	}
 
 	await browser.close();
+
+	if ( urlReports.length === 0 ) {
+		log( formats.error( 'No results returned.' ) );
+	} else {
+		outputResults( params, urlReports[0] );
+	}
+}
+
+/**
+ * Output results.
+ *
+ * @param {Params} params
+ * @param {URLReport} urlReport
+ */
+function outputResults( params, urlReport ) {
+	const deviceNames = Object.keys( devices );
+	const fieldNames = Object.keys( urlReport.deviceAnalyses[ deviceNames[0] ] );
+	const headings = [ 'field', ...deviceNames ];
+	const tableData = [];
+
+	for ( const fieldName of fieldNames ) {
+		const tableRow = [ fieldName ];
+		for ( const deviceName of deviceNames ) {
+			tableRow.push( urlReport.deviceAnalyses[ deviceName ][ fieldName ] );
+		}
+		tableData.push( tableRow );
+	}
+
+	log( table( headings, tableData, params.output ) );
 }
 
 /**
@@ -251,6 +285,12 @@ export async function handler( opt ) {
  * @property {number}  lazyLoadedOutsideViewport
  * @property {number}  eagerLoadedInsideViewport
  * @property {number}  eagerLoadedOutsideViewport
+ */
+
+/**
+ * @typedef {Object} URLReport
+ * @property {string} url
+ * @property {Object<string, DeviceAnalysis>} deviceAnalyses
  */
 
 /**
