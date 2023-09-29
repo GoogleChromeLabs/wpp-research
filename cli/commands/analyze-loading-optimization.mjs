@@ -28,9 +28,7 @@ import puppeteer, { Browser } from 'puppeteer';
 /**
  * Internal dependencies
  */
-import { getURLs } from '../lib/cli/args.mjs';
 import {
-	formats,
 	isValidTableFormat,
 	log,
 	table,
