@@ -338,7 +338,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	);
 
 	return await page.evaluate(
-		( global ) => {
+		() => {
 
 			/**
 			 * Checks whether an element is in the viewport.
@@ -360,7 +360,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				);
 			}
 
-			const webVitalsLCP = /** @type {LCPMetricWithAttribution} */ window[ global ];
+			const webVitalsLCP = /** @type {LCPMetricWithAttribution} */ window['webVitalsLCP'];
 
 			/** @type {DeviceAnalysis} */
 			const analysis = {
@@ -430,7 +430,6 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			}
 
 			return analysis;
-		},
-		'webVitalsLCP'
+		}
 	);
 }
