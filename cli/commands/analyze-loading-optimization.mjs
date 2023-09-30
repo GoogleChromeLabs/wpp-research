@@ -223,7 +223,7 @@ function outputResults( params, urlReport ) {
  * @property {number}   lcpMetric                    LCP metric.
  * @property {string}   lcpElement                   LCP element.
  * @property {boolean}  lcpElementIsLazyLoaded       Whether the LCP element is lazy-loaded.
- * @property {boolean}  fetchPriorityIsLcp           The element with fetchpriority=high is the LCP element.
+ * @property {boolean}  lcpImageMissingFetchPriority The element with fetchpriority=high is the LCP element.
  * @property {number}   fetchPriorityCount           Number of images with fetchpriority=high.
  * @property {number}   fetchPriorityInsideViewport  Count of images with fetchpriority=high inside the viewport.
  * @property {number}   fetchPriorityOutsideViewport Count of images with fetchpriority=high outside the viewport.
@@ -320,13 +320,15 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 
 	/** @type {DeviceAnalysis} */
 	const finalAnalysis = await page.evaluate( ( webVitalsLcpGlobal ) => {
+		/* eslint-env browser */
+
 		/**
 		 * Checks whether an element is in the viewport.
 		 *
 		 * @todo This should return a percentage of how much the element is in the viewport.
 		 * @todo We should also factor in how much an element is outside the viewport. If there is an eager loaded image that is just outside the viewport, this should be OK.
 		 *
-		 * @param {HTMLElement} element
+		 * @param {Element} element
 		 * @return {boolean} Whether element is in the viewport.
 		 */
 		function isElementInViewport( element ) {
@@ -338,6 +340,33 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				rect.right <= window.innerWidth &&
 				rect.width > 0 &&
 				rect.height > 0
+			);
+		}
+
+		/**
+		 * Checks whether an image has a data: URL.
+		 *
+		 * @param {HTMLImageElement} image
+		 * @return {boolean} Whether the image has a data: URL.
+		 */
+		function imageHasDataUrl( image ) {
+			return image.src.startsWith( 'data:' );
+		}
+
+		/**
+		 * Determines whether to consider an image.
+		 *
+		 * @param {HTMLImageElement} image
+		 * @return {boolean} Whether to consider image.
+		 */
+		function shouldConsiderImage( image ) {
+			return ! (
+				// Skip consideration of tracking pixels.
+				(
+					( image.width === 1 && image.height === 1 ) ||
+					// Skip consideration of data: URLs.
+					imageHasDataUrl( image )
+				)
 			);
 		}
 
@@ -354,7 +383,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			lcpMetric: 0,
 			lcpElement: '',
 			lcpElementIsLazyLoaded: false,
-			fetchPriorityIsLcp: false,
+			lcpImageMissingFetchPriority: false,
 			fetchPriorityCount: 0,
 			fetchPriorityInsideViewport: 0,
 			fetchPriorityOutsideViewport: 0,
@@ -378,16 +407,21 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			analysis.lcpElementIsLazyLoaded = true;
 		}
 
-		// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
+		// Obtain lcpImageMissingFetchPriority.
+		if (
+			lcpElement instanceof HTMLImageElement &&
+			lcpElement.getAttribute( 'fetchpriority' ) !== 'high' &&
+			! imageHasDataUrl( lcpElement ) // Nothing to fetch for a data: URL.
+		) {
+			analysis.lcpImageMissingFetchPriority = true;
+		}
+
+		// Obtain fetchPriorityCount, lcpImageMissingFetchPriority, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
 		const fetchpriorityHighImages = document.body.querySelectorAll(
 			'img[fetchpriority="high"]'
 		);
 		for ( const img of fetchpriorityHighImages ) {
 			analysis.fetchPriorityCount++;
-
-			if ( img === lcpElement ) {
-				analysis.fetchPriorityIsLcp = true;
-			}
 
 			if ( isElementInViewport( img ) ) {
 				analysis.fetchPriorityInsideViewport++;
@@ -398,11 +432,9 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 
 		const elements = document.body.querySelectorAll( 'img, iframe' );
 		for ( const element of elements ) {
-			// Skip consideration of tracking pixels.
 			if (
-				element instanceof HTMLImageElement && // eslint-disable-line no-undef
-				element.width === 1 &&
-				element.height === 1
+				element instanceof HTMLImageElement &&
+				! shouldConsiderImage( element ) // TODO: Should data: URL images still get loading=lazy? Is there a performance benefit?
 			) {
 				continue;
 			}
@@ -452,7 +484,10 @@ function determineErrors( analysis ) {
 	const errors = [];
 
 	// If the lcpElement is IMG, and it doesn't have fetchpriority=high, then this is bad.
-	if ( analysis.lcpElement === 'IMG' && ! analysis.fetchPriorityIsLcp ) {
+	if (
+		analysis.lcpElement === 'IMG' &&
+		! analysis.lcpImageMissingFetchPriority
+	) {
 		errors.push( ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY );
 	}
 
