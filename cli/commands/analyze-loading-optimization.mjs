@@ -59,15 +59,17 @@ const devices = {
 	mobile: {
 		width: 360,
 		height: 800,
-		userAgent: 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.140 Mobile Safari/537.36',
+		userAgent:
+			'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.140 Mobile Safari/537.36',
 		isMobile: true,
 	},
 	desktop: {
 		width: 1920,
 		height: 1080,
-		userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+		userAgent:
+			'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
 		isMobile: false,
-	}
+	},
 };
 
 /**
@@ -105,7 +107,10 @@ function getParamsFromOptions( opt ) {
 		output: opt.output,
 	};
 
-	if ( ! isValidTableFormat( params.output ) && ! [ 'csv-oneline', 'json' ].includes( params.output ) ) {
+	if (
+		! isValidTableFormat( params.output ) &&
+		! [ 'csv-oneline', 'json' ].includes( params.output )
+	) {
 		throw new Error(
 			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", "csv-oneline", or "json".`
 		);
@@ -125,9 +130,9 @@ function getParamsFromOptions( opt ) {
  * @returns {Promise<void>}
  */
 export async function handler( opt ) {
-	const params  = getParamsFromOptions( opt );
+	const params = getParamsFromOptions( opt );
 	const browser = await puppeteer.launch( {
-		headless: 'new'
+		headless: 'new',
 		// TODO: Command is not working when opening in non-headless mode. The LCP never fires.
 		// headless: false, devtools: true
 	} );
@@ -180,16 +185,22 @@ function outputResults( params, urlReport ) {
 	}
 
 	const deviceNames = Object.keys( devices );
-	const fieldNames = Object.keys( urlReport.deviceAnalyses[ deviceNames[0] ] );
+	const fieldNames = Object.keys(
+		urlReport.deviceAnalyses[ deviceNames[ 0 ] ]
+	);
 
 	if ( params.output === 'csv-oneline' ) {
 		const headings = [ 'url' ];
-		const values   = [ params.url ];
+		const values = [ params.url ];
 
 		for ( const deviceName of deviceNames ) {
 			for ( const fieldName of fieldNames ) {
-				headings.push( `${deviceName}:${fieldName}` );
-				values.push( formatValue( urlReport.deviceAnalyses[ deviceName ][ fieldName ] ) );
+				headings.push( `${ deviceName }:${ fieldName }` );
+				values.push(
+					formatValue(
+						urlReport.deviceAnalyses[ deviceName ][ fieldName ]
+					)
+				);
 			}
 		}
 
@@ -204,7 +215,11 @@ function outputResults( params, urlReport ) {
 	for ( const fieldName of fieldNames ) {
 		const tableRow = [ fieldName ];
 		for ( const deviceName of deviceNames ) {
-			tableRow.push( formatValue( urlReport.deviceAnalyses[ deviceName ][ fieldName ] ) );
+			tableRow.push(
+				formatValue(
+					urlReport.deviceAnalyses[ deviceName ][ fieldName ]
+				)
+			);
 		}
 		tableData.push( tableRow );
 	}
@@ -262,12 +277,10 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	await page.setExtraHTTPHeaders( {
 		'Sec-CH-UA-Mobile': isMobile ? '?1' : '?0',
 	} );
-	await page
-		.mainFrame()
-		.waitForFunction(
-			// language=JS
-			`window.innerWidth === ${width} && window.innerHeight === ${height}`
-		);
+	await page.mainFrame().waitForFunction(
+		// language=JS
+		`window.innerWidth === ${ width } && window.innerHeight === ${ height }`
+	);
 
 	// Load the page.
 	const fetchedUrl = new URL( url );
@@ -287,7 +300,9 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 	if ( response.status() !== 200 ) {
-		throw new Error( `Analysis of ${url} failed with ${response.status()}` );
+		throw new Error(
+			`Analysis of ${ url } failed with ${ response.status() }`
+		);
 	}
 
 	// Wait until FCP has been calculated.
@@ -313,112 +328,115 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	);
 
 	/** @type {DeviceAnalysis} */
-	const analysis = await page.evaluate(
-		() => {
-
-			/**
-			 * Checks whether an element is in the viewport.
-			 *
-			 * @todo This should return a percentage of how much the element is in the viewport.
-			 * @todo We should also factor in how much an element is outside the viewport. If there is an eager loaded image that is just outside the viewport, this should be OK.
-			 *
-			 * @param {HTMLElement|HTMLIFrameElementWithLoadingAttribute} element
-			 * @returns {boolean}
-			 */
-			function isElementInViewport( element ) {
-				const rect = element.getBoundingClientRect();
-				return (
-					rect.top >= 0 &&
-					rect.bottom <= window.innerHeight &&
-					rect.left >= 0 &&
-					rect.right <= window.innerWidth &&
-					rect.width > 0 &&
-					rect.height > 0
-				);
-			}
-
-			const webVitalsLCP = /** @type {LCPMetricWithAttribution} */ window['webVitalsLCP'];
-
-			/** @type {HTMLElement|HTMLImageElement|HTMLIFrameElementWithLoadingAttribute} */
-			const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
-
-			/** @type {DeviceAnalysis} */
-			const analysis = {
-				lcpMetric: 0,
-				lcpElement: '',
-				lcpElementIsLazyLoaded: false,
-				fetchPriorityIsLcp: false,
-				fetchPriorityCount: 0,
-				fetchPriorityInsideViewport: 0,
-				fetchPriorityOutsideViewport: 0,
-				lazyLoadableCount: 0,
-				lazyLoadedInsideViewport: 0,
-				lazyLoadedOutsideViewport: 0,
-				eagerLoadedInsideViewport: 0,
-				eagerLoadedOutsideViewport: 0,
-				errors: [],
-			};
-
-			// Obtain lcpMetric.
-			analysis.lcpMetric = webVitalsLCP.delta;
-
-			// Obtain lcpElement.
-			analysis.lcpElement = lcpElement.tagName;
-
-			// Obtain lcpElementIsLazyLoaded.
-			if ( lcpElement.loading === 'lazy' ) {
-				analysis.lcpElementIsLazyLoaded = true;
-			}
-
-			// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
-			/** @type NodeListOf<HTMLImageElement> */
-			const fetchpriorityHighImages = document.body.querySelectorAll(  'img[fetchpriority="high"]' );
-			for ( const img of fetchpriorityHighImages ) {
-				analysis.fetchPriorityCount++;
-
-				if ( img === lcpElement ) {
-					analysis.fetchPriorityIsLcp = true;
-				}
-
-				if ( isElementInViewport( img ) ) {
-					analysis.fetchPriorityInsideViewport++;
-				} else {
-					analysis.fetchPriorityOutsideViewport++;
-				}
-			}
-
-			/** @type NodeListOf<HTMLImageElement|HTMLIFrameElementWithLoadingAttribute> */
-			const elements = document.body.querySelectorAll( 'img, iframe' );
-			for ( const element of elements ) {
-
-				// Skip consideration of tracking pixels.
-				if ( element instanceof HTMLImageElement && element.width === 1 && element.height === 1 ) {
-					continue;
-				}
-
-				analysis.lazyLoadableCount++;
-
-				const isInsideViewport = isElementInViewport( element );
-				const isLazyLoaded = element.loading === 'lazy';
-
-				if ( isLazyLoaded ) {
-					if ( isInsideViewport ) {
-						analysis.lazyLoadedInsideViewport++;
-					} else {
-						analysis.lazyLoadedOutsideViewport++;
-					}
-				} else {
-					if ( isInsideViewport ) {
-						analysis.eagerLoadedInsideViewport++;
-					} else {
-						analysis.eagerLoadedOutsideViewport++;
-					}
-				}
-			}
-
-			return analysis;
+	const analysis = await page.evaluate( () => {
+		/**
+		 * Checks whether an element is in the viewport.
+		 *
+		 * @todo This should return a percentage of how much the element is in the viewport.
+		 * @todo We should also factor in how much an element is outside the viewport. If there is an eager loaded image that is just outside the viewport, this should be OK.
+		 *
+		 * @param {HTMLElement|HTMLIFrameElementWithLoadingAttribute} element
+		 * @returns {boolean}
+		 */
+		function isElementInViewport( element ) {
+			const rect = element.getBoundingClientRect();
+			return (
+				rect.top >= 0 &&
+				rect.bottom <= window.innerHeight &&
+				rect.left >= 0 &&
+				rect.right <= window.innerWidth &&
+				rect.width > 0 &&
+				rect.height > 0
+			);
 		}
-	);
+
+		const webVitalsLCP =
+			/** @type {LCPMetricWithAttribution} */ window[ 'webVitalsLCP' ];
+
+		/** @type {HTMLElement|HTMLImageElement|HTMLIFrameElementWithLoadingAttribute} */
+		const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
+
+		/** @type {DeviceAnalysis} */
+		const analysis = {
+			lcpMetric: 0,
+			lcpElement: '',
+			lcpElementIsLazyLoaded: false,
+			fetchPriorityIsLcp: false,
+			fetchPriorityCount: 0,
+			fetchPriorityInsideViewport: 0,
+			fetchPriorityOutsideViewport: 0,
+			lazyLoadableCount: 0,
+			lazyLoadedInsideViewport: 0,
+			lazyLoadedOutsideViewport: 0,
+			eagerLoadedInsideViewport: 0,
+			eagerLoadedOutsideViewport: 0,
+			errors: [],
+		};
+
+		// Obtain lcpMetric.
+		analysis.lcpMetric = webVitalsLCP.delta;
+
+		// Obtain lcpElement.
+		analysis.lcpElement = lcpElement.tagName;
+
+		// Obtain lcpElementIsLazyLoaded.
+		if ( lcpElement.loading === 'lazy' ) {
+			analysis.lcpElementIsLazyLoaded = true;
+		}
+
+		// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
+		/** @type NodeListOf<HTMLImageElement> */
+		const fetchpriorityHighImages = document.body.querySelectorAll(
+			'img[fetchpriority="high"]'
+		);
+		for ( const img of fetchpriorityHighImages ) {
+			analysis.fetchPriorityCount++;
+
+			if ( img === lcpElement ) {
+				analysis.fetchPriorityIsLcp = true;
+			}
+
+			if ( isElementInViewport( img ) ) {
+				analysis.fetchPriorityInsideViewport++;
+			} else {
+				analysis.fetchPriorityOutsideViewport++;
+			}
+		}
+
+		/** @type NodeListOf<HTMLImageElement|HTMLIFrameElementWithLoadingAttribute> */
+		const elements = document.body.querySelectorAll( 'img, iframe' );
+		for ( const element of elements ) {
+			// Skip consideration of tracking pixels.
+			if (
+				element instanceof HTMLImageElement &&
+				element.width === 1 &&
+				element.height === 1
+			) {
+				continue;
+			}
+
+			analysis.lazyLoadableCount++;
+
+			const isInsideViewport = isElementInViewport( element );
+			const isLazyLoaded = element.loading === 'lazy';
+
+			if ( isLazyLoaded ) {
+				if ( isInsideViewport ) {
+					analysis.lazyLoadedInsideViewport++;
+				} else {
+					analysis.lazyLoadedOutsideViewport++;
+				}
+			} else {
+				if ( isInsideViewport ) {
+					analysis.eagerLoadedInsideViewport++;
+				} else {
+					analysis.eagerLoadedOutsideViewport++;
+				}
+			}
+		}
+
+		return analysis;
+	} );
 
 	analysis.errors = determineErrors( analysis );
 
@@ -427,9 +445,11 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 
 const ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY = 'LCP_IMAGE_MISSING_FETCHPRIORITY';
 const ERROR_LCP_ELEMENT_IS_LAZY_LOADED = 'LCP_ELEMENT_IS_LAZY_LOADED';
-const ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT = 'LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT';
+const ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT =
+	'LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT';
 const ERROR_FETCHPRIORITY_OUTSIDE_VIEWPORT = 'FETCHPRIORITY_OUTSIDE_VIEWPORT';
-const ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT = 'EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT';
+const ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT =
+	'EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT';
 
 /**
  * Determines errors for a device analysis.
@@ -453,17 +473,29 @@ function determineErrors( analysis ) {
 
 	// If there are lazy-loaded images/iframes in the initial viewport, this is bad.
 	if ( analysis.lazyLoadedInsideViewport > 0 ) {
-		errors.push( ...Array( analysis.lazyLoadedInsideViewport ).fill( ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT ) );
+		errors.push(
+			...Array( analysis.lazyLoadedInsideViewport ).fill(
+				ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT
+			)
+		);
 	}
 
 	// If there is a fetchpriority=high image outside the viewport, this is very bad.
 	if ( analysis.fetchPriorityOutsideViewport > 0 ) {
-		errors.push( ...Array( analysis.fetchPriorityOutsideViewport ).fill( ERROR_FETCHPRIORITY_OUTSIDE_VIEWPORT ) );
+		errors.push(
+			...Array( analysis.fetchPriorityOutsideViewport ).fill(
+				ERROR_FETCHPRIORITY_OUTSIDE_VIEWPORT
+			)
+		);
 	}
 
 	// If there are eager-loaded images/iframes outside the initial viewport, this is not great (but not _bad_).
 	if ( analysis.eagerLoadedOutsideViewport > 0 ) {
-		errors.push( ...Array( analysis.eagerLoadedOutsideViewport ).fill( ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT ) );
+		errors.push(
+			...Array( analysis.eagerLoadedOutsideViewport ).fill(
+				ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT
+			)
+		);
 	}
 
 	return errors;
