@@ -81,7 +81,7 @@ export const options = [
 	},
 	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv, table, or json',
+		description: 'Output format: csv, table, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 ];
@@ -120,26 +120,11 @@ function getParamsFromOptions( opt ) {
 }
 
 /**
- * Compute average from numbers.
- *
- * @param {Number[]} numbers
- * @return {Number|null} Average or null if no numbers were passed.
- */
-function average( numbers ) {
-	if ( numbers.length === 0 ) {
-		return null;
-	}
-	return numbers.reduce( ( a, b ) => a + b ) / numbers.length
-}
-
-/**
- *
  * @param {Object} opt
  * @returns {Promise<void>}
  */
 export async function handler( opt ) {
-	const params   = getParamsFromOptions( opt );
-
+	const params  = getParamsFromOptions( opt );
 	const browser = await puppeteer.launch( {
 		headless: 'new'
 		// TODO: Command is not working when opening in non-headless mode. The LCP never fires.
@@ -151,75 +136,13 @@ export async function handler( opt ) {
 		deviceAnalyses: {},
 	};
 
-	// TODO: Add typedef.
-	// const aggregation = {
-	// 	lcpMetric: [],
-	// 	fetchPriorityCount: [],
-	// 	fetchPriorityIsLcp: [],
-	// 	fetchPriorityOutsideViewport: [],
-	// 	lazyLoadedInsideViewport: [],
-	// };
-
 	for await ( const [ deviceName, device ] of Object.entries( devices ) ) {
 		urlReport.deviceAnalyses[ deviceName ] = await analyze(
 			browser,
 			params.url,
 			device
 		);
-
-		// for ( const [ key, value ] of Object.entries( analysis ) ) {
-		//
-		// }
-
-		// aggregation.lcpMetric.push( result.lcpMetric );
-		//
-		// // If the LCP element is an image, aggregate whether an image with fetchpriority=high is the LCP element.
-		// // TODO: If not, should we just aggregate a 1?
-		// if ( result.lcpElement === 'IMG' ) {
-		// 	aggregation.fetchPriorityIsLcp.push( result.fetchPriorityIsLcp );
-		// }
-		// aggregation.fetchPriorityOutsideViewport.push( result.fetchPriorityOutsideViewport );
-		//
-		// aggregation.lazyLoadedInsideViewport.push( result.lazyLoadedInsideViewport );
 	}
-
-	// // TODO: Add typedef. Avoid string indexes.
-	// analysis['average:lcpMetric'] = average( aggregation.lcpMetric );
-	// analysis['average:fetchPriorityIsLcp'] = average( aggregation.fetchPriorityIsLcp );
-	// analysis['average:fetchPriorityOutsideViewport'] = average( aggregation.fetchPriorityOutsideViewport );
-	// analysis['average:lazyLoadedInsideViewport'] = average( aggregation.lazyLoadedInsideViewport );
-
-	// analysis.score = 100;
-	//
-	// // If there was an LCP image, this is the most important factor in the score. If all devices had an LCP image,
-	// // and this image had fetchpriority=high, then this should retain a 100 score. If desktop had fetchpriority=high
-	// // on the LCP image, but mobile did not, then the score should go down to 50.
-	// if ( analysis['average:fetchPriorityIsLcp'] !== null ) {
-	// 	analysis.score *= analysis['average:fetchPriorityIsLcp'];
-	// }
-	//
-	// // If there are fetchpriority=high images outside the viewport, this must negatively impact the score, but not
-	// // as severely as if fetchpriority=high was not set on the LCP image (above). The best score is if there were
-	// // no such images outside the viewport.
-	// if ( analysis['average:fetchPriorityOutsideViewport'] > 0 ) {
-	// 	analysis.score *= 0.75; // Deduct 25% from the score for fetchpriority being outside the viewport.
-	// }
-
-	// If there are lazy-loaded images inside the viewport, this must negatively impact the score. If all the
-	// images in the initial viewport were lazy-loaded, then reduce the score by 25%. But if only half of the images
-	// were lazy-loaded, only reduce by half that much.
-	// if ( analysis['average:lazyLoadableElementsInsideViewport'] > 0 ) {
-	// 	const lazyLoadSuccessRate = analysis['average:lazyLoadedInsideViewport'] / analysis['average:lazyLoadableElementsInsideViewport'];
-	//
-	// 	analysis.lazyLoadSuccessRate = lazyLoadSuccessRate;
-	//
-	// 	/*
-	// 	 * If success rate was 100% then multiply by 1.
-	// 	 * If success rate was 50% then multiply by 0.875
-	// 	 * If success rate was 0% then multiply by 0.75.
-	// 	 */
-	// 	analysis.score *= 0.75 + 0.25 * ( 1.0 - lazyLoadSuccessRate );
-	// }
 
 	await browser.close();
 
@@ -234,7 +157,7 @@ export async function handler( opt ) {
  */
 function outputResults( params, urlReport ) {
 	if ( params.output === 'json' ) {
-		log( urlReport );
+		log( JSON.stringify( urlReport, null, 4 ) );
 		return;
 	}
 
@@ -246,7 +169,11 @@ function outputResults( params, urlReport ) {
 	for ( const fieldName of fieldNames ) {
 		const tableRow = [ fieldName ];
 		for ( const deviceName of deviceNames ) {
-			tableRow.push( urlReport.deviceAnalyses[ deviceName ][ fieldName ] );
+			let value = urlReport.deviceAnalyses[ deviceName ][ fieldName ];
+			if ( fieldName === 'errors' ) {
+				value = value.length;
+			}
+			tableRow.push( value );
 		}
 		tableData.push( tableRow );
 	}
@@ -256,17 +183,19 @@ function outputResults( params, urlReport ) {
 
 /**
  * @typedef {Object} DeviceAnalysis
- * @property {number}  lcpMetric
- * @property {string}  lcpElement
- * @property {boolean} fetchPriorityIsLcp
- * @property {number}  fetchPriorityCount
- * @property {number}  fetchPriorityInsideViewport
- * @property {number}  fetchPriorityOutsideViewport
- * @property {number}  lazyLoadableCount
- * @property {number}  lazyLoadedInsideViewport
- * @property {number}  lazyLoadedOutsideViewport
- * @property {number}  eagerLoadedInsideViewport
- * @property {number}  eagerLoadedOutsideViewport
+ * @property {number}   lcpMetric
+ * @property {string}   lcpElement
+ * @property {boolean}  lcpElementIsLazyLoaded
+ * @property {boolean}  fetchPriorityIsLcp
+ * @property {number}   fetchPriorityCount
+ * @property {number}   fetchPriorityInsideViewport
+ * @property {number}   fetchPriorityOutsideViewport
+ * @property {number}   lazyLoadableCount
+ * @property {number}   lazyLoadedInsideViewport
+ * @property {number}   lazyLoadedOutsideViewport
+ * @property {number}   eagerLoadedInsideViewport
+ * @property {number}   eagerLoadedOutsideViewport
+ * @property {string[]} errors
  */
 
 /**
@@ -276,14 +205,7 @@ function outputResults( params, urlReport ) {
  */
 
 /**
- * Analyze a given URL for LCP image issues.
- *
- * Issues to check:
- *
- * - The fetchpriority attribute is present on an image in the HTML source.
- * - The fetchpriority image is in the viewport on mobile and desktop.
- * - The LCP image on desktop and mobile has the fetchpriority attribute.
- * - No images in the viewport are lazy-loaded.
+ * Analyze a given URL for loading optimization issues.
  *
  * @param {Browser} browser
  * @param {string}  url
@@ -359,13 +281,15 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 		`window['webVitalsLCP'] !== undefined`
 	);
 
-	return await page.evaluate(
+	/** @type {DeviceAnalysis} */
+	const analysis = await page.evaluate(
 		() => {
 
 			/**
 			 * Checks whether an element is in the viewport.
 			 *
 			 * @todo This should return a percentage of how much the element is in the viewport.
+			 * @todo We should also factor in how much an element is outside the viewport. If there is an eager loaded image that is just outside the viewport, this should be OK.
 			 *
 			 * @param {HTMLElement|HTMLIFrameElementWithLoadingAttribute} element
 			 * @returns {boolean}
@@ -384,10 +308,14 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 
 			const webVitalsLCP = /** @type {LCPMetricWithAttribution} */ window['webVitalsLCP'];
 
+			/** @type {HTMLElement|HTMLImageElement|HTMLIFrameElementWithLoadingAttribute} */
+			const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
+
 			/** @type {DeviceAnalysis} */
 			const analysis = {
 				lcpMetric: 0,
 				lcpElement: '',
+				lcpElementIsLazyLoaded: false,
 				fetchPriorityIsLcp: false,
 				fetchPriorityCount: 0,
 				fetchPriorityInsideViewport: 0,
@@ -397,13 +325,19 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				lazyLoadedOutsideViewport: 0,
 				eagerLoadedInsideViewport: 0,
 				eagerLoadedOutsideViewport: 0,
+				errors: [],
 			};
 
 			// Obtain lcpMetric.
 			analysis.lcpMetric = webVitalsLCP.delta;
 
 			// Obtain lcpElement.
-			analysis.lcpElement = webVitalsLCP.attribution.lcpEntry.element.tagName;
+			analysis.lcpElement = lcpElement.tagName;
+
+			// Obtain lcpElementIsLazyLoaded.
+			if ( lcpElement.loading === 'lazy' ) {
+				analysis.lcpElementIsLazyLoaded = true;
+			}
 
 			// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
 			/** @type NodeListOf<HTMLImageElement> */
@@ -411,7 +345,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			for ( const img of fetchpriorityHighImages ) {
 				analysis.fetchPriorityCount++;
 
-				if ( img === webVitalsLCP.attribution.lcpEntry.element ) {
+				if ( img === lcpElement ) {
 					analysis.fetchPriorityIsLcp = true;
 				}
 
@@ -454,4 +388,52 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			return analysis;
 		}
 	);
+
+	analysis.errors = determineErrors( analysis );
+
+	return analysis;
+}
+
+const ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY = 'LCP_IMAGE_MISSING_FETCHPRIORITY';
+const ERROR_LCP_ELEMENT_IS_LAZY_LOADED = 'LCP_ELEMENT_IS_LAZY_LOADED';
+const ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT = 'LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT';
+const ERROR_FETCHPRIORITY_OUTSIDE_VIEWPORT = 'FETCHPRIORITY_OUTSIDE_VIEWPORT';
+const ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT = 'EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT';
+
+/**
+ * Determines errors for a device analysis.
+ *
+ * @param {DeviceAnalysis} analysis
+ * @returns {string[]} Errors.
+ */
+function determineErrors( analysis ) {
+	/** @type {string[]} */
+	const errors = [];
+
+	// If the lcpElement is IMG, and it doesn't have fetchpriority=high, then this is bad.
+	if ( analysis.lcpElement === 'IMG' && ! analysis.fetchPriorityIsLcp ) {
+		errors.push( ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY );
+	}
+
+	// If the lcpElement has loading=lazy, then this is bad.
+	if ( analysis.lcpElementIsLazyLoaded ) {
+		errors.push( ERROR_LCP_ELEMENT_IS_LAZY_LOADED );
+	}
+
+	// If there are lazy-loaded images/iframes in the initial viewport, this is bad.
+	if ( analysis.lazyLoadedInsideViewport > 0 ) {
+		errors.push( ...Array( analysis.lazyLoadedInsideViewport ).fill( ERROR_LAZY_LOADED_ELEMENT_IN_INITIAL_VIEWPORT ) );
+	}
+
+	// If there is a fetchpriority=high image outside the viewport, this is very bad.
+	if ( analysis.fetchPriorityOutsideViewport > 0 ) {
+		errors.push( ...Array( analysis.fetchPriorityOutsideViewport ).fill( ERROR_FETCHPRIORITY_OUTSIDE_VIEWPORT ) );
+	}
+
+	// If there are eager-loaded images/iframes outside the initial viewport, this is not great (but not _bad_).
+	if ( analysis.eagerLoadedOutsideViewport > 0 ) {
+		errors.push( ...Array( analysis.eagerLoadedOutsideViewport ).fill( ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT ) );
+	}
+
+	return errors;
 }
