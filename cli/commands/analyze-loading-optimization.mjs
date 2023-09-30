@@ -20,6 +20,7 @@
  * External dependencies
  */
 import puppeteer, { Browser } from 'puppeteer';
+import round from 'lodash-es/round.js';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("web-vitals").LCPMetricWithAttribution} LCPMetricWithAttribution */
@@ -81,7 +82,7 @@ export const options = [
 	},
 	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv, table, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
+		description: 'Output format: csv, csv-oneline, table, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 ];
@@ -104,9 +105,9 @@ function getParamsFromOptions( opt ) {
 		output: opt.output,
 	};
 
-	if ( ! isValidTableFormat( params.output ) && 'json' !== params.output ) {
+	if ( ! isValidTableFormat( params.output ) && ! [ 'csv-oneline', 'json' ].includes( params.output ) ) {
 		throw new Error(
-			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", or "json".`
+			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", "csv-oneline", or "json".`
 		);
 	}
 
@@ -150,6 +151,23 @@ export async function handler( opt ) {
 }
 
 /**
+ * Formats value for CSV or table output.
+ *
+ * @param {Array|number|boolean|string} value
+ * @returns {string}
+ */
+function formatValue( value ) {
+	if ( Array.isArray( value ) ) {
+		return String( value.length ); // This is the errors array.
+	} else if ( typeof value === 'number' ) {
+		return String( round( value, 1 ) );
+	} else if ( typeof value === 'boolean' ) {
+		return value ? 'true' : 'false';
+	}
+	return value;
+}
+
+/**
  * Output results.
  *
  * @param {Params} params
@@ -163,17 +181,30 @@ function outputResults( params, urlReport ) {
 
 	const deviceNames = Object.keys( devices );
 	const fieldNames = Object.keys( urlReport.deviceAnalyses[ deviceNames[0] ] );
+
+	if ( params.output === 'csv-oneline' ) {
+		const headings = [ 'url' ];
+		const values   = [ params.url ];
+
+		for ( const deviceName of deviceNames ) {
+			for ( const fieldName of fieldNames ) {
+				headings.push( `${deviceName}:${fieldName}` );
+				values.push( formatValue( urlReport.deviceAnalyses[ deviceName ][ fieldName ] ) );
+			}
+		}
+
+		log( headings.join( ',' ) );
+		log( values.join( ',' ) );
+		return;
+	}
+
 	const headings = [ 'field', ...deviceNames ];
 	const tableData = [];
 
 	for ( const fieldName of fieldNames ) {
 		const tableRow = [ fieldName ];
 		for ( const deviceName of deviceNames ) {
-			let value = urlReport.deviceAnalyses[ deviceName ][ fieldName ];
-			if ( fieldName === 'errors' ) {
-				value = value.length;
-			}
-			tableRow.push( value );
+			tableRow.push( formatValue( urlReport.deviceAnalyses[ deviceName ][ fieldName ] ) );
 		}
 		tableData.push( tableRow );
 	}
