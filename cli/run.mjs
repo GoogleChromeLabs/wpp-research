@@ -25,7 +25,6 @@ import { Command } from 'commander';
 /**
  * Internal dependencies
  */
-import { log, formats } from './lib/cli/logger.mjs';
 import {
 	handler as analyzeLoadingOptimizationHandler,
 	options as analyzeLoadingOptimizationOptions,
@@ -65,7 +64,7 @@ const catchException = ( handler ) => {
 		try {
 			await handler( ...args );
 		} catch ( error ) {
-			console.error( error );
+			console.error( error ); // eslint-disable-line no-console
 			process.exit( 1 );
 		}
 	};

@@ -37,19 +37,11 @@ import {
 } from '../lib/cli/logger.mjs';
 
 /**
- * Extension to TypeScript's HTMLIFrameElement with the addition of the missing loading attribute.
- *
- * @typedef {object} HTMLIFrameElementWithLoadingAttribute
- * @extends HTMLIFrameElement
- * @property {'eager'|'lazy'} loading
- */
-
-/**
- * @typedef {object} Device
- * @property {string} userAgent
- * @property {number} width
- * @property {number} height
- * @property {boolean} isMobile
+ * @typedef {Object} Device
+ * @property {string}  userAgent User-Agent.
+ * @property {number}  width     Width.
+ * @property {number}  height    Height.
+ * @property {boolean} isMobile  Is mobile.
  */
 
 /**
@@ -75,7 +67,7 @@ const devices = {
 /**
  * Command-line arguments.
  *
- * @type {object}
+ * @type {Object}
  */
 export const options = [
 	{
@@ -90,9 +82,9 @@ export const options = [
 ];
 
 /**
- * @typedef {Object} Params
- * @property {string} url               - See above.
- * @property {string} output            - See above.
+ * @typedef  {Object} Params
+ * @property {string} url    - See above.
+ * @property {string} output - See above.
  */
 
 /**
@@ -127,7 +119,6 @@ function getParamsFromOptions( opt ) {
 
 /**
  * @param {Object} opt
- * @returns {Promise<void>}
  */
 export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
@@ -159,7 +150,7 @@ export async function handler( opt ) {
  * Formats value for CSV or table output.
  *
  * @param {Array|number|boolean|string} value
- * @returns {string}
+ * @return {string} Formatted value.
  */
 function formatValue( value ) {
 	if ( Array.isArray( value ) ) {
@@ -175,7 +166,7 @@ function formatValue( value ) {
 /**
  * Output results.
  *
- * @param {Params} params
+ * @param {Params}    params
  * @param {URLReport} urlReport
  */
 function outputResults( params, urlReport ) {
@@ -229,25 +220,25 @@ function outputResults( params, urlReport ) {
 
 /**
  * @typedef {Object} DeviceAnalysis
- * @property {number}   lcpMetric
- * @property {string}   lcpElement
- * @property {boolean}  lcpElementIsLazyLoaded
- * @property {boolean}  fetchPriorityIsLcp
- * @property {number}   fetchPriorityCount
- * @property {number}   fetchPriorityInsideViewport
- * @property {number}   fetchPriorityOutsideViewport
- * @property {number}   lazyLoadableCount
- * @property {number}   lazyLoadedInsideViewport
- * @property {number}   lazyLoadedOutsideViewport
- * @property {number}   eagerLoadedInsideViewport
- * @property {number}   eagerLoadedOutsideViewport
- * @property {string[]} errors
+ * @property {number}   lcpMetric                    LCP metric.
+ * @property {string}   lcpElement                   LCP element.
+ * @property {boolean}  lcpElementIsLazyLoaded       Whether the LCP element is lazy-loaded.
+ * @property {boolean}  fetchPriorityIsLcp           The element with fetchpriority=high is the LCP element.
+ * @property {number}   fetchPriorityCount           Number of images with fetchpriority=high.
+ * @property {number}   fetchPriorityInsideViewport  Count of images with fetchpriority=high inside the viewport.
+ * @property {number}   fetchPriorityOutsideViewport Count of images with fetchpriority=high outside the viewport.
+ * @property {number}   lazyLoadableCount            Count of elements that can be lazy-loaded.
+ * @property {number}   lazyLoadedInsideViewport     Count of lazy-loaded images inside the viewport.
+ * @property {number}   lazyLoadedOutsideViewport    Count of lazy-loaded images outside the viewport.
+ * @property {number}   eagerLoadedInsideViewport    Count of eager-loaded images inside the viewport.
+ * @property {number}   eagerLoadedOutsideViewport   Count of eager-loaded images outside the viewport.
+ * @property {string[]} errors                       Error codes.
  */
 
 /**
  * @typedef {Object} URLReport
- * @property {string} url
- * @property {Object<string, DeviceAnalysis>} deviceAnalyses
+ * @property {string}                         url            URL.
+ * @property {Object<string, DeviceAnalysis>} deviceAnalyses Device analyses.
  */
 
 /**
@@ -328,15 +319,15 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 	);
 
 	/** @type {DeviceAnalysis} */
-	const analysis = await page.evaluate( () => {
+	const finalAnalysis = await page.evaluate( ( webVitalsLcpGlobal ) => {
 		/**
 		 * Checks whether an element is in the viewport.
 		 *
 		 * @todo This should return a percentage of how much the element is in the viewport.
 		 * @todo We should also factor in how much an element is outside the viewport. If there is an eager loaded image that is just outside the viewport, this should be OK.
 		 *
-		 * @param {HTMLElement|HTMLIFrameElementWithLoadingAttribute} element
-		 * @returns {boolean}
+		 * @param {HTMLElement} element
+		 * @return {boolean} Whether element is in the viewport.
 		 */
 		function isElementInViewport( element ) {
 			const rect = element.getBoundingClientRect();
@@ -351,9 +342,11 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 		}
 
 		const webVitalsLCP =
-			/** @type {LCPMetricWithAttribution} */ window[ 'webVitalsLCP' ];
+			/** @type {LCPMetricWithAttribution} */ window[
+				webVitalsLcpGlobal
+			];
 
-		/** @type {HTMLElement|HTMLImageElement|HTMLIFrameElementWithLoadingAttribute} */
+		/** @type {HTMLElement|HTMLImageElement} */
 		const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
 
 		/** @type {DeviceAnalysis} */
@@ -380,12 +373,12 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 		analysis.lcpElement = lcpElement.tagName;
 
 		// Obtain lcpElementIsLazyLoaded.
-		if ( lcpElement.loading === 'lazy' ) {
+		if ( lcpElement.getAttribute( 'loading' ) === 'lazy' ) {
+			// TODO: Use lcpElement.loading instead.
 			analysis.lcpElementIsLazyLoaded = true;
 		}
 
 		// Obtain fetchPriorityCount, fetchPriorityIsLcp, fetchPriorityInsideViewport, and fetchPriorityOutsideViewport.
-		/** @type NodeListOf<HTMLImageElement> */
 		const fetchpriorityHighImages = document.body.querySelectorAll(
 			'img[fetchpriority="high"]'
 		);
@@ -403,12 +396,11 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			}
 		}
 
-		/** @type NodeListOf<HTMLImageElement|HTMLIFrameElementWithLoadingAttribute> */
 		const elements = document.body.querySelectorAll( 'img, iframe' );
 		for ( const element of elements ) {
 			// Skip consideration of tracking pixels.
 			if (
-				element instanceof HTMLImageElement &&
+				element instanceof HTMLImageElement && // eslint-disable-line no-undef
 				element.width === 1 &&
 				element.height === 1
 			) {
@@ -418,7 +410,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 			analysis.lazyLoadableCount++;
 
 			const isInsideViewport = isElementInViewport( element );
-			const isLazyLoaded = element.loading === 'lazy';
+			const isLazyLoaded = element.getAttribute( 'loading' ) === 'lazy'; // TODO: Use element.loading instead.
 
 			if ( isLazyLoaded ) {
 				if ( isInsideViewport ) {
@@ -426,21 +418,19 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				} else {
 					analysis.lazyLoadedOutsideViewport++;
 				}
+			} else if ( isInsideViewport ) {
+				analysis.eagerLoadedInsideViewport++;
 			} else {
-				if ( isInsideViewport ) {
-					analysis.eagerLoadedInsideViewport++;
-				} else {
-					analysis.eagerLoadedOutsideViewport++;
-				}
+				analysis.eagerLoadedOutsideViewport++;
 			}
 		}
 
 		return analysis;
-	} );
+	}, 'webVitalsLCP' );
 
-	analysis.errors = determineErrors( analysis );
+	finalAnalysis.errors = determineErrors( finalAnalysis );
 
-	return analysis;
+	return finalAnalysis;
 }
 
 const ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY = 'LCP_IMAGE_MISSING_FETCHPRIORITY';
@@ -455,7 +445,7 @@ const ERROR_EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT =
  * Determines errors for a device analysis.
  *
  * @param {DeviceAnalysis} analysis
- * @returns {string[]} Errors.
+ * @return {string[]} Errors.
  */
 function determineErrors( analysis ) {
 	/** @type {string[]} */
