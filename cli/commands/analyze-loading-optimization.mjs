@@ -486,7 +486,7 @@ function determineErrors( analysis ) {
 	// If the lcpElement is IMG, and it doesn't have fetchpriority=high, then this is bad.
 	if (
 		analysis.lcpElement === 'IMG' &&
-		! analysis.lcpImageMissingFetchPriority
+		analysis.lcpImageMissingFetchPriority
 	) {
 		errors.push( ERROR_LCP_IMAGE_MISSING_FETCHPRIORITY );
 	}
