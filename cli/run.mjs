@@ -65,8 +65,8 @@ const catchException = ( handler ) => {
 		try {
 			await handler( ...args );
 		} catch ( error ) {
-			log( formats.error( error ) );
-			process.exitCode = 1;
+			console.error( error );
+			process.exit( 1 );
 		}
 	};
 };
