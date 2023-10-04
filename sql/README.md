@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/10
+
+* [Counts for Content-Types used for WordPress pages](./2023/10/page-content-types.sql)
+
 ### 2023/08
 
 * [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
