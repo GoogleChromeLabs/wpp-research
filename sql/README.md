@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/10
+
+* [Counts for whether pages have `fetchpriority=high` on both desktop and mobile LCP images](./2023/10/cross-device-matching-lcp-image.sql)
+
 ### 2023/08
 
 * [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
