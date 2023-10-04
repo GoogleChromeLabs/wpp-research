@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See query results here: ...
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/73
 
 # h/t https://github.com/GoogleChromeLabs/wpp-research/blob/0b6c2ca8ddc2c68d4eddcb3d4e069c5e75a2ca16/sql/2023/03/top-lazy-lcp-class-names.sql#L18-L26
 CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING LANGUAGE js AS '''
@@ -57,19 +57,21 @@ WITH
 
   matched_device_wordpress_lcp AS (
     SELECT
-      IF(desktop_wordpress_lcp.has_fetchpriority = mobile_wordpress_lcp.has_fetchpriority, true, false) AS lcp_images_have_same_fetchpriority
+      IF(desktop_wordpress_lcp.has_fetchpriority = mobile_wordpress_lcp.has_fetchpriority, true, false) AS lcp_images_both_have_fetchpriority
     FROM
       ( SELECT * FROM all_device_wordpress_lcp WHERE device = 'desktop' AND lcp_element = 'IMG' ) AS desktop_wordpress_lcp
         INNER JOIN
       ( SELECT * FROM all_device_wordpress_lcp WHERE device = 'phone' AND lcp_element = 'IMG' ) AS mobile_wordpress_lcp
     ON
       desktop_wordpress_lcp.page = mobile_wordpress_lcp.page
+    WHERE
+      desktop_wordpress_lcp.has_fetchpriority OR mobile_wordpress_lcp.has_fetchpriority
   )
 
 SELECT
-  lcp_images_have_same_fetchpriority,
-  COUNT( lcp_images_have_same_fetchpriority ) as same_count
+  lcp_images_both_have_fetchpriority,
+  COUNT( lcp_images_both_have_fetchpriority ) as count
 FROM
   matched_device_wordpress_lcp
 GROUP BY
-  lcp_images_have_same_fetchpriority
+  lcp_images_both_have_fetchpriority
