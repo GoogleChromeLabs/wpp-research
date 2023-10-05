@@ -60,7 +60,7 @@ WITH
       IF(desktop_wordpress_lcp.has_fetchpriority = mobile_wordpress_lcp.has_fetchpriority, true, false) AS lcp_images_both_have_fetchpriority
     FROM
       ( SELECT * FROM all_device_wordpress_lcp WHERE device = 'desktop' AND lcp_element = 'IMG' ) AS desktop_wordpress_lcp
-        INNER JOIN
+    INNER JOIN
       ( SELECT * FROM all_device_wordpress_lcp WHERE device = 'phone' AND lcp_element = 'IMG' ) AS mobile_wordpress_lcp
     ON
       desktop_wordpress_lcp.page = mobile_wordpress_lcp.page
