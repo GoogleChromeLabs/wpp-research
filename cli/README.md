@@ -188,3 +188,160 @@ To make a request that throttles the CPU 4x while also emulating Fast 3G network
 ```bash
 benchmark-web-vitals --url https://example.com/ -t 4 -c "Fast 3G"
 ```
+
+### `analyze-loading-optimization`
+
+Loads the given URL with both desktop and mobile emulation and gathers information about how well its elements are optimized for loading, such as whether the LCP image has `fetchpriority=high` and whether there are lazy-loaded images in the initial viewport.
+
+#### Arguments
+
+* `--url` (`-u`): A URL to analyze.
+* `--output` (`-o`): The output format, either "table", "json", "csv", or "csv-oneline".
+
+#### Examples
+
+Analyze WordPress.org for loading optimization issues and present the information in a table (which is the same structure if `csv` is used):
+
+```bash
+analyze-loading-optimization -- -u https://wordpress.org/ -o table
+╔══════════════════════════════╤════════╤═════════╗
+║ field                        │ mobile │ desktop ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lcpMetric                    │ 991.5  │ 620.5   ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lcpElement                   │ H1     │ IMG     ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lcpElementIsLazyLoaded       │ false  │ false   ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lcpImageMissingFetchPriority │ false  │ true    ║
+╟──────────────────────────────┼────────┼─────────╢
+║ fetchPriorityCount           │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ fetchPriorityInsideViewport  │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ fetchPriorityOutsideViewport │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lazyLoadableCount            │ 14     │ 14      ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lazyLoadedInsideViewport     │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ lazyLoadedOutsideViewport    │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ eagerLoadedInsideViewport    │ 0      │ 0       ║
+╟──────────────────────────────┼────────┼─────────╢
+║ eagerLoadedOutsideViewport   │ 14     │ 14      ║
+╟──────────────────────────────┼────────┼─────────╢
+║ errors                       │ 14     │ 15      ║
+╚══════════════════════════════╧════════╧═════════╝
+```
+
+Same as above, but results are formatted as JSON, which includes the underlying error codes:
+
+```bash
+analyze-loading-optimization -- -u https://wordpress.org/ -o json
+{
+    "url": "https://wordpress.org/",
+    "deviceAnalyses": {
+        "mobile": {
+            "lcpMetric": 1122.3999999761581,
+            "lcpElement": "H1",
+            "lcpElementIsLazyLoaded": false,
+            "lcpImageMissingFetchPriority": false,
+            "fetchPriorityCount": 0,
+            "fetchPriorityInsideViewport": 0,
+            "fetchPriorityOutsideViewport": 0,
+            "lazyLoadableCount": 14,
+            "lazyLoadedInsideViewport": 0,
+            "lazyLoadedOutsideViewport": 0,
+            "eagerLoadedInsideViewport": 0,
+            "eagerLoadedOutsideViewport": 14,
+            "errors": [
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT"
+            ]
+        },
+        "desktop": {
+            "lcpMetric": 502,
+            "lcpElement": "IMG",
+            "lcpElementIsLazyLoaded": false,
+            "lcpImageMissingFetchPriority": true,
+            "fetchPriorityCount": 0,
+            "fetchPriorityInsideViewport": 0,
+            "fetchPriorityOutsideViewport": 0,
+            "lazyLoadableCount": 14,
+            "lazyLoadedInsideViewport": 0,
+            "lazyLoadedOutsideViewport": 0,
+            "eagerLoadedInsideViewport": 0,
+            "eagerLoadedOutsideViewport": 14,
+            "errors": [
+                "LCP_IMAGE_MISSING_FETCHPRIORITY",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT",
+                "EAGER_LOADED_ELEMENT_OUTSIDE_INITIAL_VIEWPORT"
+            ]
+        }
+    }
+}
+```
+
+There is also a `csv-oneline` format which is useful for collating results for a set of URLs. For example, given a file `urls.txt`:
+
+```
+https://wordpress.org/
+https://make.wordpress.org/
+https://wptavern.com/
+```
+
+And given a Bash script `batch-analyze-loading-optimization.sh`:
+
+```bash
+#!/bin/bash
+
+url_count=0
+while read url; do
+	echo "$url_count. $url" > /dev/stderr
+	if npm run --silent research analyze-loading-optimization -- -u "$url" -o csv-oneline | tail -n $( [[ $url_count = 0 ]] && echo 2 || echo 1 ); then
+		url_count=$(($url_count + 1 ))
+	fi
+done
+```
+
+Running this command:
+
+```bash
+cat urls.txt | ./batch-analyze-loading-optimization.sh > analyses.csv
+```
+
+Results in an `analyses.csv` file that contains:
+
+```
+url,mobile:lcpMetric,mobile:lcpElement,mobile:lcpElementIsLazyLoaded,mobile:lcpImageMissingFetchPriority,mobile:fetchPriorityCount,mobile:fetchPriorityInsideViewport,mobile:fetchPriorityOutsideViewport,mobile:lazyLoadableCount,mobile:lazyLoadedInsideViewport,mobile:lazyLoadedOutsideViewport,mobile:eagerLoadedInsideViewport,mobile:eagerLoadedOutsideViewport,mobile:errors,desktop:lcpMetric,desktop:lcpElement,desktop:lcpElementIsLazyLoaded,desktop:lcpImageMissingFetchPriority,desktop:fetchPriorityCount,desktop:fetchPriorityInsideViewport,desktop:fetchPriorityOutsideViewport,desktop:lazyLoadableCount,desktop:lazyLoadedInsideViewport,desktop:lazyLoadedOutsideViewport,desktop:eagerLoadedInsideViewport,desktop:eagerLoadedOutsideViewport,desktop:errors
+https://wordpress.org/,917.4,IMG,false,true,0,0,0,14,0,0,0,14,15,659.8,IMG,false,true,0,0,0,14,0,0,0,14,15
+https://make.wordpress.org/,926.6,IMG,false,false,1,1,0,3,0,0,1,2,2,650.1,IMG,false,false,1,1,0,3,0,0,1,2,2
+https://wptavern.com/,996.5,IMG,true,true,0,0,0,12,2,8,0,2,6,722.5,IMG,true,true,0,0,0,12,2,8,0,2,6
+```
+
+This can then be, for example, pasted into a Google Sheet for further analysis.
