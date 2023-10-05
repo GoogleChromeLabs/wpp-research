@@ -26,6 +26,7 @@ WITH
     WHERE
       date = '2023-08-01' AND
       is_root_page AND
+      client = 'mobile' AND
       t.technology = 'WordPress'
   ),
 
@@ -40,6 +41,7 @@ WITH
     WHERE
       date = "2023-08-01" AND
       is_root_page AND
+      client = 'mobile' AND
       lower(resp_headers.name) = 'content-type' AND
       is_main_document AND
       root_page = url
