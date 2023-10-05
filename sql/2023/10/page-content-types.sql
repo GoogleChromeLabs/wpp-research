@@ -39,6 +39,7 @@ WITH
       UNNEST(response_headers) as resp_headers
     WHERE
       date = "2023-08-01" AND
+      is_root_page AND
       lower(resp_headers.name) = 'content-type' AND
       is_main_document AND
       root_page = url
