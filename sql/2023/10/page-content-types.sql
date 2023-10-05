@@ -19,7 +19,7 @@ WITH
 
   pages AS (
     SELECT
-      page
+      page AS url
     FROM
       `httparchive.all.pages`,
       UNNEST(technologies) AS t
@@ -49,10 +49,10 @@ SELECT
   COUNT(content_type) AS count
 FROM
   requests
-JOIN
+INNER JOIN
   pages
-ON
-  pages.page = requests.url
+USING
+  (url)
 GROUP BY
   content_type
 ORDER BY
