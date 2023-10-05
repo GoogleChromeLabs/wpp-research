@@ -375,7 +375,6 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				webVitalsLcpGlobal
 			];
 
-		/** @type {HTMLElement|HTMLImageElement} */
 		const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
 
 		/** @type {DeviceAnalysis} */
