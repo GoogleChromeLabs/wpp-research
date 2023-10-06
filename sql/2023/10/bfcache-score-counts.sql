@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# See query results here: ...
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/75
 
 WITH
 
@@ -36,7 +36,7 @@ WITH
       url,
       JSON_EXTRACT(report, '$.audits.bf-cache.score') AS bfCacheScore
     FROM
-      `httparchive.lighthouse.2023_08_01_mobile` /*TABLESAMPLE SYSTEM (1 PERCENT)*/
+      `httparchive.lighthouse.2023_08_01_mobile`
   )
 
 SELECT

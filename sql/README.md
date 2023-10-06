@@ -18,6 +18,10 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 ## Query index
 
+### 2023/10
+
+* [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
+
 ### 2023/08
 
 * [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
