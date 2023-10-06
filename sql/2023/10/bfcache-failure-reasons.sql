@@ -16,7 +16,9 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/75
 
-CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE js AS '''
+CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE js AS
+# language=javascript
+'''
   try {
     if ( ! items ) {
       return [];
