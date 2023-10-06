@@ -1,4 +1,4 @@
-# HTTP Archive query for how often WordPress pages have bf-cache disabled.
+# HTTP Archive query for the frequency of reasons for which WordPress pages have bf-cache disabled.
 #
 # WPP Research, Copyright 2023 Google LLC
 #
@@ -15,6 +15,19 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/75
+
+CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE js AS '''
+  try {
+    const data = JSON.parse(items);
+    const reasons = [];
+    for ( const item of items ) {
+      reasons.push( item.reason );
+    }
+    return reasons;
+  } catch (e) {
+    return [];
+  }
+''';
 
 WITH
 
@@ -34,19 +47,22 @@ WITH
   lighthouseAudits AS (
     SELECT
       url,
-      JSON_EXTRACT(report, '$.audits.bf-cache.score') AS bfCacheScore
+      getItemReasons( JSON_EXTRACT(report, '$.audits.bf-cache.details.items')) AS reasons
     FROM
       `httparchive.lighthouse.2023_08_01_mobile`
   )
 
 SELECT
-  bfCacheScore,
-  COUNT(bfCacheScore) as count
+  reason,
+  COUNT(reason) as count
 FROM
-  lighthouseAudits
+  lighthouseAudits,
+  UNNEST(reasons) AS reason
 INNER JOIN
   wordPressPages
 USING
   (url)
 GROUP BY
-  bfCacheScore
+  reason
+ORDER BY
+  count
