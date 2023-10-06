@@ -51,7 +51,7 @@ WITH script_presence AS (
   SELECT
     HAS_SCRIPT("heartbeat", custom_metrics) AS has_script,
   FROM
-    `httparchive.all.pages` /*TABLESAMPLE SYSTEM (1 PERCENT)*/,
+    `httparchive.all.pages`,
     UNNEST(technologies) AS technology
   WHERE
     date = CAST("2023-08-01" AS DATE) AND
