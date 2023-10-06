@@ -22,6 +22,7 @@ Once you are ready to add a new query to the repository, open a pull request fol
 
 * [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
 * [Counts for failure reasons for which bfcache is disabled](./2023/10/bfcache-failure-reasons.sql)
+* [Counts for how many pages have the Heartbeat script](./2023/10/heartbeat-script-presence.sql)
 
 ### 2023/08
 
