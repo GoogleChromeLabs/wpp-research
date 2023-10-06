@@ -18,9 +18,12 @@
 
 CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE js AS '''
   try {
-    const data = JSON.parse(items);
+    if ( ! items ) {
+      return [];
+    }
+    const parsedItems = JSON.parse(items);
     const reasons = [];
-    for ( const item of items ) {
+    for ( const item of parsedItems ) {
       reasons.push( item.reason );
     }
     return reasons;
@@ -31,7 +34,7 @@ CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE
 
 WITH
 
-  wordPressPages AS (
+   wordPressPages AS (
     SELECT
       page as url
     FROM
@@ -65,4 +68,4 @@ USING
 GROUP BY
   reason
 ORDER BY
-  count
+  count DESC
