@@ -38,7 +38,8 @@ WITH
 
    wordPressPages AS (
     SELECT
-      page as url
+      page as url,
+      getItemReasons( JSON_EXTRACT(lighthouse, '$.audits.bf-cache.details.items')) AS reasons
     FROM
       `httparchive.all.pages`,
       UNNEST(technologies) AS t
@@ -47,26 +48,14 @@ WITH
       client = 'mobile' AND
       is_root_page AND
       t.technology = 'WordPress'
-  ),
-
-  lighthouseAudits AS (
-    SELECT
-      url,
-      getItemReasons( JSON_EXTRACT(report, '$.audits.bf-cache.details.items')) AS reasons
-    FROM
-      `httparchive.lighthouse.2023_08_01_mobile`
   )
 
 SELECT
   reason,
-  COUNT(reason) as count
+  COUNT(url) as count
 FROM
-  lighthouseAudits,
+  wordPressPages,
   UNNEST(reasons) AS reason
-INNER JOIN
-  wordPressPages
-USING
-  (url)
 GROUP BY
   reason
 ORDER BY

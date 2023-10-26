@@ -20,7 +20,8 @@ WITH
 
   wordPressPages AS (
     SELECT
-      page as url
+      page as url,
+      JSON_EXTRACT(lighthouse, '$.audits.bf-cache.score') AS bfCacheScore
     FROM
       `httparchive.all.pages`,
       UNNEST(technologies) AS t
@@ -29,25 +30,13 @@ WITH
       client = 'mobile' AND
       is_root_page AND
       t.technology = 'WordPress'
-  ),
-
-  lighthouseAudits AS (
-    SELECT
-      url,
-      JSON_EXTRACT(report, '$.audits.bf-cache.score') AS bfCacheScore
-    FROM
-      `httparchive.lighthouse.2023_08_01_mobile`
   )
 
 SELECT
   bfCacheScore,
-  COUNT(bfCacheScore) as count
+  COUNT(url) as count
 FROM
-  lighthouseAudits
-INNER JOIN
   wordPressPages
-USING
-  (url)
 GROUP BY
   bfCacheScore
 ORDER BY
