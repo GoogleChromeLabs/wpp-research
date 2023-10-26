@@ -59,6 +59,10 @@ export const options = [
 		description: 'File with URLs to run benchmark tests for',
 	},
 	{
+		argname: '-m, --metrics <metrics...>',
+		description: 'Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".',
+	},
+	{
 		argname: '-o, --output <output>',
 		description: 'Output format: csv or table',
 		defaults: OUTPUT_FORMAT_TABLE,
@@ -84,6 +88,7 @@ export const options = [
  * @property {?string}            url               - See above.
  * @property {number}             amount            - See above.
  * @property {?string}            file              - See above.
+ * @property {?string[]}          metrics           - See above.
  * @property {string}             output            - See above.
  * @property {boolean}            showPercentiles   - See above.
  * @property {?number}            cpuThrottleFactor - See above.
@@ -95,6 +100,7 @@ export const options = [
  * @param {?string}               opt.url
  * @param {string|number}         opt.number
  * @param {?string}               opt.file
+ * @param {?string[]}             opt.metrics
  * @param {string}                opt.output
  * @param {boolean}               opt.showPercentiles
  * @param {?string}               opt.throttleCpu
@@ -109,6 +115,7 @@ function getParamsFromOptions( opt ) {
 				? opt.number
 				: parseInt( opt.number, 10 ),
 		file: opt.file,
+		metrics: opt.metrics && opt.metrics.length ? opt.metrics : [ 'FCP', 'LCP', 'TTFB', 'LCP-TTFB' ],
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		cpuThrottleFactor: null,
@@ -155,16 +162,94 @@ function getParamsFromOptions( opt ) {
 	return params;
 }
 
+/**
+ * @param {string[]} metrics
+ * @return {object} Metrics definition, keyed my metric identifier.
+ */
+function getMetricsDefinition( metrics ) {
+	/*
+	 * For now this only includes load time metrics.
+	 * In the future, additional Web Vitals like CLS, FID, and INP should be
+	 * added, however they are slightly more complex to retrieve through an
+	 * automated headless browser test.
+	 * See https://github.com/GoogleChromeLabs/wpp-research/pull/41.
+	 */
+	const availableMetricsDefinition = {
+		FCP: {
+			type: 'webVitals',
+			listen: 'onFCP',
+			global: 'webVitalsFCP',
+			results: [],
+		},
+		LCP: {
+			type: 'webVitals',
+			listen: 'onLCP',
+			global: 'webVitalsLCP',
+			results: [],
+		},
+		TTFB: {
+			type: 'webVitals',
+			listen: 'onTTFB',
+			global: 'webVitalsTTFB',
+			results: [],
+		},
+		'LCP-TTFB': {
+			type: 'aggregate',
+			add: [ 'LCP' ],
+			subtract: [ 'TTFB' ],
+		},
+	};
+
+	// Set up object with the requested metrics, and store aggregate metrics in a list.
+	const metricsDefinition = {};
+	const aggregates = [];
+	for ( const metric of metrics ) {
+		if ( availableMetricsDefinition[ metric ] ) {
+			metricsDefinition[ metric ] = { ...availableMetricsDefinition[ metric ] };
+			if ( metricsDefinition[ metric ].type === 'aggregate' ) {
+				aggregates.push( metric );
+			}
+			continue;
+		}
+		throw new Error(
+			`Supplied metric "${ metric }" is not supported.`
+		);
+	}
+
+	// Add any dependency metrics for aggregate metrics to the object if they aren't already part of it.
+	for ( const metric of aggregates ) {
+		if ( availableMetricsDefinition[ metric ].add ) {
+			for ( const dependencyMetric of availableMetricsDefinition[ metric ].add ) {
+				if ( ! metricsDefinition[ dependencyMetric ] ) {
+					metricsDefinition[ dependencyMetric ] = { ...availableMetricsDefinition[ dependencyMetric ] };
+				}
+			}
+		}
+		if ( availableMetricsDefinition[ metric ].subtract ) {
+			for ( const dependencyMetric of availableMetricsDefinition[ metric ].subtract ) {
+				if ( ! metricsDefinition[ dependencyMetric ] ) {
+					metricsDefinition[ dependencyMetric ] = { ...availableMetricsDefinition[ dependencyMetric ] };
+				}
+			}
+		}
+	}
+
+	return metricsDefinition;
+}
+
 export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
 
 	const browser = await puppeteer.launch( { headless: 'new' } );
 
+	const metricsDefinition = getMetricsDefinition( params.metrics );
+
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL(
 			url,
 			browser,
+			metricsDefinition,
 			params
 		);
 
@@ -183,54 +268,33 @@ export async function handler( opt ) {
 /**
  * @param {string}  url
  * @param {Browser} browser
+ * @param {object}  metricsDefinition
  * @param {Params}  params
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL( url, browser, params ) {
-	/*
-	 * For now this only includes load time metrics.
-	 * In the future, additional Web Vitals like CLS, FID, and INP should be
-	 * added, however they are slightly more complex to retrieve through an
-	 * automated headless browser test.
-	 * See https://github.com/GoogleChromeLabs/wpp-research/pull/41.
-	 */
-	const metricsDefinition = {
-		FCP: {
-			listen: 'onFCP',
-			global: 'webVitalsFCP',
-			results: [],
-		},
-		LCP: {
-			listen: 'onLCP',
-			global: 'webVitalsLCP',
-			results: [],
-		},
-		TTFB: {
-			listen: 'onTTFB',
-			global: 'webVitalsTTFB',
-			results: [],
-		},
-	};
-
-	/*
-	 * Aggregate metrics are metrics which are calculated for every request as
-	 * a combination of other metrics.
-	 */
-	const aggregateMetricsDefinition = {
-		'LCP-TTFB': {
-			add: [ 'LCP' ],
-			subtract: [ 'TTFB' ],
-		},
-	};
+async function benchmarkURL( url, browser, metricsDefinition, params ) {
+	// Group the required metrics by type.
+	const groupedMetrics = {};
+	Object.keys( metricsDefinition ).forEach( ( metric ) => {
+		const metricType = metricsDefinition[ metric ].type;
+		if ( ! groupedMetrics[ metricType ] ) {
+			groupedMetrics[ metricType ] = {};
+		}
+		groupedMetrics[ metricType ][ metric ] = { ...metricsDefinition[ metric ] };
+	} );
 
 	let completeRequests = 0;
 
-	let scriptTag = `import { ${ Object.values( metricsDefinition )
-		.map( ( value ) => value.listen )
-		.join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
-	Object.values( metricsDefinition ).forEach( ( value ) => {
-		scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
-	} );
+	let scriptTag;
+
+	if ( groupedMetrics.webVitals ) {
+		scriptTag = `import { ${ Object.values( groupedMetrics.webVitals )
+			.map( ( value ) => value.listen )
+			.join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
+		Object.values( groupedMetrics.webVitals ).forEach( ( value ) => {
+			scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
+		} );
+	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		const page = await browser.newPage();
@@ -266,7 +330,9 @@ async function benchmarkURL( url, browser, params ) {
 		const response = await page.goto( urlObj.toString(), {
 			waitUntil: 'networkidle0',
 		} );
-		await page.addScriptTag( { content: scriptTag, type: 'module' } );
+		if ( scriptTag ) {
+			await page.addScriptTag( { content: scriptTag, type: 'module' } );
+		}
 
 		if ( response.status() !== 200 ) {
 			continue;
@@ -274,87 +340,106 @@ async function benchmarkURL( url, browser, params ) {
 
 		completeRequests++;
 
-		await Promise.all(
-			Object.values( metricsDefinition ).map( async ( value ) => {
-				// Wait until global is populated.
-				await page.waitForFunction(
-					`window.${ value.global } !== undefined`
-				);
+		if ( groupedMetrics.webVitals ) {
+			await Promise.all(
+				Object.values( groupedMetrics.webVitals ).map( async ( value ) => {
+					// Wait until global is populated.
+					await page.waitForFunction(
+						`window.${ value.global } !== undefined`
+					);
 
-				/*
-				 * Do a random click, since only that triggers certain metrics
-				 * like LCP, as only a user interaction stops reporting new LCP
-				 * entries. See https://web.dev/lcp/.
-				 *
-				 * Click off screen to prevent clicking a link by accident and navigating away.
-				 */
-				await page.click( 'body', { offset: { x: -500, y: -500 } } );
-				// Get the metric value from the global.
-				/** @type {number} */
-				const metric = await page.evaluate(
-					( global ) => /** @type {number} */ window[ global ],
-					value.global
-				);
-				value.results.push( metric );
-			} )
-		).catch( () => {
-			/* Ignore errors. */
+					/*
+					* Do a random click, since only that triggers certain metrics
+					* like LCP, as only a user interaction stops reporting new LCP
+					* entries. See https://web.dev/lcp/.
+					*
+					* Click off screen to prevent clicking a link by accident and navigating away.
+					*/
+					await page.click( 'body', { offset: { x: -500, y: -500 } } );
+					// Get the metric value from the global.
+					/** @type {number} */
+					const metric = await page.evaluate(
+						( global ) => /** @type {number} */ window[ global ],
+						value.global
+					);
+					value.results.push( metric );
+				} )
+			).catch( () => {
+				/* Ignore errors. */
+			} );
+		}
+	}
+
+	// Retrieve all base metric values.
+	const metricResults = {};
+	if ( groupedMetrics.webVitals ) {
+		Object.entries( groupedMetrics.webVitals ).forEach( ( [ key, value ] ) => {
+			if ( value.results.length ) {
+				metricResults[ key ] = value.results;
+			}
 		} );
 	}
 
-	const metrics = {};
-	Object.entries( metricsDefinition ).forEach( ( [ key, value ] ) => {
-		if ( value.results.length ) {
-			metrics[ key ] = value.results;
-		}
-	} );
-
-	Object.entries( aggregateMetricsDefinition ).forEach(
-		( [ key, value ] ) => {
-			// Bail if any of the necessary partial metrics are not provided.
-			const partialMetrics = [
-				...( value.add || [] ),
-				...( value.subtract || [] ),
-			];
-			if ( ! partialMetrics.length ) {
-				return;
-			}
-			for ( const metricKey of partialMetrics ) {
-				if ( ! metrics[ metricKey ] ) {
+	// Calculate all aggregate metric values.
+	if ( groupedMetrics.aggregate ) {
+		Object.entries( groupedMetrics.aggregate ).forEach(
+			( [ key, value ] ) => {
+				// Bail if any of the necessary partial metrics are not provided.
+				const partialMetrics = [
+					...( value.add || [] ),
+					...( value.subtract || [] ),
+				];
+				if ( ! partialMetrics.length ) {
 					return;
 				}
-			}
+				for ( const metricKey of partialMetrics ) {
+					if ( ! metricResults[ metricKey ] ) {
+						return;
+					}
+				}
 
-			// Initialize all values for the metric as 0.
-			metrics[ key ] = [];
-			const numResults = value.add
-				? metrics[ value.add[ 0 ] ].length
-				: metrics[ value.subtract[ 0 ] ].length;
-			for ( let n = 0; n < numResults; n++ ) {
-				metrics[ key ].push( 0.0 );
-			}
+				// Initialize all values for the metric as 0.
+				metricResults[ key ] = [];
+				const numResults = value.add
+					? metricResults[ value.add[ 0 ] ].length
+					: metricResults[ value.subtract[ 0 ] ].length;
+				for ( let n = 0; n < numResults; n++ ) {
+					metricResults[ key ].push( 0.0 );
+				}
 
-			// Add and subtract all values.
-			if ( value.add ) {
-				value.add.forEach( ( metricKey ) => {
-					metrics[ metricKey ].forEach(
-						( metricValue, metricIndex ) => {
-							metrics[ key ][ metricIndex ] += metricValue;
-						}
-					);
-				} );
+				// Add and subtract all values.
+				if ( value.add ) {
+					value.add.forEach( ( metricKey ) => {
+						metricResults[ metricKey ].forEach(
+							( metricValue, metricIndex ) => {
+								metricResults[ key ][ metricIndex ] += metricValue;
+							}
+						);
+					} );
+				}
+				if ( value.subtract ) {
+					value.subtract.forEach( ( metricKey ) => {
+						metricResults[ metricKey ].forEach(
+							( metricValue, metricIndex ) => {
+								metricResults[ key ][ metricIndex ] -= metricValue;
+							}
+						);
+					} );
+				}
 			}
-			if ( value.subtract ) {
-				value.subtract.forEach( ( metricKey ) => {
-					metrics[ metricKey ].forEach(
-						( metricValue, metricIndex ) => {
-							metrics[ key ][ metricIndex ] -= metricValue;
-						}
-					);
-				} );
-			}
-		}
-	);
+		);
+	}
+
+	/*
+	 * Include only all the metrics which were requested by the command parameter.
+	 * While the metrics definition is already limited by the parameter for efficiency,
+	 * this logic here is needed because dependencies of aggregate metrics may have been calculated but still shouldn't
+	 * be part of the final list.
+	 */
+	const metrics = {};
+	params.metrics.forEach( ( metric ) => {
+		metrics[ metric ] = metricResults[ metric ];
+	} );
 
 	return { completeRequests, metrics };
 }
