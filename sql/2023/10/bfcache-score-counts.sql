@@ -50,3 +50,5 @@ USING
   (url)
 GROUP BY
   bfCacheScore
+ORDER BY
+  count DESC
