@@ -1,0 +1,22 @@
+{
+	"core": null,
+	"port": 8880,
+	"testsPort": 8881,
+	"plugins": [
+		"https://downloads.wordpress.org/plugin/wordpress-importer.zip",
+		"https://downloads.wordpress.org/plugin/performance-lab.zip"
+	],
+	"themes": [
+		"https://downloads.wordpress.org/theme/twentytwentyone.zip",
+		"https://downloads.wordpress.org/theme/twentytwentythree.zip"
+	],
+	"mappings": {
+		"wp-cli.yml": "../shared/wp-cli.yml",
+		"wp-content/mu-plugins": "../shared/mu-plugins"
+	},
+	"config": {
+		"WP_DEBUG": false,
+		"SCRIPT_DEBUG": false,
+		"SAVEQUERIES": false
+	}
+}

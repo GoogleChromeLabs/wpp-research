@@ -1,0 +1,49 @@
+diff --git a/node_modules/@wordpress/env/lib/init-config.js b/node_modules/@wordpress/env/lib/init-config.js
+index efde002..70401fc 100644
+--- a/node_modules/@wordpress/env/lib/init-config.js
++++ b/node_modules/@wordpress/env/lib/init-config.js
+@@ -201,6 +201,14 @@ RUN apt-get -qy update
+ # Install some basic PHP dependencies.
+ RUN apt-get -qy install $PHPIZE_DEPS && touch /usr/local/etc/php/php.ini
+ 
++# Install the PHP extensions we need
++RUN apt-get -qy install gettext
++RUN docker-php-ext-install gettext
++RUN pecl install apcu && docker-php-ext-enable apcu
++
++# Install locales
++RUN apt-get install -qy locales locales-all && locale-gen en_US.UTF-8 && locale-gen de_DE.UTF-8
++
+ # Install git
+ RUN apt-get -qy install git
+ 
+@@ -217,6 +225,14 @@ RUN apk update
+ # Install some basic PHP dependencies.
+ RUN apk --no-cache add $PHPIZE_DEPS && touch /usr/local/etc/php/php.ini
+ 
++# Install the PHP extensions we need
++RUN apk --no-cache add gettext-dev
++RUN docker-php-ext-install gettext
++RUN pecl install apcu && docker-php-ext-enable apcu
++
++# Install locales
++RUN apk --no-cache add musl musl-utils musl-locales libintl
++
+ # Set up sudo so they can have root access.
+ RUN apk --no-cache add sudo linux-headers
+ RUN echo "#$HOST_UID ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers`;
+@@ -244,14 +260,6 @@ RUN export COMPOSER_HASH=\`curl -sS https://composer.github.io/installer.sig\` &
+ RUN php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+ RUN rm /tmp/composer-setup.php`;
+ 
+-	// Install any Composer packages we might need globally.
+-	// Make sure to do this as the user and ensure the binaries are available in the $PATH.
+-	dockerFileContent += `
+-USER $HOST_UID:$HOST_GID
+-ENV PATH="\${PATH}:~/.composer/vendor/bin"
+-RUN composer global require --dev yoast/phpunit-polyfills:"^1.0"
+-USER root`;
+-
+ 	return dockerFileContent;
+ }
+ 
