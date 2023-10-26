@@ -41,8 +41,7 @@ WITH pages AS (
       is_root_page AND
       client = 'mobile' AND
       lower(resp_headers.name) = 'content-type' AND
-      is_main_document AND
-      root_page = url
+      is_main_document
   )
 
 SELECT
