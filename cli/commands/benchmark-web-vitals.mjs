@@ -200,6 +200,18 @@ function getMetricsDefinition( metrics ) {
 		},
 	};
 
+	/*
+	 * Server-Timing metrics can have any name, so for those a generic definition creator is used.
+	 * These metrics must be prefixed with "ST:", see below.
+	 */
+	const getServerTimingDefinition = ( metric ) => {
+		return {
+			type: 'serverTiming',
+			name: metric,
+			results: [],
+		};
+	};
+
 	// Set up object with the requested metrics, and store aggregate metrics in a list.
 	const metricsDefinition = {};
 	const aggregates = [];
@@ -209,6 +221,10 @@ function getMetricsDefinition( metrics ) {
 			if ( metricsDefinition[ metric ].type === 'aggregate' ) {
 				aggregates.push( metric );
 			}
+			continue;
+		}
+		if ( metric.startsWith( 'ST:' ) ) {
+			metricsDefinition[ metric ] = getServerTimingDefinition( metric.substring( 3 ).trim() );
 			continue;
 		}
 		throw new Error(
@@ -368,12 +384,30 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 				/* Ignore errors. */
 			} );
 		}
+
+		if ( groupedMetrics.serverTiming ) {
+			const serverTimingMetrics = await page.evaluate(
+				() => performance.getEntries()[0].serverTiming.reduce( ( acc, value ) => {
+					acc[ value.name ] = value.duration;
+					return acc;
+				}, {} )
+			);
+			Object.values( groupedMetrics.serverTiming ).map( ( value ) => {
+				if ( serverTimingMetrics[ value.name ] ) {
+					value.results.push( serverTimingMetrics[ value.name ] );
+				}
+			} );
+		}
 	}
 
 	// Retrieve all base metric values.
 	const metricResults = {};
-	if ( groupedMetrics.webVitals ) {
-		Object.entries( groupedMetrics.webVitals ).forEach( ( [ key, value ] ) => {
+	if ( groupedMetrics.webVitals || groupedMetrics.serverTiming ) {
+		const baseMetrics = {
+			...( groupedMetrics.webVitals || {} ),
+			...( groupedMetrics.serverTiming || {} ),
+		};
+		Object.entries( baseMetrics ).forEach( ( [ key, value ] ) => {
 			if ( value.results.length ) {
 				metricResults[ key ] = value.results;
 			}

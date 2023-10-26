@@ -180,6 +180,11 @@ To include a different (sub)set of metrics (e.g. "TTFB" and "LCP-TTFB"):
 benchmark-web-vitals --url https://example.com/ -n 10 --metrics TTFB "LCP-TTFB"
 ```
 
+To include a custom Server-Timing metric like `wp-total` (only if configured on the server):
+```bash
+benchmark-web-vitals --url https://example.com/ -n 10 --metrics ST:wp-total
+```
+
 To include more granular percentiles rather than only the median for each metric:
 ```bash
 benchmark-web-vitals --url https://example.com/ -n 10 --show-percentiles
