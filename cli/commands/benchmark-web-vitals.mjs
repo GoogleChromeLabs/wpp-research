@@ -30,7 +30,7 @@ import round from 'lodash-es/round.js';
 /**
  * Internal dependencies
  */
-import { getURLs } from '../lib/cli/args.mjs';
+import { getURLs, logURLProgress } from '../lib/cli/args.mjs';
 import {
 	log,
 	formats,
@@ -161,14 +161,28 @@ export async function handler( opt ) {
 
 	const browser = await puppeteer.launch( { headless: 'new' } );
 
-	for await ( const url of getURLs( opt ) ) {
-		const { completeRequests, metrics } = await benchmarkURL(
-			url,
-			browser,
-			params
-		);
+	// Log progress only under certain conditions (multiple URLs to benchmark).
+	const logProgress = logURLProgress( opt );
 
-		results.push( [ url, completeRequests, metrics ] );
+	for await ( const url of getURLs( opt ) ) {
+		if ( logProgress ) {
+			log( `Benchmarking URL ${ url }...` );
+		}
+
+		// Catch Puppeteer errors to prevent the process from getting stuck.
+		try {
+			const { completeRequests, metrics } = await benchmarkURL(
+				url,
+				browser,
+				params
+			);
+			results.push( [ url, completeRequests, metrics ] );
+			if ( logProgress ) {
+				log( formats.success( 'Success.' ) );
+			}
+		} catch ( err ) {
+			log( formats.error( `Error: ${ err.message }.` ) );
+		}
 	}
 
 	await browser.close();

@@ -60,3 +60,7 @@ export async function* getURLs( opt ) {
 		}
 	}
 }
+
+export function logURLProgress( opt ) {
+	return ! opt.url && !! opt.file;
+}
