@@ -17,6 +17,7 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/74
 WITH pages AS (
     SELECT
+      client,
       page AS url
     FROM
       `httparchive.all.pages`,
@@ -24,13 +25,13 @@ WITH pages AS (
     WHERE
       date = '2023-08-01' AND
       is_root_page AND
-      client = 'mobile' AND
       t.technology = 'WordPress'
   ),
 
   # h/t https://discuss.httparchive.org/t/help-finding-list-of-home-pages-with-specific-http-response-header/2567/2
   requests AS (
     SELECT
+      client,
       url,
       REGEXP_REPLACE( resp_headers.value, ' *;.*$', '' ) AS content_type
     FROM
@@ -39,21 +40,23 @@ WITH pages AS (
     WHERE
       date = "2023-08-01" AND
       is_root_page AND
-      client = 'mobile' AND
       lower(resp_headers.name) = 'content-type' AND
       is_main_document
   )
 
 SELECT
+  client,
   content_type,
-  COUNT(content_type) AS count
+  COUNT(url) AS count
 FROM
   requests
 INNER JOIN
   pages
 USING
-  (url)
+  (client, url)
 GROUP BY
+  client,
   content_type
 ORDER BY
+  client,
   count DESC
