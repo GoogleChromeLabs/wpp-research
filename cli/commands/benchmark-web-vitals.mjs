@@ -60,7 +60,8 @@ export const options = [
 	},
 	{
 		argname: '-m, --metrics <metrics...>',
-		description: 'Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".',
+		description:
+			'Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".',
 	},
 	{
 		argname: '-o, --output <output>',
@@ -115,7 +116,10 @@ function getParamsFromOptions( opt ) {
 				? opt.number
 				: parseInt( opt.number, 10 ),
 		file: opt.file,
-		metrics: opt.metrics && opt.metrics.length ? opt.metrics : [ 'FCP', 'LCP', 'TTFB', 'LCP-TTFB' ],
+		metrics:
+			opt.metrics && opt.metrics.length
+				? opt.metrics
+				: [ 'FCP', 'LCP', 'TTFB', 'LCP-TTFB' ],
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		cpuThrottleFactor: null,
@@ -164,7 +168,7 @@ function getParamsFromOptions( opt ) {
 
 /**
  * @param {string[]} metrics
- * @return {object} Metrics definition, keyed my metric identifier.
+ * @return {Object} Metrics definition, keyed my metric identifier.
  */
 function getMetricsDefinition( metrics ) {
 	/*
@@ -217,34 +221,42 @@ function getMetricsDefinition( metrics ) {
 	const aggregates = [];
 	for ( const metric of metrics ) {
 		if ( availableMetricsDefinition[ metric ] ) {
-			metricsDefinition[ metric ] = { ...availableMetricsDefinition[ metric ] };
+			metricsDefinition[ metric ] = {
+				...availableMetricsDefinition[ metric ],
+			};
 			if ( metricsDefinition[ metric ].type === 'aggregate' ) {
 				aggregates.push( metric );
 			}
 			continue;
 		}
 		if ( metric.startsWith( 'ST:' ) ) {
-			metricsDefinition[ metric ] = getServerTimingDefinition( metric.substring( 3 ).trim() );
+			metricsDefinition[ metric ] = getServerTimingDefinition(
+				metric.substring( 3 ).trim()
+			);
 			continue;
 		}
-		throw new Error(
-			`Supplied metric "${ metric }" is not supported.`
-		);
+		throw new Error( `Supplied metric "${ metric }" is not supported.` );
 	}
 
 	// Add any dependency metrics for aggregate metrics to the object if they aren't already part of it.
 	for ( const metric of aggregates ) {
 		if ( availableMetricsDefinition[ metric ].add ) {
-			for ( const dependencyMetric of availableMetricsDefinition[ metric ].add ) {
+			for ( const dependencyMetric of availableMetricsDefinition[ metric ]
+				.add ) {
 				if ( ! metricsDefinition[ dependencyMetric ] ) {
-					metricsDefinition[ dependencyMetric ] = { ...availableMetricsDefinition[ dependencyMetric ] };
+					metricsDefinition[ dependencyMetric ] = {
+						...availableMetricsDefinition[ dependencyMetric ],
+					};
 				}
 			}
 		}
 		if ( availableMetricsDefinition[ metric ].subtract ) {
-			for ( const dependencyMetric of availableMetricsDefinition[ metric ].subtract ) {
+			for ( const dependencyMetric of availableMetricsDefinition[ metric ]
+				.subtract ) {
 				if ( ! metricsDefinition[ dependencyMetric ] ) {
-					metricsDefinition[ dependencyMetric ] = { ...availableMetricsDefinition[ dependencyMetric ] };
+					metricsDefinition[ dependencyMetric ] = {
+						...availableMetricsDefinition[ dependencyMetric ],
+					};
 				}
 			}
 		}
@@ -284,7 +296,7 @@ export async function handler( opt ) {
 /**
  * @param {string}  url
  * @param {Browser} browser
- * @param {object}  metricsDefinition
+ * @param {Object}  metricsDefinition
  * @param {Params}  params
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
@@ -296,7 +308,9 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 		if ( ! groupedMetrics[ metricType ] ) {
 			groupedMetrics[ metricType ] = {};
 		}
-		groupedMetrics[ metricType ][ metric ] = { ...metricsDefinition[ metric ] };
+		groupedMetrics[ metricType ][ metric ] = {
+			...metricsDefinition[ metric ],
+		};
 	} );
 
 	let completeRequests = 0;
@@ -358,41 +372,48 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 
 		if ( groupedMetrics.webVitals ) {
 			await Promise.all(
-				Object.values( groupedMetrics.webVitals ).map( async ( value ) => {
-					// Wait until global is populated.
-					await page.waitForFunction(
-						`window.${ value.global } !== undefined`
-					);
+				Object.values( groupedMetrics.webVitals ).map(
+					async ( value ) => {
+						// Wait until global is populated.
+						await page.waitForFunction(
+							`window.${ value.global } !== undefined`
+						);
 
-					/*
-					* Do a random click, since only that triggers certain metrics
-					* like LCP, as only a user interaction stops reporting new LCP
-					* entries. See https://web.dev/lcp/.
-					*
-					* Click off screen to prevent clicking a link by accident and navigating away.
-					*/
-					await page.click( 'body', { offset: { x: -500, y: -500 } } );
-					// Get the metric value from the global.
-					/** @type {number} */
-					const metric = await page.evaluate(
-						( global ) => /** @type {number} */ window[ global ],
-						value.global
-					);
-					value.results.push( metric );
-				} )
+						/*
+						 * Do a random click, since only that triggers certain metrics
+						 * like LCP, as only a user interaction stops reporting new LCP
+						 * entries. See https://web.dev/lcp/.
+						 *
+						 * Click off screen to prevent clicking a link by accident and navigating away.
+						 */
+						await page.click( 'body', {
+							offset: { x: -500, y: -500 },
+						} );
+						// Get the metric value from the global.
+						/** @type {number} */
+						const metric = await page.evaluate(
+							( global ) =>
+								/** @type {number} */ window[ global ],
+							value.global
+						);
+						value.results.push( metric );
+					}
+				)
 			).catch( () => {
 				/* Ignore errors. */
 			} );
 		}
 
 		if ( groupedMetrics.serverTiming ) {
-			const serverTimingMetrics = await page.evaluate(
-				() => performance.getEntries()[0].serverTiming.reduce( ( acc, value ) => {
-					acc[ value.name ] = value.duration;
-					return acc;
-				}, {} )
+			const serverTimingMetrics = await page.evaluate( () =>
+				performance
+					.getEntries()[ 0 ]
+					.serverTiming.reduce( ( acc, value ) => {
+						acc[ value.name ] = value.duration;
+						return acc;
+					}, {} )
 			);
-			Object.values( groupedMetrics.serverTiming ).map( ( value ) => {
+			Object.values( groupedMetrics.serverTiming ).forEach( ( value ) => {
 				if ( serverTimingMetrics[ value.name ] ) {
 					value.results.push( serverTimingMetrics[ value.name ] );
 				}
@@ -446,7 +467,8 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 					value.add.forEach( ( metricKey ) => {
 						metricResults[ metricKey ].forEach(
 							( metricValue, metricIndex ) => {
-								metricResults[ key ][ metricIndex ] += metricValue;
+								metricResults[ key ][ metricIndex ] +=
+									metricValue;
 							}
 						);
 					} );
@@ -455,7 +477,8 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 					value.subtract.forEach( ( metricKey ) => {
 						metricResults[ metricKey ].forEach(
 							( metricValue, metricIndex ) => {
-								metricResults[ key ][ metricIndex ] -= metricValue;
+								metricResults[ key ][ metricIndex ] -=
+									metricValue;
 							}
 						);
 					} );
