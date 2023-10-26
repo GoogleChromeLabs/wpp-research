@@ -163,6 +163,7 @@ export async function handler( opt ) {
 
 	for await ( const url of getURLs( opt ) ) {
 		const { completeRequests, metrics } = await benchmarkURL(
+			url,
 			browser,
 			params
 		);
@@ -180,11 +181,12 @@ export async function handler( opt ) {
 }
 
 /**
+ * @param {string}  url
  * @param {Browser} browser
  * @param {Params}  params
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL( browser, params ) {
+async function benchmarkURL( url, browser, params ) {
 	/*
 	 * For now this only includes load time metrics.
 	 * In the future, additional Web Vitals like CLS, FID, and INP should be
@@ -242,7 +244,7 @@ async function benchmarkURL( browser, params ) {
 		}
 
 		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
-		await page.setViewport( { width: 960, height: 700 } );
+		await page.setViewport( { width: 960, height: 700 } ); // @todo This should be configurable via command options so that mobile viewport can be loaded.
 		await page
 			.mainFrame()
 			.waitForFunction(
@@ -250,18 +252,18 @@ async function benchmarkURL( browser, params ) {
 			);
 
 		// Load the page.
-		const url = new URL( params.url );
-		url.searchParams.append( 'rnd', String( Math.random() ) );
+		const urlObj = new URL( url );
+		urlObj.searchParams.append( 'rnd', String( Math.random() ) );
 
 		// Make sure any username and password in the URL is passed along for authentication.
-		if ( url.username && url.password ) {
+		if ( urlObj.username && urlObj.password ) {
 			await page.authenticate( {
-				username: url.username,
-				password: url.password,
+				username: urlObj.username,
+				password: urlObj.password,
 			} );
 		}
 
-		const response = await page.goto( url.toString(), {
+		const response = await page.goto( urlObj.toString(), {
 			waitUntil: 'networkidle0',
 		} );
 		await page.addScriptTag( { content: scriptTag, type: 'module' } );
