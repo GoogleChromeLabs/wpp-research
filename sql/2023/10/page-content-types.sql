@@ -16,33 +16,33 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/74
 WITH pages AS (
-    SELECT
-      client,
-      page AS url
-    FROM
-      `httparchive.all.pages`,
-      UNNEST(technologies) AS t
-    WHERE
-      date = '2023-08-01' AND
-      is_root_page AND
-      t.technology = 'WordPress'
-  ),
+  SELECT
+    client,
+    page AS url
+  FROM
+    `httparchive.all.pages`,
+    UNNEST(technologies) AS t
+  WHERE
+    date = '2023-08-01' AND
+    is_root_page AND
+    t.technology = 'WordPress'
+),
 
-  # h/t https://discuss.httparchive.org/t/help-finding-list-of-home-pages-with-specific-http-response-header/2567/2
-  requests AS (
-    SELECT
-      client,
-      url,
-      REGEXP_REPLACE( resp_headers.value, ' *;.*$', '' ) AS content_type
-    FROM
-      `httparchive.all.requests`,
-      UNNEST(response_headers) as resp_headers
-    WHERE
-      date = "2023-08-01" AND
-      is_root_page AND
-      lower(resp_headers.name) = 'content-type' AND
-      is_main_document
-  )
+# h/t https://discuss.httparchive.org/t/help-finding-list-of-home-pages-with-specific-http-response-header/2567/2
+requests AS (
+  SELECT
+    client,
+    url,
+    REGEXP_REPLACE( resp_headers.value, ' *;.*$', '' ) AS content_type
+  FROM
+    `httparchive.all.requests`,
+    UNNEST(response_headers) as resp_headers
+  WHERE
+    date = "2023-08-01" AND
+    is_root_page AND
+    lower(resp_headers.name) = 'content-type' AND
+    is_main_document
+)
 
 SELECT
   client,
