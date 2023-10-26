@@ -40,8 +40,7 @@ CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, ca
   )
 );
 
-WITH
-  all_device_wordpress_lcp AS (
+WITH all_device_wordpress_lcp AS (
     SELECT
       page,
       IF(client = "mobile", "phone", "desktop") AS device,
