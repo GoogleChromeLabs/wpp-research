@@ -183,19 +183,16 @@ function getMetricsDefinition( metrics ) {
 			type: 'webVitals',
 			listen: 'onFCP',
 			global: 'webVitalsFCP',
-			results: [],
 		},
 		LCP: {
 			type: 'webVitals',
 			listen: 'onLCP',
 			global: 'webVitalsLCP',
-			results: [],
 		},
 		TTFB: {
 			type: 'webVitals',
 			listen: 'onTTFB',
 			global: 'webVitalsTTFB',
-			results: [],
 		},
 		'LCP-TTFB': {
 			type: 'aggregate',
@@ -212,7 +209,6 @@ function getMetricsDefinition( metrics ) {
 		return {
 			type: 'serverTiming',
 			name: metric,
-			results: [],
 		};
 	};
 
@@ -310,6 +306,7 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 		}
 		groupedMetrics[ metricType ][ metric ] = {
 			...metricsDefinition[ metric ],
+			results: [],
 		};
 	} );
 
