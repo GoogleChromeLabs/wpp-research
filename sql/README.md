@@ -16,6 +16,8 @@ Once you are ready to add a new query to the repository, open a pull request fol
 4. Add a comment above the query in the `.sql` file with a link to the PR to make it easy to view the query results.
 5. Add the query to the query index below, following the format.
 
+For additional considerations for writing BigQuery queries against HTTP Archive, please refer to the [documentation](./docs/README.md).
+
 ## Query index
 
 ### 2023/08
