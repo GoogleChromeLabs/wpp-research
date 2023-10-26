@@ -25,6 +25,7 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 * [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
 * [Counts for failure reasons for which bfcache is disabled](./2023/10/bfcache-failure-reasons.sql)
 * [Counts for how many pages have the Heartbeat script](./2023/10/heartbeat-script-presence.sql)
+* [Counts for Content-Types used for WordPress pages](./2023/10/page-content-types.sql)
 
 ### 2023/08
 
