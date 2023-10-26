@@ -15,9 +15,7 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/74
-WITH
-
-  pages AS (
+WITH pages AS (
     SELECT
       page AS url
     FROM
