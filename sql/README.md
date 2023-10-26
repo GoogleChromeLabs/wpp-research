@@ -20,6 +20,12 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2023/10
+
+* [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
+* [Counts for failure reasons for which bfcache is disabled](./2023/10/bfcache-failure-reasons.sql)
+* [Counts for how many pages have the Heartbeat script](./2023/10/heartbeat-script-presence.sql)
+
 ### 2023/08
 
 * [Counts for WordPress blocking head scripts counted by plugin](./2023/08/blocking-in-head-scripts-by-plugin.sql)
