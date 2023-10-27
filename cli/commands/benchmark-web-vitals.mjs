@@ -415,14 +415,21 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 		}
 
 		if ( groupedMetrics.serverTiming ) {
-			const serverTimingMetrics = await page.evaluate( () =>
-				performance
-					.getEntries()[ 0 ]
-					.serverTiming.reduce( ( acc, value ) => {
-						acc[ value.name ] = value.duration;
-						return acc;
-					}, {} )
-			);
+			const serverTimingMetrics = await page.evaluate( () => {
+				const entry = performance.getEntries().find(
+					( entry ) => entry instanceof PerformanceNavigationTiming
+				);
+				if ( entry instanceof PerformanceNavigationTiming ) {
+					return entry.serverTiming.reduce(
+						( acc, value ) => {
+							acc[ value.name ] = value.duration;
+							return acc;
+						}, {}
+					);
+				} else {
+					return {};
+				}
+			} );
 			Object.values( groupedMetrics.serverTiming ).forEach( ( value ) => {
 				if ( serverTimingMetrics[ value.name ] ) {
 					value.results.push( serverTimingMetrics[ value.name ] );
