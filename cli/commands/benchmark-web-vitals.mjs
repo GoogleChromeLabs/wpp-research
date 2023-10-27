@@ -511,9 +511,9 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 	 * be part of the final list.
 	 */
 	const metrics = {};
-	params.metrics.forEach( ( metric ) => {
+	for ( const metric of params.metrics ) {
 		metrics[ metric ] = metricResults[ metric ];
-	} );
+	}
 
 	return { completeRequests, metrics };
 }
