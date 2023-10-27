@@ -97,6 +97,16 @@ export const options = [
  */
 
 /**
+ * @typedef {Object} MetricsDefinitionEntry
+ * @property {string}    type     Either 'webVitals', 'serverTiming', or 'aggregate'.
+ * @property {?string}   listen   Which event to listen to (only relevant for type 'webVitals').
+ * @property {?string}   global   Which JS global to find the metric in (only relevant for type 'webVitals').
+ * @property {?string[]} add      Which other metrics to add (only relevant for type 'aggregate').
+ * @property {?string[]} subtract Which other metrics to subtract (only relevant for type 'aggregate').
+ * @property {?string}   name     Name of the Server-Timing metric (only relevant for type 'serverTiming').
+ */
+
+/**
  * @param {Object}                opt
  * @param {?string}               opt.url
  * @param {string|number}         opt.number
@@ -168,7 +178,7 @@ function getParamsFromOptions( opt ) {
 
 /**
  * @param {string[]} metrics
- * @return {Object} Metrics definition, keyed my metric identifier.
+ * @return {Object<string, MetricsDefinitionEntry>} Metrics definition, keyed by metric identifier.
  */
 function getMetricsDefinition( metrics ) {
 	/*
@@ -201,9 +211,12 @@ function getMetricsDefinition( metrics ) {
 		},
 	};
 
-	/*
+	/**
 	 * Server-Timing metrics can have any name, so for those a generic definition creator is used.
 	 * These metrics must be prefixed with "ST:", see below.
+	 *
+	 * @param {string} metric
+	 * @return {MetricsDefinitionEntry} Server-Timing metrics definition entry.
 	 */
 	const getServerTimingDefinition = ( metric ) => {
 		return {
@@ -290,10 +303,10 @@ export async function handler( opt ) {
 }
 
 /**
- * @param {string}  url
- * @param {Browser} browser
- * @param {Object}  metricsDefinition
- * @param {Params}  params
+ * @param {string}                 url
+ * @param {Browser}                browser
+ * @param {MetricsDefinitionEntry} metricsDefinition
+ * @param {Params}                 params
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
 async function benchmarkURL( url, browser, metricsDefinition, params ) {
