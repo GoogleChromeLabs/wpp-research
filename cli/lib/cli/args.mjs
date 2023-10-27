@@ -61,6 +61,6 @@ export async function* getURLs( opt ) {
 	}
 }
 
-export function logURLProgress( opt ) {
+export function shouldLogURLProgress( opt ) {
 	return ! opt.url && !! opt.file;
 }

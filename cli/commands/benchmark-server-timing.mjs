@@ -25,7 +25,7 @@ import round from 'lodash-es/round.js';
 /**
  * Internal dependencies
  */
-import { getURLs, logURLProgress } from '../lib/cli/args.mjs';
+import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
 import {
 	log,
 	formats,
@@ -84,7 +84,7 @@ export async function handler( opt ) {
 	const results = [];
 
 	// Log progress only under certain conditions (multiple URLs to benchmark).
-	const logProgress = logURLProgress( opt );
+	const logProgress = shouldLogURLProgress( opt );
 
 	for await ( const url of getURLs( opt ) ) {
 		if ( logProgress ) {
