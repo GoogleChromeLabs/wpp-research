@@ -222,10 +222,15 @@ function getMetricsDefinition( metrics ) {
 		return {
 			type: 'serverTiming',
 			name: metric,
+			listen: null,
+			global: null,
+			add: null,
+			subtract: null,
 		};
 	};
 
 	// Set up object with the requested metrics, and store aggregate metrics in a list.
+	/** @type {Object<string, MetricsDefinitionEntry>} */
 	const metricsDefinition = {};
 	const aggregates = [];
 	for ( const metric of metrics ) {
@@ -400,10 +405,8 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 							offset: { x: -500, y: -500 },
 						} );
 						// Get the metric value from the global.
-						/** @type {number} */
-						const metric = await page.evaluate(
-							( global ) =>
-								/** @type {number} */ window[ global ],
+						const metric = /** @type {number} */ await page.evaluate(
+							( global ) => window[ global ],
 							value.global
 						);
 						value.results.push( metric );
