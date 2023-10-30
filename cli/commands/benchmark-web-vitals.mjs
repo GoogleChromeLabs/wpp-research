@@ -405,10 +405,11 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 							offset: { x: -500, y: -500 },
 						} );
 						// Get the metric value from the global.
-						const metric = /** @type {number} */ await page.evaluate(
-							( global ) => window[ global ],
-							value.global
-						);
+						const metric =
+							/** @type {number} */ await page.evaluate(
+								( global ) => window[ global ],
+								value.global
+							);
 						value.results.push( metric );
 					}
 				)
