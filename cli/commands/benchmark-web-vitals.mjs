@@ -38,7 +38,7 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcPercentile } from '../lib/util/math.mjs';
+import { calcPercentile, calcStandardDeviation } from '../lib/util/math.mjs';
 import {
 	KEY_PERCENTILES,
 	MEDIAN_PERCENTILES,
@@ -69,6 +69,10 @@ export const options = [
 			'Whether to show more granular percentiles instead of only the median',
 	},
 	{
+		argname: '-v, --show-variance',
+		description: 'Whether to show standard deviation and IQR',
+	},
+	{
 		argname: '-t, --throttle-cpu <factor>',
 		description: 'Enable CPU throttling to emulate slow CPUs',
 	},
@@ -86,6 +90,7 @@ export const options = [
  * @property {?string}            file              - See above.
  * @property {string}             output            - See above.
  * @property {boolean}            showPercentiles   - See above.
+ * @property {boolean}            showVariance      - See above.
  * @property {?number}            cpuThrottleFactor - See above.
  * @property {?NetworkConditions} networkConditions - See above.
  */
@@ -97,6 +102,7 @@ export const options = [
  * @param {?string}               opt.file
  * @param {string}                opt.output
  * @param {boolean}               opt.showPercentiles
+ * @param {boolean}               opt.showVariance
  * @param {?string}               opt.throttleCpu
  * @param {?NetworkConditionName} opt.networkConditions
  * @return {Params} Parameters.
@@ -111,6 +117,7 @@ function getParamsFromOptions( opt ) {
 		file: opt.file,
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
+		showVariance: Boolean( opt.showVariance ),
 		cpuThrottleFactor: null,
 		networkConditions: null,
 	};
@@ -383,10 +390,18 @@ function outputResults( opt, results ) {
 			percentiles.forEach( ( percentile ) => {
 				headings.push( `${ metricName } (p${ percentile })` );
 			} );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	} else {
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			headings.push( `${ metricName } (median)` );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	}
 
@@ -413,6 +428,29 @@ function outputResults( opt, results ) {
 					);
 				}
 			} );
+
+			if ( opt.showVariance ) {
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcStandardDeviation(
+									metrics[ metricName ],
+									1
+								),
+								2
+						  )
+						: ''
+				);
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcPercentile( 75, metrics[ metricName ] ) -
+									calcPercentile( 25, metrics[ metricName ] ),
+								2
+						  )
+						: ''
+				);
+			}
 		} );
 
 		tableData.push( tableRow );
