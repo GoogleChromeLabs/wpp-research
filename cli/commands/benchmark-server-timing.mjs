@@ -219,12 +219,11 @@ function outputResults( opt, results ) {
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			percentiles.forEach( ( percentile ) => {
 				headings.push( `${ metricName } (p${ percentile })` );
-
-				if ( opt.showVariance ) {
-					headings.push( `${ metricName } (SD)` );
-					headings.push( `${ metricName } (IQR)` );
-				}
 			} );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	} else {
 		headings.push( 'Response Time (median)' );
