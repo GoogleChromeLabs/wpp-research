@@ -308,10 +308,10 @@ export async function handler( opt ) {
 }
 
 /**
- * @param {string}                 url
- * @param {Browser}                browser
- * @param {MetricsDefinitionEntry} metricsDefinition
- * @param {Params}                 params
+ * @param {string}                                 url
+ * @param {Browser}                                browser
+ * @param {Object<string, MetricsDefinitionEntry>} metricsDefinition
+ * @param {Params}                                 params
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
 async function benchmarkURL( url, browser, metricsDefinition, params ) {
