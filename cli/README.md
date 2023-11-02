@@ -157,6 +157,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--url` (`-u`): A URL to benchmark.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
+* `--metrics` (`-m`): Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".
 * `--output` (`-o`): The output format: Either "table" or "csv".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
@@ -172,6 +173,16 @@ benchmark-web-vitals --url https://example.com/ -n 10
 Same as above, but results are formatted as CSV:
 ```bash
 benchmark-web-vitals --url https://example.com/ -n 10 --output csv
+```
+
+To include a different (sub)set of metrics (e.g. "TTFB" and "LCP-TTFB"):
+```bash
+benchmark-web-vitals --url https://example.com/ -n 10 --metrics TTFB "LCP-TTFB"
+```
+
+To include a custom Server-Timing metric like `wp-total` (only if configured on the server):
+```bash
+benchmark-web-vitals --url https://example.com/ -n 10 --metrics ST:wp-total
 ```
 
 To include more granular percentiles rather than only the median for each metric:
