@@ -25,7 +25,10 @@ import { Command } from 'commander';
 /**
  * Internal dependencies
  */
-import { log, formats } from './lib/cli/logger.mjs';
+import {
+	handler as analyzeLoadingOptimizationHandler,
+	options as analyzeLoadingOptimizationOptions,
+} from './commands/analyze-loading-optimization.mjs';
 import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
@@ -61,12 +64,18 @@ const catchException = ( handler ) => {
 		try {
 			await handler( ...args );
 		} catch ( error ) {
-			log( formats.error( error ) );
-			process.exitCode = 1;
+			console.error( error ); // eslint-disable-line no-console
+			process.exit( 1 );
 		}
 	};
 };
 
+withOptions(
+	program.command( 'analyze-loading-optimization' ),
+	analyzeLoadingOptimizationOptions
+)
+	.description( 'Analyzes issues with loading optimization' )
+	.action( catchException( analyzeLoadingOptimizationHandler ) );
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions
