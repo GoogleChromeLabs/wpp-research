@@ -38,7 +38,11 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcPercentile, calcStandardDeviation } from '../lib/util/math.mjs';
+import {
+	calcPercentile,
+	calcStandardDeviation,
+	calcMedianAbsoluteDeviation,
+} from '../lib/util/math.mjs';
 import {
 	KEY_PERCENTILES,
 	MEDIAN_PERCENTILES,
@@ -392,6 +396,7 @@ function outputResults( opt, results ) {
 			} );
 			if ( opt.showVariance ) {
 				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (MAD)` );
 				headings.push( `${ metricName } (IQR)` );
 			}
 		} );
@@ -400,6 +405,7 @@ function outputResults( opt, results ) {
 			headings.push( `${ metricName } (median)` );
 			if ( opt.showVariance ) {
 				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (MAD)` );
 				headings.push( `${ metricName } (IQR)` );
 			}
 		} );
@@ -436,6 +442,16 @@ function outputResults( opt, results ) {
 								calcStandardDeviation(
 									metrics[ metricName ],
 									1
+								),
+								2
+						  )
+						: ''
+				);
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcMedianAbsoluteDeviation(
+									metrics[ metricName ],
 								),
 								2
 						  )

@@ -63,3 +63,9 @@ export function calcStandardDeviation( arr, usePopulation = false ) {
 			( arr.length - ( usePopulation ? 0 : 1 ) )
 	);
 }
+
+export function calcMedianAbsoluteDeviation( values ) {
+	const median = calcMedian( values );
+
+	return calcMedian( values.map( value => Math.abs( value - median ) ) );
+}
