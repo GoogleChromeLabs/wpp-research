@@ -227,8 +227,17 @@ function outputResults( opt, results ) {
 		} );
 	} else {
 		headings.push( 'Response Time (median)' );
+		if ( opt.showVariance ) {
+			headings.push( 'Response Time (SD)' );
+			headings.push( 'Response Time (IQR)' );
+		}
+
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			headings.push( `${ metricName } (median)` );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	}
 
