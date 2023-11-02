@@ -451,7 +451,7 @@ function outputResults( opt, results ) {
 					metrics[ metricName ]
 						? round(
 								calcMedianAbsoluteDeviation(
-									metrics[ metricName ],
+									metrics[ metricName ]
 								),
 								2
 						  )
