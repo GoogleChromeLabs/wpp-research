@@ -33,6 +33,8 @@ import round from 'lodash-es/round.js';
 import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
 import {
 	log,
+	logPartial,
+	output,
 	formats,
 	table,
 	isValidTableFormat,
@@ -292,7 +294,7 @@ export async function handler( opt ) {
 
 	for await ( const url of getURLs( opt ) ) {
 		if ( logProgress ) {
-			log( `Benchmarking URL ${ url }...` );
+			logPartial( `Benchmarking URL ${ url }...` );
 		}
 
 		// Catch Puppeteer errors to prevent the process from getting stuck.
@@ -595,5 +597,5 @@ function outputResults( opt, results ) {
 		tableData.push( tableRow );
 	}
 
-	log( table( headings, tableData, opt.output, true ) );
+	output( table( headings, tableData, opt.output, true ) );
 }

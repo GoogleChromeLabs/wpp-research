@@ -31,7 +31,7 @@ import round from 'lodash-es/round.js';
  */
 import {
 	isValidTableFormat,
-	log,
+	output,
 	table,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
@@ -171,7 +171,7 @@ function formatValue( value ) {
  */
 function outputResults( params, urlReport ) {
 	if ( params.output === 'json' ) {
-		log( JSON.stringify( urlReport, null, 4 ) );
+		output( JSON.stringify( urlReport, null, 4 ) );
 		return;
 	}
 
@@ -195,8 +195,8 @@ function outputResults( params, urlReport ) {
 			}
 		}
 
-		log( headings.join( ',' ) );
-		log( values.join( ',' ) );
+		output( headings.join( ',' ) );
+		output( values.join( ',' ) );
 		return;
 	}
 
@@ -215,7 +215,7 @@ function outputResults( params, urlReport ) {
 		tableData.push( tableRow );
 	}
 
-	log( table( headings, tableData, params.output ) );
+	output( table( headings, tableData, params.output ) );
 }
 
 /**

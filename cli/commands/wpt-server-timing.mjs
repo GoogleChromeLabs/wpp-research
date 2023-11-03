@@ -26,6 +26,7 @@ import round from 'lodash-es/round.js';
  */
 import {
 	log,
+	output,
 	formats,
 	table,
 	isValidTableFormat,
@@ -163,7 +164,7 @@ export async function handler( opt ) {
 		};
 	}
 
-	log(
+	output(
 		table(
 			headings,
 			mergedResultMetrics.map( parseTableData ),
