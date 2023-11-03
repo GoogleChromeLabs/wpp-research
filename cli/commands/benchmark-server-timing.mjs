@@ -35,7 +35,11 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import { calcPercentile } from '../lib/util/math.mjs';
+import {
+	calcPercentile,
+	calcStandardDeviation,
+	calcMedianAbsoluteDeviation,
+} from '../lib/util/math.mjs';
 import {
 	KEY_PERCENTILES,
 	MEDIAN_PERCENTILES,
@@ -69,6 +73,10 @@ export const options = [
 		argname: '-p, --show-percentiles',
 		description:
 			'Whether to show more granular percentiles instead of only the median',
+	},
+	{
+		argname: '-v, --show-variance',
+		description: 'Whether to show standard deviation and IQR',
 	},
 ];
 
@@ -220,15 +228,38 @@ function outputResults( opt, results ) {
 		percentiles.forEach( ( percentile ) => {
 			headings.push( `Response Time (p${ percentile })` );
 		} );
+
+		if ( opt.showVariance ) {
+			headings.push( 'Response Time (SD)' );
+			headings.push( 'Response Time (MAD)' );
+			headings.push( 'Response Time (IQR)' );
+		}
+
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			percentiles.forEach( ( percentile ) => {
 				headings.push( `${ metricName } (p${ percentile })` );
 			} );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (MAD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	} else {
 		headings.push( 'Response Time (median)' );
+		if ( opt.showVariance ) {
+			headings.push( 'Response Time (SD)' );
+			headings.push( 'Response Time (MAD)' );
+			headings.push( 'Response Time (IQR)' );
+		}
+
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			headings.push( `${ metricName } (median)` );
+			if ( opt.showVariance ) {
+				headings.push( `${ metricName } (SD)` );
+				headings.push( `${ metricName } (MAD)` );
+				headings.push( `${ metricName } (IQR)` );
+			}
 		} );
 	}
 
@@ -248,6 +279,23 @@ function outputResults( opt, results ) {
 				round( calcPercentile( percentile, responseTimes ), 2 )
 			),
 		];
+
+		if ( opt.showVariance ) {
+			tableRow.push(
+				round( calcStandardDeviation( responseTimes, 1 ), 2 )
+			);
+			tableRow.push(
+				round( calcMedianAbsoluteDeviation( responseTimes ), 2 )
+			);
+			tableRow.push(
+				round(
+					calcPercentile( 75, responseTimes ) -
+						calcPercentile( 25, responseTimes ),
+					2
+				)
+			);
+		}
+
 		Object.keys( allMetricNames ).forEach( ( metricName ) => {
 			percentiles.forEach( ( percentile ) => {
 				if ( ! metrics[ metricName ] ) {
@@ -261,6 +309,39 @@ function outputResults( opt, results ) {
 					);
 				}
 			} );
+
+			if ( opt.showVariance ) {
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcStandardDeviation(
+									metrics[ metricName ],
+									1
+								),
+								2
+						  )
+						: ''
+				);
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcMedianAbsoluteDeviation(
+									metrics[ metricName ]
+								),
+								2
+						  )
+						: ''
+				);
+				tableRow.push(
+					metrics[ metricName ]
+						? round(
+								calcPercentile( 75, metrics[ metricName ] ) -
+									calcPercentile( 25, metrics[ metricName ] ),
+								2
+						  )
+						: ''
+				);
+			}
 		} );
 
 		tableData.push( tableRow );
