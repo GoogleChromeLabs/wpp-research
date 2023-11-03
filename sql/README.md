@@ -16,11 +16,27 @@ Once you are ready to add a new query to the repository, open a pull request fol
 4. Add a comment above the query in the `.sql` file with a link to the PR to make it easy to view the query results.
 5. Add the query to the query index below, following the format.
 
+For additional considerations for writing BigQuery queries against HTTP Archive, please refer to the [documentation](./docs/README.md).
+
 ## Query index
 
-### 2023/06
+### 2023/11
 
-* [TTFB of WordPress sites by language](./2023/06/ttfb-by-language.sql)
+* [TTFB of WordPress sites by language](./2023/11/ttfb-by-language.sql)
+
+### 2023/10
+
+* [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
+* [Counts for failure reasons for which bfcache is disabled](./2023/10/bfcache-failure-reasons.sql)
+* [Counts for how many pages have the Heartbeat script](./2023/10/heartbeat-script-presence.sql)
+* [Counts for Content-Types used for WordPress pages](./2023/10/page-content-types.sql)
+* [Counts for whether pages have `fetchpriority=high` on both desktop and mobile LCP images](./2023/10/cross-device-matching-lcp-image.sql)
+
+### 2023/08
+
+* [Counts for WordPress blocking head scripts counted by plugin](./2023/08/blocking-in-head-scripts-by-plugin.sql)
+* [Counts for WordPress theme/plugin script placements (whether blocking/async/defer in head/footer)](./2023/08/theme-plugin-script-placements.sql)
+* [Counts of theme/plugin scripts blocking in head](./2023/08/blocking-in-head-scripts-from-themes-and-plugins.sql)
 
 ### 2023/04
 
