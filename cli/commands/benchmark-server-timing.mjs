@@ -86,10 +86,10 @@ export async function handler( opt ) {
 	const results = [];
 
 	// Log progress only under certain conditions (multiple URLs to benchmark).
-	const logProgress = shouldLogURLProgress( opt );
+	const logURLProgress = shouldLogURLProgress( opt );
 
 	for await ( const url of getURLs( opt ) ) {
-		if ( logProgress ) {
+		if ( logURLProgress ) {
 			logPartial( `Benchmarking URL ${ url }...` );
 		}
 
@@ -101,7 +101,7 @@ export async function handler( opt ) {
 					amount,
 				} );
 			results.push( [ url, completeRequests, responseTimes, metrics ] );
-			if ( logProgress ) {
+			if ( logURLProgress ) {
 				log( formats.success( 'Success.' ) );
 			}
 		} catch ( err ) {

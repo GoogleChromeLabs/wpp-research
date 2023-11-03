@@ -30,7 +30,11 @@ import round from 'lodash-es/round.js';
 /**
  * Internal dependencies
  */
-import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
+import {
+	getURLs,
+	shouldLogURLProgress,
+	shouldLogIterationsProgress,
+} from '../lib/cli/args.mjs';
 import {
 	log,
 	logPartial,
@@ -290,11 +294,17 @@ export async function handler( opt ) {
 	const metricsDefinition = getMetricsDefinition( params.metrics );
 
 	// Log progress only under certain conditions (multiple URLs to benchmark).
-	const logProgress = shouldLogURLProgress( opt );
+	const logURLProgress = shouldLogURLProgress( opt );
+	const logIterationsProgress = shouldLogIterationsProgress( opt );
 
 	for await ( const url of getURLs( opt ) ) {
-		if ( logProgress ) {
-			logPartial( `Benchmarking URL ${ url }...` );
+		if ( logURLProgress ) {
+			// If also logging individial iterations, put those on a new line.
+			if ( logIterationsProgress ) {
+				log( `Benchmarking URL ${ url }...` );
+			} else {
+				logPartial( `Benchmarking URL ${ url }...` );
+			}
 		}
 
 		// Catch Puppeteer errors to prevent the process from getting stuck.
@@ -303,11 +313,21 @@ export async function handler( opt ) {
 				url,
 				browser,
 				metricsDefinition,
-				params
+				params,
+				logIterationsProgress
 			);
 			results.push( [ url, completeRequests, metrics ] );
-			if ( logProgress ) {
-				log( formats.success( 'Success.' ) );
+			if ( logURLProgress ) {
+				// If also logging individial iterations, provide more context on benchmarking which URL was completed.
+				if ( logIterationsProgress ) {
+					log(
+						formats.success(
+							`Completed benchmarking URL ${ url }.`
+						)
+					);
+				} else {
+					log( formats.success( 'Success.' ) );
+				}
 			}
 		} catch ( err ) {
 			log( formats.error( `Error: ${ err.message }.` ) );
@@ -328,9 +348,16 @@ export async function handler( opt ) {
  * @param {Browser}                                browser
  * @param {Object<string, MetricsDefinitionEntry>} metricsDefinition
  * @param {Params}                                 params
+ * @param {boolean}                                logProgress
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL( url, browser, metricsDefinition, params ) {
+async function benchmarkURL(
+	url,
+	browser,
+	metricsDefinition,
+	params,
+	logProgress
+) {
 	// Group the required metrics by type.
 	const groupedMetrics = {};
 	Object.keys( metricsDefinition ).forEach( ( metric ) => {
@@ -358,6 +385,11 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
+		if ( logProgress ) {
+			logPartial(
+				`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
+			);
+		}
 		const page = await browser.newPage();
 		await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 		if ( params.cpuThrottleFactor ) {
@@ -396,6 +428,13 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 		}
 
 		if ( response.status() !== 200 ) {
+			if ( logProgress ) {
+				log(
+					formats.error(
+						`Error: Bad response code ${ response.status() }.`
+					)
+				);
+			}
 			continue;
 		}
 
@@ -453,6 +492,10 @@ async function benchmarkURL( url, browser, metricsDefinition, params ) {
 					value.results.push( serverTimingMetrics[ value.name ] );
 				}
 			} );
+		}
+
+		if ( logProgress ) {
+			log( formats.success( 'Success.' ) );
 		}
 	}
 
