@@ -16,52 +16,61 @@
 
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/54
 
+CREATE TEMP FUNCTION
+  IS_GOOD(good FLOAT64,
+    needs_improvement FLOAT64,
+    poor FLOAT64)
+  RETURNS BOOL AS ( SAFE_DIVIDE(good, good + needs_improvement + poor) >= 0.75 );
+CREATE TEMP FUNCTION
+  IS_NON_ZERO(good FLOAT64,
+    needs_improvement FLOAT64,
+    poor FLOAT64)
+  RETURNS BOOL AS ( good + needs_improvement + poor > 0 );
+WITH
+  pages AS (
+    SELECT
+      client,
+      TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang'))) AS lang,
+      page AS url
+    FROM
+      `httparchive.all.pages`,
+      UNNEST(technologies) AS t
+    WHERE
+  date = '2023-09-01'
+  AND is_root_page
+  AND t.technology = 'WordPress' ),
+  devices AS (
+SELECT
+  device,
+  origin,
+  CONCAT(origin, '/') AS url,
+  IF
+  (device = 'desktop', 'desktop', 'mobile') AS client,
+  IS_NON_ZERO(fast_ttfb,
+  avg_ttfb,
+  slow_ttfb) AS any_ttfb,
+  IS_GOOD(fast_ttfb,
+  avg_ttfb,
+  slow_ttfb) AS good_ttfb
+FROM
+  `chrome-ux-report.materialized.device_summary`
+WHERE
+  date = CAST("2023-09-01" AS DATE)
+  AND device IN ('desktop',
+  'tablet',
+  'phone') )
 SELECT
   client,
   lang,
-  COUNT(DISTINCT origin) AS n,
-  SUM(
-    IF
-      (ttfb.start < 200, ttfb.density, 0)) / SUM(ttfb.density) AS fast,
-  SUM(
-    IF
-      (ttfb.start >= 200
-         AND ttfb.start < 1000, ttfb.density, 0)) / SUM(ttfb.density) AS avg,
-  SUM(
-    IF
-      (ttfb.start >= 1000, ttfb.density, 0)) / SUM(ttfb.density) AS slow
+  any_ttfb,
+  good_ttfb
 FROM
-  `chrome-ux-report.all.202304`,
-  UNNEST(experimental.time_to_first_byte.histogram.bin) AS ttfb
-    JOIN (
-    SELECT
-        _TABLE_SUFFIX AS client,
-        TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang'))) AS lang,
-        url
-    FROM
-      `httparchive.pages.2023_05_01_*`
-        JOIN (
-        SELECT
-            _TABLE_SUFFIX
-        FROM
-          `httparchive.technologies.2023_05_01_*`
-        WHERE
-            app = 'WordPress'
-          AND category = 'CMS'
-          AND info != ''
-        GROUP BY
-            _TABLE_SUFFIX )
-             USING
-               (_TABLE_SUFFIX)
-    GROUP BY
-        _TABLE_SUFFIX,
-        lang,
-        url )
-         ON
-               client =
-               IF
-                 (form_factor.name = 'desktop', 'desktop', 'mobile')
-             AND CONCAT(origin, '/') = url
+  devices
+    JOIN
+  pages
+  USING
+    (client,
+     url)
 GROUP BY
   lang,
   client
