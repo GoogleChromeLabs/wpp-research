@@ -663,7 +663,7 @@ function outputResults( opt, results ) {
 						? round(
 								calcStandardDeviation(
 									metrics[ metricName ],
-									1
+									true
 								),
 								2
 						  )
