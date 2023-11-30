@@ -13,56 +13,58 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/54
-
 CREATE TEMP FUNCTION
   IS_GOOD(good FLOAT64,
-    needs_improvement FLOAT64,
-    poor FLOAT64)
+          needs_improvement FLOAT64,
+          poor FLOAT64)
   RETURNS BOOL AS ( SAFE_DIVIDE(good, good + needs_improvement + poor) >= 0.75 );
 CREATE TEMP FUNCTION
   IS_NON_ZERO(good FLOAT64,
-    needs_improvement FLOAT64,
-    poor FLOAT64)
+              needs_improvement FLOAT64,
+              poor FLOAT64)
   RETURNS BOOL AS ( good + needs_improvement + poor > 0 );
+CREATE TEMP FUNCTION
+  IS_LOCALIZED(lang STRING)
+  RETURNS BOOL AS ( lang IS NOT NULL
+  AND LOWER(lang) != "en"
+  AND LOWER(lang) != "en-us" );
 WITH
   pages AS (
     SELECT
       client,
-      TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang'))) AS lang,
-      page AS url
+      IS_LOCALIZED(TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang')))) AS is_localized,
+      page AS url,
     FROM
       `httparchive.all.pages`,
       UNNEST(technologies) AS t
     WHERE
-  date = '2023-09-01'
-  AND is_root_page
-  AND t.technology = 'WordPress' ),
+        date = '2023-10-01'
+      AND is_root_page
+      AND t.technology = 'WordPress' ),
   devices AS (
-SELECT
-  device,
-  origin,
-  CONCAT(origin, '/') AS url,
-  IF
-  (device = 'desktop', 'desktop', 'mobile') AS client,
-  IS_NON_ZERO(fast_ttfb,
-  avg_ttfb,
-  slow_ttfb) AS any_ttfb,
-  IS_GOOD(fast_ttfb,
-  avg_ttfb,
-  slow_ttfb) AS good_ttfb
-FROM
-  `chrome-ux-report.materialized.device_summary`
-WHERE
-  date = CAST("2023-09-01" AS DATE)
-  AND device IN ('desktop',
-  'tablet',
-  'phone') )
+    SELECT
+      device,
+      origin,
+      CONCAT(origin, '/') AS url,
+      IF
+        (device = 'desktop', 'desktop', 'mobile') AS client,
+      IS_NON_ZERO(fast_ttfb,
+                  avg_ttfb,
+                  slow_ttfb) AS any_ttfb,
+      IS_GOOD(fast_ttfb,
+              avg_ttfb,
+              slow_ttfb) AS good_ttfb
+    FROM
+      `chrome-ux-report.materialized.device_summary`
+    WHERE
+        date = CAST("2023-09-01" AS DATE)
+      AND device IN ('desktop',
+                     'tablet',
+                     'phone') )
 SELECT
   client,
-  lang,
-  any_ttfb,
+  is_localized,
   good_ttfb
 FROM
   devices
@@ -72,8 +74,10 @@ FROM
     (client,
      url)
 GROUP BY
-  lang,
-  client
+  is_localized,
+  client,
+  good_ttfb
 ORDER BY
-  lang ASC,
+  is_localized ASC,
+  good_ttfb ASC,
   client ASC
