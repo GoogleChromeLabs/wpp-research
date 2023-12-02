@@ -1,4 +1,4 @@
-# HTTP Archive query to get TTFB information of WordPress sites by language.
+# HTTP Archive query to get TTFB information of WordPress sites by whether they are localized or not.
 #
 # WPP Research, Copyright 2023 Google LLC
 #
@@ -27,13 +27,13 @@ CREATE TEMP FUNCTION
 CREATE TEMP FUNCTION
   IS_LOCALIZED(lang STRING)
   RETURNS BOOL AS ( lang IS NOT NULL
-  AND LOWER(lang) != "en"
-  AND LOWER(lang) != "en-us" );
+  AND lang != "en"
+  AND lang != "en-us" );
 WITH
   pages AS (
     SELECT
       client,
-      IS_LOCALIZED(TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang')))) AS is_localized,
+      IS_LOCALIZED(REPLACE(TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang'))), '_', '-' )) AS is_localized,
       page AS url,
     FROM
       `httparchive.all.pages`,
@@ -58,14 +58,14 @@ WITH
     FROM
       `chrome-ux-report.materialized.device_summary`
     WHERE
-        date = CAST("2023-09-01" AS DATE)
+        date = CAST("2023-10-01" AS DATE)
       AND device IN ('desktop',
                      'tablet',
                      'phone') )
 SELECT
   client,
   is_localized,
-  good_ttfb
+  SAFE_DIVIDE(COUNTIF(good_ttfb), COUNTIF(any_ttfb)) AS ttfb_passing_rate
 FROM
   devices
     JOIN
@@ -76,7 +76,6 @@ FROM
 GROUP BY
   is_localized,
   client,
-  good_ttfb
 ORDER BY
   is_localized ASC,
   good_ttfb ASC,
