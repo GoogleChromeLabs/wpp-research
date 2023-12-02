@@ -44,8 +44,6 @@ WITH
       AND t.technology = 'WordPress' ),
   devices AS (
     SELECT
-      device,
-      origin,
       CONCAT(origin, '/') AS url,
       IF
         (device = 'desktop', 'desktop', 'mobile') AS client,
@@ -75,8 +73,7 @@ FROM
      url)
 GROUP BY
   is_localized,
-  client,
+  client
 ORDER BY
   is_localized ASC,
-  good_ttfb ASC,
   client ASC

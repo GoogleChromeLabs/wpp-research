@@ -20,9 +20,9 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
-### 2023/11
+### 2023/12
 
-* [TTFB of WordPress sites by language](./2023/11/ttfb-by-language.sql)
+* [TTFB of localized WordPress sites](./2023/12/ttfb-localized-sites.sql)
 
 ### 2023/10
 
