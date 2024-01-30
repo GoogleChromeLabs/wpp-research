@@ -39,7 +39,7 @@ WITH
       `httparchive.all.pages`,
       UNNEST(technologies) AS t
     WHERE
-        date = '2023-10-01'
+        date = '2023-12-01'
       AND is_root_page
       AND t.technology = 'WordPress' ),
   devices AS (
@@ -56,7 +56,7 @@ WITH
     FROM
       `chrome-ux-report.materialized.device_summary`
     WHERE
-        date = CAST("2023-10-01" AS DATE)
+        date = CAST("2023-12-01" AS DATE)
       AND device IN ('desktop',
                      'tablet',
                      'phone') )
