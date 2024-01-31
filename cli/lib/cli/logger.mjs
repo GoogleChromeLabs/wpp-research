@@ -23,7 +23,20 @@ import chalk from 'chalk';
 import { table as formatTable } from 'table';
 import { stringify as formatCsv } from 'csv-stringify/sync'; // eslint-disable-line import/no-unresolved
 
-export const log = console.log; // eslint-disable-line no-console
+// Responsible for the actual command output.
+export const output = ( text ) => {
+	process.stdout.write( `${ text }\n` );
+};
+
+// Responsible for (debug) logging.
+export const log = ( text ) => {
+	process.stderr.write( `${ text }\n` );
+};
+
+// Responsible for (debug) logging without "terminating" the line.
+export const logPartial = ( text ) => {
+	process.stderr.write( text );
+};
 
 export const formats = {
 	title: chalk.bold,

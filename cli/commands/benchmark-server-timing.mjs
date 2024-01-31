@@ -25,9 +25,11 @@ import round from 'lodash-es/round.js';
 /**
  * Internal dependencies
  */
-import { getURLs } from '../lib/cli/args.mjs';
+import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
 import {
 	log,
+	logPartial,
+	output,
 	formats,
 	table,
 	isValidTableFormat,
@@ -91,16 +93,28 @@ export async function handler( opt ) {
 	const { concurrency: connections, number: amount } = opt;
 	const results = [];
 
-	for await ( const url of getURLs( opt ) ) {
-		const { completeRequests, responseTimes, metrics } = await benchmarkURL(
-			{
-				url,
-				connections,
-				amount,
-			}
-		);
+	// Log progress only under certain conditions (multiple URLs to benchmark).
+	const logURLProgress = shouldLogURLProgress( opt );
 
-		results.push( [ url, completeRequests, responseTimes, metrics ] );
+	for await ( const url of getURLs( opt ) ) {
+		if ( logURLProgress ) {
+			logPartial( `Benchmarking URL ${ url }...` );
+		}
+
+		try {
+			const { completeRequests, responseTimes, metrics } =
+				await benchmarkURL( {
+					url,
+					connections,
+					amount,
+				} );
+			results.push( [ url, completeRequests, responseTimes, metrics ] );
+			if ( logURLProgress ) {
+				log( formats.success( 'Success.' ) );
+			}
+		} catch ( err ) {
+			log( formats.error( `Error: ${ err.message }.` ) );
+		}
 	}
 
 	if ( results.length === 0 ) {
@@ -333,5 +347,5 @@ function outputResults( opt, results ) {
 		tableData.push( tableRow );
 	}
 
-	log( table( headings, tableData, opt.output, true ) );
+	output( table( headings, tableData, opt.output, true ) );
 }
