@@ -20,6 +20,10 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2024/01
+
+* [TTFB of localized WordPress sites](./2024/01/ttfb-localized-sites.sql)
+
 ### 2023/10
 
 * [Counts for bfcache being enabled and disabled](./2023/10/bfcache-score-counts.sql)
