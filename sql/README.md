@@ -23,6 +23,7 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 ### 2024/01
 
 * [TTFB of localized WordPress sites](./2024/01/ttfb-localized-sites.sql)
+* [Embed blocks on root and non-root pages](./2024/01/embed-blocks-on-root-and-non-root-pages.sql)
 
 ### 2023/10
 
