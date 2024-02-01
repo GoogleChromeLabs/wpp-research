@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/84
+
 SELECT
   is_root_page,
   JSON_EXTRACT(custom_metrics, '$.cms.wordpress.has_embed_block') AS has_embed_block,
