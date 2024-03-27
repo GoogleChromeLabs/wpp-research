@@ -20,6 +20,11 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2024/02
+
+* [Image bytes per image format](./2024/02/median-image-bytes.sql)
+* [LCP per image format](./2024/02/median-image-lcp.sql)
+
 ### 2024/01
 
 * [TTFB of localized WordPress sites](./2024/01/ttfb-localized-sites.sql)
