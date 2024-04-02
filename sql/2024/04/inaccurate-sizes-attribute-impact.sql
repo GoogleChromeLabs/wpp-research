@@ -16,42 +16,27 @@
 
 
 CREATE TEMPORARY FUNCTION
-  getSrcsetSizesAccuracy(payload STRING)
+  getImgSizesAccuracy(custom_metrics STRING)
   RETURNS ARRAY<STRUCT<sizesAbsoluteError INT64,
   sizesRelativeError FLOAT64,
-  wDescriptorAbsoluteError INT64,
-  wDescriptorRelativeError FLOAT64,
+  idealSizesSelectedResourceEstimatedPixels INT64,
   actualSizesEstimatedWastedLoadedPixels INT64,
-  actualSizesEstimatedWastedLoadedBytes FLOAT64,
-  wastedLoadedPercent FLOAT64>>
+  idealSizesSelectedResourceEstimatedBytes FLOAT64,
+  actualSizesEstimatedWastedLoadedBytes FLOAT64>>
   LANGUAGE js AS '''
 try {
-  var $ = JSON.parse(payload);
-  var responsiveImages = JSON.parse($._responsive_images);
+  const $ = JSON.parse(custom_metrics);
+  let responsiveImages = JSON.parse($.responsive_images);
   responsiveImages = responsiveImages['responsive-images'];
-  return responsiveImages.map(({
-    sizesAbsoluteError,
-    sizesRelativeError,
-    wDescriptorAbsoluteError,
-    wDescriptorRelativeError,
-    idealSizesSelectedResourceEstimatedPixels,
-    actualSizesEstimatedWastedLoadedPixels,
-    actualSizesEstimatedWastedLoadedBytes
-  }) => {
-    let wastedLoadedPercent;
-    if ( idealSizesSelectedResourceEstimatedPixels > 0 ) {
-      wastedLoadedPercent = actualSizesEstimatedWastedLoadedPixels / idealSizesSelectedResourceEstimatedPixels;
-    } else {
-      wastedLoadedPercent = null;
-    }
+
+  return responsiveImages.map((imgData) => {
     return {
-      sizesAbsoluteError,
-      sizesRelativeError,
-      wDescriptorAbsoluteError,
-      wDescriptorRelativeError,
-      actualSizesEstimatedWastedLoadedPixels,
-      actualSizesEstimatedWastedLoadedBytes,
-      wastedLoadedPercent
+      imgData.sizesAbsoluteError,
+      imgData.sizesRelativeError,
+      imgData.idealSizesSelectedResourceEstimatedPixels
+      imgData.actualSizesEstimatedWastedLoadedPixels,
+      imgData.idealSizesSelectedResourceEstimatedBytes
+      imgData.actualSizesEstimatedWastedLoadedBytes,
     };
   }
 );
@@ -78,9 +63,9 @@ WITH wordpressSizesData AS (
     image
   FROM
     `httparchive.all.pages`,
-    UNNEST(getSrcsetSizesAccuracy(payload)) AS image
+    UNNEST(getImgSizesAccuracy(custom_metrics)) AS image
   WHERE
-    date = '2024-02-01'
+    date = '2024-03-01'
     AND IS_CMS(technologies, 'WordPress', '')
     AND is_root_page = TRUE
 )
@@ -90,11 +75,10 @@ SELECT
   client,
   APPROX_QUANTILES(image.sizesAbsoluteError, 100)[OFFSET(percentile)] AS sizesAbsoluteError,
   APPROX_QUANTILES(image.sizesRelativeError, 100)[OFFSET(percentile)] AS sizesRelativeError,
-  APPROX_QUANTILES(image.wDescriptorAbsoluteError, 100)[OFFSET(percentile)] AS wDescriptorAbsoluteError,
-  APPROX_QUANTILES(image.wDescriptorRelativeError, 100)[OFFSET(percentile)] AS wDescriptorRelativeError,
+  APPROX_QUANTILES(image.idealSizesSelectedResourceEstimatedPixels, 100)[OFFSET(percentile)] AS idealSizesSelectedResourceEstimatedPixels,
   APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedPixels, 100)[OFFSET(percentile)] AS actualSizesEstimatedWastedLoadedPixels,
+  APPROX_QUANTILES(image.idealSizesSelectedResourceEstimatedBytes, 100)[OFFSET(percentile)] AS idealSizesSelectedResourceEstimatedBytes,
   APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedBytes, 100)[OFFSET(percentile)] AS actualSizesEstimatedWastedLoadedBytes,
-  APPROX_QUANTILES(image.wastedLoadedPercent, 100)[OFFSET(percentile)] AS wastedLoadedPercent
 FROM
   wordpressSizesData,
   UNNEST([10, 20, 30, 40, 50, 60, 70, 80, 90]) AS percentile
