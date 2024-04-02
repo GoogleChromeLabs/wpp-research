@@ -1,6 +1,6 @@
 # HTTP Archive query to get median image LCP and size in MB per image format.
 #
-# WPP Research, Copyright 2023 Google LLC
+# WPP Research, Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ FROM (
     url,
     CAST(JSON_EXTRACT_SCALAR(payload, "$['_chromeUserTiming.LargestContentfulPaint']") AS INT64) / 1000 AS lcp
   FROM
-    `httparchive.pages.2021_04_01_mobile`)
+    `httparchive.pages.2024_01_01_mobile`)
             USING
               (url)
 GROUP BY
