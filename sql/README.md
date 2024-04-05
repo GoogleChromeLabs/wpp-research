@@ -20,10 +20,9 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
-### 2024/02
+### 2024/04
 
-* [Image bytes per image format](./2024/02/median-image-bytes.sql)
-* [LCP per image format](./2024/02/median-image-lcp.sql)
+* [Image dimensions and bytes per image format](./2024/04/image-formats.sql)
 
 ### 2024/01
 
