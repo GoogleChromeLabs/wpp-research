@@ -81,6 +81,7 @@ WITH
       AND date = '2024-02-01' )
 
 SELECT
+  date,
   client,
   is_lcp_image,
   APPROX_QUANTILES(image_width, 1000)[
@@ -98,10 +99,12 @@ FROM
     JOIN
   imageRequests
   USING
-    ( page,
+    ( date,
+      page,
       client,
       url )
 GROUP BY
+  date,
   client,
   is_lcp_image,
   url,
