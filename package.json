@@ -7,13 +7,13 @@
     "node": ">= 18"
   },
   "devDependencies": {
-    "@wordpress/scripts": "^27.1.0",
-    "autocannon": "^7.11.0",
+    "@wordpress/scripts": "^27.4.0",
+    "autocannon": "^7.15.0",
     "chalk": "^5.3.0",
-    "commander": "^11.0.0",
-    "csv-stringify": "^6.4.0",
+    "commander": "^12.0.0",
+    "csv-stringify": "^6.4.6",
     "lodash-es": "4.17.21",
-    "puppeteer": "^21.10.0",
+    "puppeteer": "^22.3.0",
     "table": "^6.8.0",
     "web-vitals": "3.5.2"
   },
