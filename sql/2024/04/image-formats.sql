@@ -45,25 +45,38 @@ CREATE TEMPORARY FUNCTION
                                                                                              'image/gif',
                                                                                              'image/bmp'));
 
+CREATE TEMPORARY FUNCTION
+  GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics STRING,
+                            attribute STRING)
+  RETURNS STRING AS ( (
+  SELECT
+    JSON_EXTRACT_SCALAR(attr, "$.value") AS v
+  FROM
+    UNNEST(JSON_EXTRACT_ARRAY(JSON_EXTRACT(custom_metrics, '$.performance.lcp_elem_stats.attributes'))) AS attr
+  WHERE
+      JSON_EXTRACT_SCALAR(attr, "$.name") = attribute
+  LIMIT
+    1 ) );
+
 WITH
-  pagesWithImages AS (
+  pagesWithLcpImages AS (
     SELECT
       date,
       client,
       page,
-      LOWER(JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.nodeName')) = 'img' AS has_lcp_image,
-      LOWER(JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.url')) = JSON_EXTRACT_SCALAR(images, '$.url') AS is_lcp_image,
-      JSON_EXTRACT_SCALAR(images, '$.url') AS url,
-      JSON_EXTRACT_SCALAR(images, '$.naturalWidth') AS image_width,
-      JSON_EXTRACT_SCALAR(images, '$.naturalHeight') AS image_height,
-      CAST(JSON_EXTRACT_SCALAR(images, '$.naturalWidth') AS NUMERIC) * CAST(JSON_EXTRACT_SCALAR(images, '$.naturalWidth') AS NUMERIC) AS image_dimensions
+      GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
+                                'url') AS url,
+      GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
+                                'naturalWidth') AS image_width,
+      GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
+                                'naturalHeight') AS image_height
     FROM
-      `httparchive.all.pages`,
-      UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.Images')) AS images
+      `httparchive.all.pages`
     WHERE
       IS_CMS(technologies,
              'WordPress',
              '')
+      AND LOWER(JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.nodeName')) = 'img'
       AND date = '2024-02-01' ),
 
   imageRequests AS (
@@ -83,7 +96,6 @@ WITH
 SELECT
   date,
   client,
-  is_lcp_image,
   APPROX_QUANTILES(image_width, 1000)[
     OFFSET
       (500)] AS median_width,
@@ -95,7 +107,7 @@ SELECT
       (500)] AS median_file_size,
   mime_type
 FROM
-  pagesWithImages
+  pagesWithLcpImages
     JOIN
   imageRequests
   USING
@@ -106,7 +118,6 @@ FROM
 GROUP BY
   date,
   client,
-  is_lcp_image,
   url,
   mime_type
 ORDER BY
