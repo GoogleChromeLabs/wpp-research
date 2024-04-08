@@ -58,6 +58,21 @@ CREATE TEMPORARY FUNCTION
   LIMIT
     1 ) );
 
+CREATE TEMPORARY FUNCTION
+  GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics STRING,
+                                attribute STRING)
+  RETURNS STRING AS ( (
+  SELECT
+    JSON_EXTRACT_SCALAR(attributes, CONCAT("$.", attribute)) AS v
+  FROM
+    UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.Images')) AS attributes
+  WHERE
+    JSON_EXTRACT_SCALAR(attributes, CONCAT("$.", attribute)) IS NOT NULL
+    AND JSON_EXTRACT_SCALAR(attributes, CONCAT("$.", 'url')) = GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
+                                                                                         'url')
+  LIMIT
+    1 ) );
+
 WITH
   pagesWithLcpImages AS (
     SELECT
@@ -66,10 +81,10 @@ WITH
       page,
       GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
                                 'url') AS url,
-      GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
-                                'naturalWidth') AS image_width,
-      GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics,
-                                'naturalHeight') AS image_height
+      GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics,
+                                    'naturalWidth') AS image_width,
+      GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics,
+                                    'naturalHeight') AS image_height
     FROM
       `httparchive.all.pages`
     WHERE
@@ -77,6 +92,10 @@ WITH
              'WordPress',
              '')
       AND LOWER(JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.nodeName')) = 'img'
+      AND GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics,
+                                        'naturalWidth') IS NOT NULL
+      AND GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics,
+                                        'naturalHeight') IS NOT NULL
       AND date = '2024-02-01' ),
 
   imageRequests AS (
