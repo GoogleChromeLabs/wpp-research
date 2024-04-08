@@ -36,6 +36,15 @@ CREATE TEMPORARY FUNCTION
         OR info = RTRIM(version, ".x"))
     OR info = version ) ) );
 
+CREATE TEMPORARY FUNCTION
+  IS_IMAGE (summary STRING)
+  RETURNS BOOLEAN AS ( LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)) IN ('image/webp',
+                                                                                             'image/png',
+                                                                                             'image/jpeg',
+                                                                                             'image/avif',
+                                                                                             'image/gif',
+                                                                                             'image/bmp'));
+
 WITH
   pagesWithImages AS (
     SELECT
@@ -57,7 +66,7 @@ WITH
              '')
       AND date = '2024-02-01' ),
 
-  requests AS (
+  imageRequests AS (
     SELECT
       date,
       client,
@@ -68,7 +77,7 @@ WITH
     FROM
       `httparchive.all.requests`
     WHERE
-        LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)) != ''
+      IS_IMAGE(summary)
       AND date = '2024-02-01' )
 
 SELECT
@@ -87,7 +96,7 @@ SELECT
 FROM
   pagesWithImages
     JOIN
-  requests
+  imageRequests
   USING
     ( page,
       client,
