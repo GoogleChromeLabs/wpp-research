@@ -117,3 +117,6 @@ GROUP BY
   oldDate,
   newDate,
   percentile
+ORDER BY
+  device,
+  percentile
