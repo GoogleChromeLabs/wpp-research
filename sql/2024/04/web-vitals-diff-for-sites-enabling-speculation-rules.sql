@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/112
+DECLARE DATE_TO_QUERY DATE DEFAULT '2024-02-01';
+
+DECLARE DATE_TO_COMPARE DATE DEFAULT DATE_SUB(DATE_TO_QUERY, INTERVAL 1 MONTH);
+
 CREATE TEMP FUNCTION GET_SPECULATIONRULES(custom_metrics STRING) RETURNS STRING AS (
   (
     SELECT
@@ -39,7 +43,7 @@ WITH newUrlsWithSpeculationRules AS (
   FROM
     `httparchive.all.pages`
   WHERE
-    date = '2024-02-01'
+    date = DATE_TO_QUERY
     AND is_root_page
     AND GET_SPECULATIONRULES(custom_metrics) IS NOT NULL
 ),
@@ -55,7 +59,7 @@ urlsWhichEnabledSpeculationRules AS (
   USING
     (client, page)
   WHERE
-    p.date = '2024-01-01'
+    p.date = DATE_TO_COMPARE
     AND is_root_page
     AND GET_SPECULATIONRULES(custom_metrics) IS NULL
 ),
@@ -80,7 +84,7 @@ crux AS (
   USING
     (device, origin)
   WHERE
-    (date = '2024-01-01' OR date = '2024-02-01')
+    (date = DATE_TO_COMPARE OR date = DATE_TO_QUERY)
     AND device IN ('desktop', 'phone')
 )
 
@@ -97,10 +101,10 @@ SELECT
   APPROX_QUANTILES(newCrux.ttfb_pass_rate - oldCrux.ttfb_pass_rate, 100)[OFFSET(percentile)] AS ttfb_diff,
   APPROX_QUANTILES(newCrux.fid_pass_rate - oldCrux.fid_pass_rate, 100)[OFFSET(percentile)] AS fid_diff
 FROM (
-  SELECT * FROM crux WHERE date = '2024-01-01'
+  SELECT * FROM crux WHERE date = DATE_TO_COMPARE
 ) oldCrux, UNNEST([10, 25, 50, 75, 90, 100]) AS percentile
 INNER JOIN (
-  SELECT * FROM crux WHERE date = '2024-02-01'
+  SELECT * FROM crux WHERE date = DATE_TO_QUERY
 ) newCrux
 USING
   (device, origin)
