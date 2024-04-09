@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/112
-DECLARE DATE_TO_QUERY DATE DEFAULT '2024-02-01';
+DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
 DECLARE DATE_TO_COMPARE DATE DEFAULT DATE_SUB(DATE_TO_QUERY, INTERVAL 1 MONTH);
 
