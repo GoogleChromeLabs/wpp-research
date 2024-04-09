@@ -31,14 +31,6 @@ CREATE TEMP FUNCTION GET_ORIGIN_NAV_PASS_RATE(good FLOAT64, needs_improvement FL
   SAFE_DIVIDE(good, good + needs_improvement + poor)
 );
 
-CREATE TEMP FUNCTION IS_GOOD(good FLOAT64, needs_improvement FLOAT64, poor FLOAT64) RETURNS BOOL AS (
-  SAFE_DIVIDE(good, good + needs_improvement + poor) >= 0.75
-);
-
-CREATE TEMP FUNCTION IS_NON_ZERO(good FLOAT64, needs_improvement FLOAT64, poor FLOAT64) RETURNS BOOL AS (
-  good + needs_improvement + poor > 0
-);
-
 WITH newUrlsWithSpeculationRules AS (
   SELECT
     date,
