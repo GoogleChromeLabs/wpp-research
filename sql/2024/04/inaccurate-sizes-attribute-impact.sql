@@ -22,8 +22,10 @@ CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
   sizesRelativeError FLOAT64,
   idealSizesSelectedResourceEstimatedPixels INT64,
   actualSizesEstimatedWastedLoadedPixels INT64,
+  relativeSizesEstimatedWastedLoadedPixels FLOAT64,
   idealSizesSelectedResourceEstimatedBytes FLOAT64,
-  actualSizesEstimatedWastedLoadedBytes FLOAT64>>
+  actualSizesEstimatedWastedLoadedBytes FLOAT64,
+  relativeSizesEstimatedWastedLoadedBytes FLOAT64>>
 AS (
   ARRAY(
     SELECT AS STRUCT
@@ -33,8 +35,16 @@ AS (
       CAST(JSON_EXTRACT_SCALAR(image, '$.sizesRelativeError') AS FLOAT64) AS sizesRelativeError,
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
       CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
+      SAFE_DIVIDE(
+        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64),
+        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64)
+      ) AS relativeSizesEstimatedWastedLoadedPixels,
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64) AS idealSizesSelectedResourceEstimatedBytes,
       CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64) AS actualSizesEstimatedWastedLoadedBytes,
+      SAFE_DIVIDE(
+        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64),
+        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64)
+      ) AS relativeSizesEstimatedWastedLoadedBytes,
     FROM
       UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.responsive_images.responsive-images')) AS image
   )
@@ -74,8 +84,10 @@ SELECT
   APPROX_QUANTILES(image.sizesRelativeError, 100)[OFFSET(percentile)] AS sizesRelativeError,
   APPROX_QUANTILES(image.idealSizesSelectedResourceEstimatedPixels, 100)[OFFSET(percentile)] AS idealSizesSelectedResourceEstimatedPixels,
   APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedPixels, 100)[OFFSET(percentile)] AS actualSizesEstimatedWastedLoadedPixels,
+  APPROX_QUANTILES(image.relativeSizesEstimatedWastedLoadedPixels, 100)[OFFSET(percentile)] AS relativeSizesEstimatedWastedLoadedPixels,
   APPROX_QUANTILES(image.idealSizesSelectedResourceEstimatedBytes, 100)[OFFSET(percentile)] AS idealSizesSelectedResourceEstimatedBytes,
   APPROX_QUANTILES(image.actualSizesEstimatedWastedLoadedBytes, 100)[OFFSET(percentile)] AS actualSizesEstimatedWastedLoadedBytes,
+  APPROX_QUANTILES(image.relativeSizesEstimatedWastedLoadedBytes, 100)[OFFSET(percentile)] AS relativeSizesEstimatedWastedLoadedBytes,
 FROM
   wordpressSizesData,
   UNNEST([10, 20, 30, 40, 50, 60, 70, 80, 90]) AS percentile
