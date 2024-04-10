@@ -37,14 +37,14 @@ AS (
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
       CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
       SAFE_DIVIDE(
-        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64),
-        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64)
+        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64),
+        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64)
       ) AS relativeSizesEstimatedWastedLoadedPixels,
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64) AS idealSizesSelectedResourceEstimatedBytes,
       CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64) AS actualSizesEstimatedWastedLoadedBytes,
       SAFE_DIVIDE(
-        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64),
-        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64)
+        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64),
+        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64)
       ) AS relativeSizesEstimatedWastedLoadedBytes,
     FROM
       UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.responsive_images.responsive-images')) AS image
