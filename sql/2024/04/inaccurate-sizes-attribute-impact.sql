@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
 CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
   ARRAY<STRUCT<hasSrcset BOOL,
@@ -70,7 +71,7 @@ WITH wordpressSizesData AS (
     `httparchive.all.pages`,
     UNNEST(GET_IMG_SIZES_ACCURACY(custom_metrics)) AS image
   WHERE
-    date = '2024-03-01'
+    date = DATE_TO_QUERY
     AND IS_CMS(technologies, 'WordPress', '')
     AND is_root_page = TRUE
     AND image.hasSrcset = TRUE
