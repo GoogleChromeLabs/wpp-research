@@ -16,7 +16,9 @@
 
 
 CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
-  ARRAY<STRUCT<sizesAbsoluteError INT64,
+  ARRAY<STRUCT<hasSrcset BOOL,
+  hasSizes BOOL,
+  sizesAbsoluteError INT64,
   sizesRelativeError FLOAT64,
   idealSizesSelectedResourceEstimatedPixels INT64,
   actualSizesEstimatedWastedLoadedPixels INT64,
@@ -25,6 +27,8 @@ CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
 AS (
   ARRAY(
     SELECT AS STRUCT
+      CAST(JSON_EXTRACT_SCALAR(image, '$.hasSrcset') AS BOOL) AS hasSrcset,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.hasSizes') AS BOOL) AS hasSizes,
       CAST(JSON_EXTRACT_SCALAR(image, '$.sizesAbsoluteError') AS INT64) AS sizesAbsoluteError,
       CAST(JSON_EXTRACT_SCALAR(image, '$.sizesRelativeError') AS FLOAT64) AS sizesRelativeError,
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
@@ -59,6 +63,8 @@ WITH wordpressSizesData AS (
     date = '2024-03-01'
     AND IS_CMS(technologies, 'WordPress', '')
     AND is_root_page = TRUE
+    AND image.hasSrcset = TRUE
+    AND image.hasSizes = TRUE
 )
 
 SELECT
