@@ -1,6 +1,6 @@
 # HTTP Archive query to measure impact of inaccurate sizes attributes per <img> for WordPress sites.
 #
-# WPP Research, Copyright 2022 Google LLC
+# WPP Research, Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,35 +15,26 @@
 # limitations under the License.
 
 
-CREATE TEMPORARY FUNCTION
-  getImgSizesAccuracy(custom_metrics STRING)
-  RETURNS ARRAY<STRUCT<sizesAbsoluteError INT64,
+CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
+  ARRAY<STRUCT<sizesAbsoluteError INT64,
   sizesRelativeError FLOAT64,
   idealSizesSelectedResourceEstimatedPixels INT64,
   actualSizesEstimatedWastedLoadedPixels INT64,
   idealSizesSelectedResourceEstimatedBytes FLOAT64,
   actualSizesEstimatedWastedLoadedBytes FLOAT64>>
-  LANGUAGE js AS '''
-try {
-  const $ = JSON.parse(custom_metrics);
-  let responsiveImages = JSON.parse($.responsive_images);
-  responsiveImages = responsiveImages['responsive-images'];
-
-  return responsiveImages.map((imgData) => {
-    return {
-      imgData.sizesAbsoluteError,
-      imgData.sizesRelativeError,
-      imgData.idealSizesSelectedResourceEstimatedPixels
-      imgData.actualSizesEstimatedWastedLoadedPixels,
-      imgData.idealSizesSelectedResourceEstimatedBytes
-      imgData.actualSizesEstimatedWastedLoadedBytes,
-    };
-  }
+AS (
+  ARRAY(
+    SELECT AS STRUCT
+      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesAbsoluteError') AS INT64) AS sizesAbsoluteError,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesRelativeError') AS FLOAT64) AS sizesRelativeError,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64) AS idealSizesSelectedResourceEstimatedBytes,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64) AS actualSizesEstimatedWastedLoadedBytes,
+    FROM
+      UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.responsive_images.responsive-images')) AS image
+  )
 );
-} catch (e) {
-  return [];
-}
-''';
 
 CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, categories ARRAY<STRING>, info ARRAY<STRING>>>, cms STRING, version STRING) RETURNS BOOL AS (
   EXISTS(
@@ -63,7 +54,7 @@ WITH wordpressSizesData AS (
     image
   FROM
     `httparchive.all.pages`,
-    UNNEST(getImgSizesAccuracy(custom_metrics)) AS image
+    UNNEST(GET_IMG_SIZES_ACCURACY(custom_metrics)) AS image
   WHERE
     date = '2024-03-01'
     AND IS_CMS(technologies, 'WordPress', '')
