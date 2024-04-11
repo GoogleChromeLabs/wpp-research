@@ -20,6 +20,9 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2024/04
+* [Impact of inaccurate sizes attributes in WordPress](./2024/04/inaccurate-sizes-attribute-impact.sql)
+
 ### 2024/01
 
 * [TTFB of localized WordPress sites](./2024/01/ttfb-localized-sites.sql)
