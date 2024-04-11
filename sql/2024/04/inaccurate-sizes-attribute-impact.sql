@@ -19,7 +19,7 @@ DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
   ARRAY<STRUCT<hasSrcset BOOL,
   hasSizes BOOL,
-  sizesAbsoluteError INT64,
+  sizesAbsoluteError FLOAT64,
   sizesRelativeError FLOAT64,
   idealSizesSelectedResourceEstimatedPixels INT64,
   actualSizesEstimatedWastedLoadedPixels INT64,
@@ -32,7 +32,7 @@ AS (
     SELECT AS STRUCT
       CAST(JSON_EXTRACT_SCALAR(image, '$.hasSrcset') AS BOOL) AS hasSrcset,
       CAST(JSON_EXTRACT_SCALAR(image, '$.hasSizes') AS BOOL) AS hasSizes,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesAbsoluteError') AS INT64) AS sizesAbsoluteError,
+      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesAbsoluteError') AS FLOAT64) AS sizesAbsoluteError,
       CAST(JSON_EXTRACT_SCALAR(image, '$.sizesRelativeError') AS FLOAT64) AS sizesRelativeError,
       CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
       CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
