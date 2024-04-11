@@ -13,6 +13,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# See https://github.com/GoogleChromeLabs/wpp-research/pull/108
 
 DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
