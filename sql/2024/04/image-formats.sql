@@ -117,6 +117,7 @@ SELECT
   date,
   client,
   mime_type,
+  COUNT(url) AS num_lcp_images,
   APPROX_QUANTILES(image_width, 1000)[
     OFFSET
       (500)] AS median_width,
