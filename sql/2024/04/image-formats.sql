@@ -16,7 +16,8 @@
 #
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/97
 
-DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
+DECLARE
+  DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
 CREATE TEMPORARY FUNCTION
   IS_CMS(technologies ARRAY<STRUCT<technology STRING,
@@ -74,7 +75,6 @@ CREATE TEMPORARY FUNCTION
                                                                                          'url')
   LIMIT
     1 ) );
-
 WITH
   pagesWithLcpImages AS (
     SELECT
@@ -99,7 +99,6 @@ WITH
       AND GET_LCP_IMAGE_ATTRIBUTE_VALUE(custom_metrics,
                                         'naturalHeight') IS NOT NULL
       AND date = DATE_TO_QUERY ),
-
   imageRequests AS (
     SELECT
       date,
