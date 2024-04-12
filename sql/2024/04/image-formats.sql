@@ -41,12 +41,7 @@ CREATE TEMPORARY FUNCTION
 
 CREATE TEMPORARY FUNCTION
   IS_IMAGE (summary STRING)
-  RETURNS BOOLEAN AS ( LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)) IN ('image/webp',
-                                                                                             'image/png',
-                                                                                             'image/jpeg',
-                                                                                             'image/avif',
-                                                                                             'image/gif',
-                                                                                             'image/bmp'));
+  RETURNS BOOLEAN AS (STARTS_WITH(LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)), 'image/'));
 
 CREATE TEMPORARY FUNCTION
   GET_LCP_ELEMENT_ATTRIBUTE(custom_metrics STRING,
