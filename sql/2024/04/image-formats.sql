@@ -115,6 +115,7 @@ WITH
 SELECT
   date,
   client,
+  mime_type,
   APPROX_QUANTILES(image_width, 1000)[
     OFFSET
       (500)] AS median_width,
@@ -123,8 +124,7 @@ SELECT
       (500)] AS median_height,
   APPROX_QUANTILES(resp_size, 1000)[
     OFFSET
-      (500)] AS median_file_size,
-  mime_type
+      (500)] AS median_file_size
 FROM
   pagesWithLcpImages
     JOIN
@@ -137,11 +137,10 @@ FROM
 GROUP BY
   date,
   client,
-  url,
   mime_type
 ORDER BY
   client,
+  median_file_size,
   median_width,
   median_height,
-  median_file_size,
   mime_type
