@@ -126,7 +126,7 @@ SELECT
       (500)] AS median_height,
   APPROX_QUANTILES(resp_size, 1000)[
     OFFSET
-      (500)] AS median_file_size
+      (500)] / 1024 AS median_file_size_kb
 FROM
   pagesWithLcpImages
     JOIN
@@ -142,7 +142,7 @@ GROUP BY
   mime_type
 ORDER BY
   client,
-  median_file_size,
+  median_file_size_kb,
   median_width,
   median_height,
   mime_type
