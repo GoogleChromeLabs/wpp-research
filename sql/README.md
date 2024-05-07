@@ -24,6 +24,7 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 * [Diff for Web Vitals passing rates of sites that enabled the Speculation Rules API from one month to the next](./2024/04/web-vitals-diff-for-sites-enabling-speculation-rules.sql)
 * [Impact of inaccurate sizes attributes in WordPress](./2024/04/inaccurate-sizes-attribute-impact.sql)
+* [Image dimensions and bytes per image format](./2024/04/image-formats.sql)
 
 ### 2024/01
 
