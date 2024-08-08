@@ -20,6 +20,10 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2024/08
+
+* [Active install counts for Performance Lab plugins (with or without the Performance Lab plugin)](./2024/08/performance-lab-plugins-adoption.sql)
+
 ### 2024/04
 
 * [Diff for Web Vitals passing rates of sites that enabled the Speculation Rules API from one month to the next](./2024/04/web-vitals-diff-for-sites-enabling-speculation-rules.sql)
