@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# See https://github.com/GoogleChromeLabs/wpp-research/pull/97
+# See https://github.com/GoogleChromeLabs/wpp-research/pull/146
 
 DECLARE
   DATE_TO_QUERY DATE DEFAULT '2024-07-01';
