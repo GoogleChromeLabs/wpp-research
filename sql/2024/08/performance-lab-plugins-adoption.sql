@@ -77,7 +77,6 @@ WITH urlsWithPerformanceLabPlugins AS (
   SELECT
     client,
     page,
-    # COUNT(DISTINCT page) OVER (PARTITION BY client) AS total,
     HAS_PERFORMANCE_LAB(GET_GENERATOR_CONTENTS(custom_metrics)) AS has_pl,
     EXTRACT_PL_PLUGINS_FROM_GENERATOR_CONTENTS(GET_GENERATOR_CONTENTS(custom_metrics)) AS plugins
   FROM
@@ -94,9 +93,8 @@ SELECT
   plugin,
   COUNT(DISTINCT page) AS urls,
   COUNT(DISTINCT IF(has_pl = TRUE, page, NULL)) AS urls_with_pl,
-  COUNT(DISTINCT IF(has_pl = FALSE, page, NULL)) AS urls_without_pl
-  # ANY_VALUE(total) AS total,
-  # COUNT(DISTINCT page) / ANY_VALUE(total) AS pct_total
+  COUNT(DISTINCT IF(has_pl = FALSE, page, NULL)) AS urls_without_pl,
+  COUNT(DISTINCT IF(has_pl = TRUE, page, NULL)) / COUNT(DISTINCT page) AS pct_with_pl
 FROM
   urlsWithPerformanceLabPlugins,
   UNNEST(plugins) AS plugin
