@@ -23,6 +23,7 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 ### 2024/08
 
 * [Active install counts for Performance Lab plugins (with or without the Performance Lab plugin)](./2024/08/performance-lab-plugins-adoption.sql)
+* [Usage of different WordPress template types on the home page](./2024/08/home-page-template-types-popularity.sql)
 
 ### 2024/04
 
