@@ -24,6 +24,10 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 * [% of WordPress URLs with images that use `width: fit-content`](./2024/11/images-using-width-fit-content.sql)
 
+### 2024/10
+
+* [Image sizes attribute impact of using the `auto-sizes` plugin](./2024/10/auto-sizes-impact-before-after.sql)
+
 ### 2024/08
 
 * [Active install counts for Performance Lab plugins (with or without the Performance Lab plugin)](./2024/08/performance-lab-plugins-adoption.sql)
