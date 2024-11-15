@@ -20,6 +20,10 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2024/11
+
+* [% of WordPress URLs with images that use `width: fit-content`](./2024/11/images-using-width-fit-content.sql)
+
 ### 2024/08
 
 * [Active install counts for Performance Lab plugins (with or without the Performance Lab plugin)](./2024/08/performance-lab-plugins-adoption.sql)
