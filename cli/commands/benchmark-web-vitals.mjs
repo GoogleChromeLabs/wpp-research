@@ -99,7 +99,8 @@ export const options = [
 	},
 	{
 		argname: '-w, --window-viewport <dimensions>',
-		description: 'Open page with the supplied viewport dimensions such as "360x800" or "1920x1080", defaults to "960x700"',
+		description:
+			'Open page with the supplied viewport dimensions such as "360x800" or "1920x1080", defaults to "960x700"',
 	},
 ];
 
@@ -207,8 +208,8 @@ function getParamsFromOptions( opt ) {
 			);
 		}
 		params.windowViewport = {
-			width: parseInt( matches[1] ),
-			height: parseInt( matches[2] ),
+			width: parseInt( matches[ 1 ] ),
+			height: parseInt( matches[ 2 ] ),
 		};
 	}
 
