@@ -24,7 +24,7 @@ import round from 'lodash-es/round.js';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
-/** @typedef {keyof typeof import("puppeteer").networkConditions} NetworkConditionName */
+/** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
 /* eslint-enable jsdoc/valid-types */
 /** @typedef {{width: number, height: number}} ViewportDimensions */
 
@@ -338,7 +338,7 @@ export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
 
-	const browser = await puppeteer.launch( { headless: 'new' } );
+	const browser = await puppeteer.launch( { headless: true } );
 
 	const metricsDefinition = getMetricsDefinition( params.metrics );
 
