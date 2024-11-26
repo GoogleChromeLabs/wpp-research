@@ -162,7 +162,8 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
 * `--network-conditions` (`-c`): Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G").
-* `--window-viewport` (`-w`): Specify the viewport window size, like "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"). Defaults to "960x700".
+* `--emulate-device` (`-e`): Emulate a specific device, like "Moto G4" or "iPad". See list of [known devices](https://pptr.dev/api/puppeteer.knowndevices). 
+* `--window-viewport` (`-w`): Specify the viewport window size, like "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"). Defaults to "960x700" if no device is being emulated.
 
 #### Examples
 

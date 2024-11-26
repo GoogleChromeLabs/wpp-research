@@ -19,13 +19,17 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser, PredefinedNetworkConditions } from 'puppeteer';
+import puppeteer, { Browser, PredefinedNetworkConditions, KnownDevices } from 'puppeteer';
 import round from 'lodash-es/round.js';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
+/** @typedef {import("puppeteer").Device} Device */
+/** @typedef {keyof typeof KnownDevices} KnownDeviceName */
+
 /* eslint-enable jsdoc/valid-types */
+// TODO: deviceScaleFactor, isMobile, isLandscape, hasTouch.
 /** @typedef {{width: number, height: number}} ViewportDimensions */
 
 /**
@@ -98,9 +102,13 @@ export const options = [
 			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
 	},
 	{
+		argname: '-e, --emulate-device <device>',
+		description: 'Enable a specific device by name, for example "Moto G4" or "iPad"',
+	},
+	{
 		argname: '-w, --window-viewport <dimensions>',
 		description:
-			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700"',
+			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700" if no specific device is being emulated',
 	},
 ];
 
@@ -115,6 +123,7 @@ export const options = [
  * @property {boolean}             showVariance      - See above.
  * @property {?number}             cpuThrottleFactor - See above.
  * @property {?NetworkConditions}  networkConditions - See above.
+ * @property {?Device}             emulateDevice     - See above.
  * @property {?ViewportDimensions} windowViewport    - See above.
  */
 
@@ -129,17 +138,18 @@ export const options = [
  */
 
 /**
- * @param {Object}                opt
- * @param {?string}               opt.url
- * @param {string|number}         opt.number
- * @param {?string}               opt.file
- * @param {?string[]}             opt.metrics
- * @param {string}                opt.output
- * @param {boolean}               opt.showPercentiles
- * @param {boolean}               opt.showVariance
- * @param {?string}               opt.throttleCpu
- * @param {?NetworkConditionName} opt.networkConditions
- * @param {?string}               opt.windowViewport
+ * @param {Object}        opt
+ * @param {?string}       opt.url
+ * @param {string|number} opt.number
+ * @param {?string}       opt.file
+ * @param {?string[]}     opt.metrics
+ * @param {string}        opt.output
+ * @param {boolean}       opt.showPercentiles
+ * @param {boolean}       opt.showVariance
+ * @param {?string}       opt.throttleCpu
+ * @param {?string}       opt.networkConditions
+ * @param {?string}       opt.emulateDevice
+ * @param {?string}       opt.windowViewport
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -160,7 +170,8 @@ function getParamsFromOptions( opt ) {
 		showVariance: Boolean( opt.showVariance ),
 		cpuThrottleFactor: null,
 		networkConditions: null,
-		windowViewport: { width: 960, height: 700 }, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
+		emulateDevice: null,
+		windowViewport: ! opt.emulateDevice ? { width: 960, height: 700 } : null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -200,10 +211,18 @@ function getParamsFromOptions( opt ) {
 			PredefinedNetworkConditions[ opt.networkConditions ];
 	}
 
+	if ( opt.emulateDevice ) {
+		if ( ! ( opt.emulateDevice in KnownDevices ) ) {
+			throw new Error(
+				`Unrecognized device to emulate: ${ opt.emulateDevice }`
+			);
+		}
+		params.emulateDevice = KnownDevices[ opt.emulateDevice ];
+	}
+
 	if ( opt.windowViewport ) {
 		if ( 'mobile' === opt.windowViewport ) {
 			// This corresponds to the mobile viewport tested in Lighthouse: <https://github.com/GoogleChrome/lighthouse/blob/b64b3534542c9dcaabb33d40b84ed7c93eefbd7d/core/config/constants.js#L14-L22>.
-			// TODO: Consider deviceScaleFactor.
 			params.windowViewport = {
 				width: 412,
 				height: 823,
@@ -449,12 +468,12 @@ async function benchmarkURL(
 			await page.emulateNetworkConditions( params.networkConditions );
 		}
 
-		await page.setViewport( params.windowViewport );
-		await page
-			.mainFrame()
-			.waitForFunction(
-				`window.innerWidth === ${ params.windowViewport.width } && window.innerHeight === ${ params.windowViewport.height }`
-			);
+		if ( params.windowViewport ) {
+			await page.setViewport( params.windowViewport );
+		}
+		if ( params.emulateDevice ) {
+			await page.emulate( params.emulateDevice );
+		}
 
 		// Load the page.
 		const urlObj = new URL( url );
