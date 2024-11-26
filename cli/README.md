@@ -162,6 +162,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
 * `--network-conditions` (`-c`): Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G").
+* `--window-viewport` (`-w`): Specify the viewport window size, like "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"). Defaults to "960x700".
 
 #### Examples
 
@@ -195,9 +196,9 @@ To run benchmark tests for URLs from a file:
 benchmark-web-vitals -f path/to/urls.txt -n 5
 ```
 
-To make a request that throttles the CPU 4x while also emulating Fast 3G network conditions:
+To make a request that throttles the CPU 4x while also emulating Fast 3G network conditions on a mobile viewport:
 ```bash
-benchmark-web-vitals --url https://example.com/ -t 4 -c "Fast 3G"
+benchmark-web-vitals --url https://example.com/ -t 4 -c "Fast 3G" -w "360x800"
 ```
 
 ### `analyze-loading-optimization`

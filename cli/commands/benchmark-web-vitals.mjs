@@ -26,6 +26,7 @@ import round from 'lodash-es/round.js';
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {keyof typeof import("puppeteer").networkConditions} NetworkConditionName */
 /* eslint-enable jsdoc/valid-types */
+/** @typedef {{width: number, height: number}} ViewportDimensions */
 
 /**
  * Internal dependencies
@@ -96,19 +97,25 @@ export const options = [
 		description:
 			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
 	},
+	{
+		argname: '-w, --window-viewport <dimensions>',
+		description:
+			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700"',
+	},
 ];
 
 /**
  * @typedef {Object} Params
- * @property {?string}            url               - See above.
- * @property {number}             amount            - See above.
- * @property {?string}            file              - See above.
- * @property {?string[]}          metrics           - See above.
- * @property {string}             output            - See above.
- * @property {boolean}            showPercentiles   - See above.
- * @property {boolean}            showVariance      - See above.
- * @property {?number}            cpuThrottleFactor - See above.
- * @property {?NetworkConditions} networkConditions - See above.
+ * @property {?string}             url               - See above.
+ * @property {number}              amount            - See above.
+ * @property {?string}             file              - See above.
+ * @property {?string[]}           metrics           - See above.
+ * @property {string}              output            - See above.
+ * @property {boolean}             showPercentiles   - See above.
+ * @property {boolean}             showVariance      - See above.
+ * @property {?number}             cpuThrottleFactor - See above.
+ * @property {?NetworkConditions}  networkConditions - See above.
+ * @property {?ViewportDimensions} windowViewport    - See above.
  */
 
 /**
@@ -132,9 +139,11 @@ export const options = [
  * @param {boolean}               opt.showVariance
  * @param {?string}               opt.throttleCpu
  * @param {?NetworkConditionName} opt.networkConditions
+ * @param {?string}               opt.windowViewport
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
+	/** @type {Params} */
 	const params = {
 		url: opt.url,
 		amount:
@@ -151,6 +160,7 @@ function getParamsFromOptions( opt ) {
 		showVariance: Boolean( opt.showVariance ),
 		cpuThrottleFactor: null,
 		networkConditions: null,
+		windowViewport: { width: 960, height: 700 }, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -188,6 +198,34 @@ function getParamsFromOptions( opt ) {
 		}
 		params.networkConditions =
 			PredefinedNetworkConditions[ opt.networkConditions ];
+	}
+
+	if ( opt.windowViewport ) {
+		if ( 'mobile' === opt.windowViewport ) {
+			// This corresponds to the mobile viewport tested in Lighthouse: <https://github.com/GoogleChrome/lighthouse/blob/b64b3534542c9dcaabb33d40b84ed7c93eefbd7d/core/config/constants.js#L14-L22>.
+			// TODO: Consider deviceScaleFactor.
+			params.windowViewport = {
+				width: 412,
+				height: 823,
+			};
+		} else if ( 'desktop' === opt.windowViewport ) {
+			// This corresponds to the mobile viewport tested in Lighthouse: <https://github.com/GoogleChrome/lighthouse/blob/b64b3534542c9dcaabb33d40b84ed7c93eefbd7d/core/config/constants.js#L28-L34>.
+			params.windowViewport = {
+				width: 1350,
+				height: 940,
+			};
+		} else {
+			const matches = opt.windowViewport.match( /^(\d+)x(\d+)$/ );
+			if ( ! matches ) {
+				throw new Error(
+					`Invalid window viewport dimensions: ${ opt.windowViewport }. Must be 'mobile', 'desktop', or WIDTHxHEIGHT (e.g. '1024x768')`
+				);
+			}
+			params.windowViewport = {
+				width: parseInt( matches[ 1 ] ),
+				height: parseInt( matches[ 2 ] ),
+			};
+		}
 	}
 
 	return params;
@@ -310,7 +348,7 @@ export async function handler( opt ) {
 
 	for await ( const url of getURLs( opt ) ) {
 		if ( logURLProgress ) {
-			// If also logging individial iterations, put those on a new line.
+			// If also logging individual iterations, put those on a new line.
 			if ( logIterationsProgress ) {
 				log( `Benchmarking URL ${ url }...` );
 			} else {
@@ -329,7 +367,7 @@ export async function handler( opt ) {
 			);
 			results.push( [ url, completeRequests, metrics ] );
 			if ( logURLProgress ) {
-				// If also logging individial iterations, provide more context on benchmarking which URL was completed.
+				// If also logging individual iterations, provide more context on benchmarking which URL was completed.
 				if ( logIterationsProgress ) {
 					log(
 						formats.success(
@@ -411,12 +449,11 @@ async function benchmarkURL(
 			await page.emulateNetworkConditions( params.networkConditions );
 		}
 
-		// Set viewport similar to @wordpress/e2e-test-utils 'large' configuration.
-		await page.setViewport( { width: 960, height: 700 } ); // @todo This should be configurable via command options so that mobile viewport can be loaded.
+		await page.setViewport( params.windowViewport );
 		await page
 			.mainFrame()
 			.waitForFunction(
-				'window.innerWidth === 960 && window.innerHeight === 700'
+				`window.innerWidth === ${ params.windowViewport.width } && window.innerHeight === ${ params.windowViewport.height }`
 			);
 
 		// Load the page.
