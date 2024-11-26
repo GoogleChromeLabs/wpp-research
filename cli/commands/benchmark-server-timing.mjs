@@ -132,7 +132,6 @@ function benchmarkURL( params ) {
 	const metrics = {};
 	const responseTimes = [];
 	let completeRequests = 0;
-	let requestNum = 0;
 
 	const onHeaders = ( { headers } ) => {
 		const responseMetrics = getServerTimingMetricsFromHeaders( headers );
@@ -154,9 +153,11 @@ function benchmarkURL( params ) {
 		requests: [
 			{
 				setupRequest( req ) {
+					const url = new URL( req.path, 'http://localhost' ); // The base doesn't matter since we're only manipulating the path.
+					url.searchParams.set( 'rnd', String( Math.random() ) );
 					return {
 						...req,
-						path: `${ req.path }?rnd=${ requestNum++ }`,
+						path: url.pathname + url.search,
 					};
 				},
 			},
