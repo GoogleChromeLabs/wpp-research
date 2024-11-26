@@ -472,7 +472,10 @@ async function benchmarkURL(
 			await page.emulate( params.emulateDevice );
 		}
 		if ( params.windowViewport ) {
-			await page.setViewport( params.windowViewport );
+			await page.setViewport( {
+				...( params.emulateDevice ? params.emulateDevice.viewport : {} ),
+				...params.windowViewport
+			} );
 		}
 
 		// Load the page.
