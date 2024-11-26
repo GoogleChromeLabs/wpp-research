@@ -100,7 +100,7 @@ export const options = [
 	{
 		argname: '-w, --window-viewport <dimensions>',
 		description:
-			'Open page with the supplied viewport dimensions such as "360x800" or "1920x1080", defaults to "960x700"',
+			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700"',
 	},
 ];
 
@@ -201,16 +201,31 @@ function getParamsFromOptions( opt ) {
 	}
 
 	if ( opt.windowViewport ) {
-		const matches = opt.windowViewport.match( /^(\d+)x(\d+)$/ );
-		if ( ! matches ) {
-			throw new Error(
-				`Invalid window viewport dimensions: ${ opt.windowViewport }`
-			);
+		if ( 'mobile' === opt.windowViewport ) {
+			// This corresponds to the mobile viewport tested in Lighthouse: <https://github.com/GoogleChrome/lighthouse/blob/b64b3534542c9dcaabb33d40b84ed7c93eefbd7d/core/config/constants.js#L14-L22>.
+			// TODO: Consider deviceScaleFactor.
+			params.windowViewport = {
+				width: 412,
+				height: 823,
+			};
+		} else if ( 'desktop' === opt.windowViewport ) {
+			// This corresponds to the mobile viewport tested in Lighthouse: <https://github.com/GoogleChrome/lighthouse/blob/b64b3534542c9dcaabb33d40b84ed7c93eefbd7d/core/config/constants.js#L28-L34>.
+			params.windowViewport = {
+				width: 1350,
+				height: 940,
+			};
+		} else {
+			const matches = opt.windowViewport.match( /^(\d+)x(\d+)$/ );
+			if ( ! matches ) {
+				throw new Error(
+					`Invalid window viewport dimensions: ${ opt.windowViewport }. Must be 'mobile', 'desktop', or WIDTHxHEIGHT (e.g. '1024x768')`
+				);
+			}
+			params.windowViewport = {
+				width: parseInt( matches[ 1 ] ),
+				height: parseInt( matches[ 2 ] ),
+			};
 		}
-		params.windowViewport = {
-			width: parseInt( matches[ 1 ] ),
-			height: parseInt( matches[ 2 ] ),
-		};
 	}
 
 	return params;
