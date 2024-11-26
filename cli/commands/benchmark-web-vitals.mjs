@@ -468,11 +468,11 @@ async function benchmarkURL(
 			await page.emulateNetworkConditions( params.networkConditions );
 		}
 
-		if ( params.windowViewport ) {
-			await page.setViewport( params.windowViewport );
-		}
 		if ( params.emulateDevice ) {
 			await page.emulate( params.emulateDevice );
+		}
+		if ( params.windowViewport ) {
+			await page.setViewport( params.windowViewport );
 		}
 
 		// Load the page.
