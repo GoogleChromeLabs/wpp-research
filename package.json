@@ -15,7 +15,7 @@
     "lodash-es": "4.17.21",
     "puppeteer": "^22.6.5",
     "table": "^6.8.2",
-    "web-vitals": "3.5.2"
+    "web-vitals": "4.2.3"
   },
   "scripts": {
     "format": "wp-scripts format ./cli/*.mjs ./cli/**/*.mjs ./cli/**/**/*.mjs",
