@@ -30,6 +30,10 @@ import {
 	options as analyzeLoadingOptimizationOptions,
 } from './commands/analyze-loading-optimization.mjs';
 import {
+	handler as analyzeLcpImageLoadingPrioritizationHandler,
+	options as analyzeLcpImageLoadingPrioritizationOptions,
+} from './commands/analyze-lcp-image-loading-prioritization.mjs';
+import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
 } from './commands/benchmark-server-timing.mjs';
@@ -76,6 +80,12 @@ withOptions(
 )
 	.description( 'Analyzes issues with loading optimization' )
 	.action( catchException( analyzeLoadingOptimizationHandler ) );
+withOptions(
+	program.command( 'analyze-lcp-image-loading-prioritization' ),
+	analyzeLcpImageLoadingPrioritizationOptions
+)
+	.description( 'Analyzes LCP image loading prioritization' )
+	.action( catchException( analyzeLcpImageLoadingPrioritizationHandler ) );
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions
