@@ -200,6 +200,7 @@ async function analyze(
 
 	const data = {
 		url,
+		device: params.emulateDevice,
 		metrics: {
 			TTFB: {
 				value: null,
