@@ -275,13 +275,17 @@ async function analyze(
 		);
 	}
 
-	data.imagePrioritizerVersion = await page.evaluate(
+	data.pluginVersions = await page.evaluate(
 		() => {
-			const meta = document.querySelector( 'head > meta[name="generator"][content^="image-prioritizer "]' );
-			if ( ! meta ) {
-				return null;
+			const pluginVersions = {};
+			const pluginSlugs = [ 'optimization-detective', 'image-prioritizer' ];
+			for ( const pluginSlug of pluginSlugs ) {
+				const meta = document.querySelector( `head > meta[name="generator"][content^="${ pluginSlug } "]` );
+				if ( meta ) {
+					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( ' ' )[1];
+				}
 			}
-			return meta.getAttribute( 'content' ).split( ' ' )[1];
+			return pluginVersions;
 		}
 	);
 
