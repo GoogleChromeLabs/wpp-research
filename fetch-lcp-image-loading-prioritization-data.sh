@@ -37,6 +37,5 @@ while IFS= read -r url; do
 		echo "FAILED"
 		echo "$url" >> "$outdir/failed.txt"
 	fi
-	break
 done < "$urlfile"
 
