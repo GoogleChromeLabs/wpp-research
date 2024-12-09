@@ -232,7 +232,7 @@ async function analyze(
 			} );
 
 			const amendedData = await page.evaluate(
-				( global ) => {
+				( /** @type string */ global ) => {
 					const metric = /** @type Metric */ window[ global ];
 
 					if ( metric.entries.length !== 1 ) {
@@ -245,7 +245,24 @@ async function analyze(
 					if ( 'LCP' === metric.name ) {
 						const entry = /** @type LargestContentfulPaint */ metric.entries[0];
 						amendedData.url = entry.url;
-						amendedData.element = entry?.element?.tagName;
+						if ( entry.element ) {
+							amendedData.element = {
+								tagName: entry.element.tagName,
+							};
+							if ( entry.element instanceof HTMLImageElement ) {
+								amendedData.element.fetchPriority = entry.element.getAttribute( 'fetchpriority' );
+								amendedData.element.loading = entry.element.getAttribute( 'loading' );
+							}
+							amendedData.element.odMeta = {};
+							for ( const attribute of entry.element.attributes ) {
+								const attrPrefix = 'data-od-';
+								if ( attribute.name.startsWith( attrPrefix ) ) {
+									amendedData.element.odMeta[ attribute.name.substring( attrPrefix.length ) ] = attribute.value;
+								}
+							}
+						} else {
+							amendedData.element = null;
+						}
 					}
 
 					return amendedData;
