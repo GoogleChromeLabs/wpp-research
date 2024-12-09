@@ -201,6 +201,7 @@ async function analyze(
 				element: null,
 				initiatorType: null,
 			},
+			'LCP-TTFB': null,
 		}
 	};
 
@@ -261,6 +262,10 @@ async function analyze(
 			);
 
 			Object.assign( data.metrics[ metricName ], amendedData );
+
+			data.metrics['LCP-TTFB'] = {
+				value: data.metrics.LCP.value - data.metrics.TTFB.value,
+			};
 		} )
 	);
 
