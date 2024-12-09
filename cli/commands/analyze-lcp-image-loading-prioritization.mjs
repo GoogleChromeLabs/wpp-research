@@ -46,91 +46,61 @@ import {
 	isValidTableFormat,
 	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
-import * as async_hooks from "node:async_hooks";
 
 export const options = [
 	{
 		argname: '-u, --url <url>',
 		description: 'A URL to run benchmark tests for',
 	},
-	{
-		argname: '-o, --output <output>',
-		description: 'Output format: csv or table',
-		defaults: OUTPUT_FORMAT_TABLE,
-	},
-	{
-		argname: '-e, --emulate-device <device>',
-		description: 'Enable a specific device by name, for example "Moto G4" or "iPad". Values "mobile" and "desktop" correspond to Lighthouse. Defaults to "mobile".',
-	},
 ];
+
+const mobileDevice = {
+	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L42C7-L42C23>.
+	userAgent: 'Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
+	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L11-L22>.
+	viewport: {
+		isMobile: true,
+		width: 412,
+		height: 823,
+		isLandscape: false,
+		deviceScaleFactor: 1.75,
+		hasTouch: true,
+	}
+};
+
+const desktopDevice = {
+	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L43>.
+	userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L24-L34>.
+	viewport: {
+		isMobile: false,
+		width: 1350,
+		height: 940,
+		isLandscape: true,
+		deviceScaleFactor: 1,
+		hasTouch: false,
+	}
+};
 
 /**
  * @typedef {Object} Params
- * @property {string} url               - See above.
- * @property {string} output            - See above.
- * @property {Device} emulateDevice     - See above.
+ * @property {string} url - See above.
  */
 
 /**
  * @param {Object}  opt
  * @param {string}  opt.url
- * @param {string}  opt.output
- * @param {?string} opt.emulateDevice
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
 	/** @type {Params} */
 	const params = {
 		url: opt.url,
-		output: opt.output,
-		emulateDevice: null,
 	};
-
-	if ( ! isValidTableFormat( params.output ) ) {
-		throw new Error(
-			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table" or "csv".`
-		);
-	}
 
 	if ( ! params.url ) {
 		throw new Error(
 			'You need to provide a URL to benchmark via the --url (-u) argument.'
-		);
-	}
-
-	if ( ! opt.emulateDevice || opt.emulateDevice === 'mobile' ) {
-		params.emulateDevice = {
-			// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L42C7-L42C23>.
-			userAgent: 'Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
-			// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L11-L22>.
-			viewport: {
-				isMobile: true,
-				width: 412,
-				height: 823,
-				isLandscape: false,
-				deviceScaleFactor: 1.75,
-				hasTouch: true,
-			}
-		};
-	} else if ( opt.emulateDevice === 'desktop' ) {
-		params.emulateDevice = {
-			// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L43>.
-			userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-			// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L24-L34>.
-			viewport: {
-				isMobile: false,
-				width: 1350,
-				height: 940,
-				isLandscape: true,
-				deviceScaleFactor: 1,
-				hasTouch: false,
-			}
-		};
-	} else if ( opt.emulateDevice in KnownDevices ) {
-		params.emulateDevice = KnownDevices[ opt.emulateDevice ];
-	} else {
-		throw new Error(
-			`Unrecognized device to emulate: ${opt.emulateDevice}`
 		);
 	}
 
@@ -144,28 +114,44 @@ export async function handler( opt ) {
 		headless: true
 	} );
 
-	// Catch Puppeteer errors to prevent the process from getting stuck.
-	const metrics = await analyze(
-		params.url,
-		browser,
-		params
-	);
+	const odEnabledUrl = params.url;
+
+	const odDisabledUrlObj = new URL( params.url );
+	odDisabledUrlObj.searchParams.set( 'optimization_detective_disabled', '1' );
+	const odDisabledUrl = odDisabledUrlObj.href;
+
+	try {
+		const data = {
+			url: params.url,
+			results: {
+				mobile: {
+					disabled: await analyze( odDisabledUrl, browser, mobileDevice ),
+					enabled: await analyze( odEnabledUrl, browser, mobileDevice ),
+				},
+				desktop: {
+					disabled: await analyze( odDisabledUrl, browser, desktopDevice ),
+					enabled: await analyze( odEnabledUrl, browser, desktopDevice ),
+				}
+			}
+		};
+		output( JSON.stringify( data, null, 2 ) );
+	} catch ( err ) {
+		console.error( params.url, err );
+	}
 
 	await browser.close();
-
-	console.log( metrics );
 }
 
 /**
  * @param {string}  url
  * @param {Browser} browser
- * @param {Params}  params
+ * @param {Device}  emulateDevice
  * @return {Promise<Object>} Results
  */
 async function analyze(
 	url,
 	browser,
-	params,
+	emulateDevice,
 ) {
 	const globalVariablePrefix = '__wppResearchWebVitals';
 
@@ -177,7 +163,7 @@ async function analyze(
 
 	const page = await browser.newPage();
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
-	await page.emulate( params.emulateDevice );
+	await page.emulate( emulateDevice );
 
 	// Load the page.
 	const urlObj = new URL( url );
@@ -199,8 +185,7 @@ async function analyze(
 	await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 	const data = {
-		url,
-		device: params.emulateDevice,
+		device: emulateDevice,
 		metrics: {
 			TTFB: {
 				value: null,
@@ -291,6 +276,13 @@ async function analyze(
 			data.metrics.LCP.url
 		);
 	}
+
+	data.odPreloadLinkCount = await page.evaluate(
+		() => {
+			// TODO: Capture the media attribute too. And assert fetchpriority?
+			return document.querySelectorAll( 'head > link[ data-od-added-tag ]' ).length
+		}
+	);
 
 	data.pluginVersions = await page.evaluate(
 		() => {
