@@ -120,6 +120,7 @@ export async function handler( opt ) {
 	odDisabledUrlObj.searchParams.set( 'optimization_detective_disabled', '1' );
 	const odDisabledUrl = odDisabledUrlObj.href;
 
+	let didError = false;
 	try {
 		const data = {
 			url: params.url,
@@ -137,9 +138,11 @@ export async function handler( opt ) {
 		output( JSON.stringify( data, null, 2 ) );
 	} catch ( err ) {
 		console.error( params.url, err );
+		didError = true;
+	} finally {
+		await browser.close();
 	}
-
-	await browser.close();
+	process.exit( didError ? 1 : 0 );
 }
 
 /**
@@ -175,6 +178,8 @@ async function analyze(
 			password: urlObj.password,
 		} );
 	}
+
+	log( `Loading ${ url } as ${ emulateDevice.userAgent }` );
 
 	const response = await page.goto( urlObj.toString(), {
 		waitUntil: 'networkidle0',
