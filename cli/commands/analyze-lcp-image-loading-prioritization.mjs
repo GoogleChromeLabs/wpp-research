@@ -287,10 +287,17 @@ async function analyze(
 		);
 	}
 
-	data.odPreloadLinkCount = await page.evaluate(
+	data.odPreloadLinks = await page.evaluate(
 		() => {
-			// TODO: Capture the media attribute too. And assert fetchpriority?
-			return document.querySelectorAll( 'head > link[ data-od-added-tag ]' ).length
+			const preloadLinks = [];
+			for ( const link of document.querySelectorAll( 'link[ data-od-added-tag ]' ) ) {
+				const linkAttributes = {};
+				for ( const attribute of link.attributes ) {
+					linkAttributes[ attribute.name ] = attribute.value;
+				}
+				preloadLinks.push( linkAttributes );
+			}
+			return preloadLinks;
 		}
 	);
 
@@ -299,7 +306,7 @@ async function analyze(
 			const pluginVersions = {};
 			const pluginSlugs = [ 'optimization-detective', 'image-prioritizer' ];
 			for ( const pluginSlug of pluginSlugs ) {
-				const meta = document.querySelector( `head > meta[name="generator"][content^="${ pluginSlug } "]` );
+				const meta = document.querySelector( `meta[name="generator"][content^="${ pluginSlug } "]` );
 				if ( meta ) {
 					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( ' ' )[1];
 				}
