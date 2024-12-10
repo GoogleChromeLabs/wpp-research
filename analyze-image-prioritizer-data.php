@@ -8,13 +8,15 @@ $lcp_minus_ttfb_values                 = [];
 $lcp_img_is_prioritized                = [];
 $lcp_img_is_prioritized_by_form_factor = [];
 $lcp_img_unknown                       = [];
-$has_preload_links                     = [];
+$has_od_preload_links                     = [];
 $initiator_types                       = [];
 $urls_with_unknown_img                 = [];
 
 $preload_failure_urls       = [];
 $preload_success_urls       = [];
-$urls_without_preload_links = [];
+$urls_without_od_preload_links = [];
+
+$analyzed_count = 0;
 
 foreach ( glob( __DIR__ . '/image-prioritizer-analysis/out/*.json' ) as $json_file ) {
 	if ( filesize( $json_file ) === 0 ) {
@@ -60,6 +62,8 @@ foreach ( glob( __DIR__ . '/image-prioritizer-analysis/out/*.json' ) as $json_fi
 			continue;
 		}
 
+		$analyzed_count++;
+
 		// Out of curiosity, capture the improvement on the LCP-TTFB for when OD is enabled versus disabled.
 		$disabled                = $data['results'][ $form_factor ]['disabled']['metrics']['LCP-TTFB']['value'];
 		$enabled                 = $data['results'][ $form_factor ]['enabled']['metrics']['LCP-TTFB']['value'];
@@ -93,16 +97,16 @@ foreach ( glob( __DIR__ . '/image-prioritizer-analysis/out/*.json' ) as $json_fi
 			$preload_failure_urls[ $form_factor ][] = $data['url'];
 		}
 
-		$has_preload_links[] = $od_preload_link_count > 0 ? 1 : 0;
+		$has_od_preload_links[] = $od_preload_link_count > 0 ? 1 : 0;
 		if ( $od_preload_link_count === 0 ) {
-			$urls_without_preload_links[] = $data['url'];
+			$urls_without_od_preload_links[] = $data['url'];
 		}
 	}
 }
 
 function median( array $numbers ): float {
 	if ( empty( $numbers ) ) {
-		return 0; // Handle empty arrays
+		return 0;
 	}
 
 	sort( $numbers );
@@ -110,10 +114,8 @@ function median( array $numbers ): float {
 	$middleIndex = floor( $count / 2 );
 
 	if ( $count % 2 == 0 ) {
-		// Even number of elements, average the middle two
 		return ( $numbers[ $middleIndex - 1 ] + $numbers[ $middleIndex ] ) / 2;
 	} else {
-		// Odd number of elements, return the middle one
 		return $numbers[ $middleIndex ];
 	}
 }
@@ -130,19 +132,22 @@ function format_percent( $decimal ): string {
 	return round( $decimal * 100, 2 ) . '%';
 }
 
-echo "The following results are only for URLs which have the latest verison of Optimization Detective and Image Prioritizer active.\n";
+echo "The following results are only for URLs which have the latest version of Optimization Detective and Image Prioritizer active.\n";
 echo "Additionally, only URLs which have an LCP element reported as an IMG are considered.\n";
+echo "Rate at which LCP IMG element is unknown in URL Metrics: " . format_percent( average( $lcp_img_unknown ) ) . ' (count: ' . count( $lcp_img_unknown ) . ')' . PHP_EOL;
+echo "\n";
+echo "The following only consider cases when the LCP IMG element is tracked in URL Metrics.\n";
 
-echo "Sample size: " . count( $lcp_minus_ttfb_values ) . PHP_EOL;
+echo "Number of URLs examined on mobile and/or desktop: $analyzed_count\n";
 echo "Average LCP-TTFB improvement: " . format_percent( average( $lcp_minus_ttfb_values ) ) . PHP_EOL;
 echo "Median LCP-TTFB improvement: " . format_percent( median( $lcp_minus_ttfb_values ) ) . PHP_EOL;
-echo "Pages with IMG LCP, average LCP element untracked: " . format_percent( average( $lcp_img_unknown ) ) . ' (count: ' . count( $lcp_img_unknown ) . ')' . PHP_EOL;
-echo "Pages with IMG LCP, average has preload links: " . format_percent( average( $has_preload_links ) ) . ' (count: ' . count( $has_preload_links ) . ')' . PHP_EOL;
-echo "Pages either with LCP IMG element untracked or preload links added: " . format_percent( average( $lcp_img_unknown ) + average( $has_preload_links ) ) . ' (count: ' . ( count( $lcp_img_unknown ) + count( $has_preload_links ) ) . ')' . PHP_EOL;
 
-echo "Pages with IMG LCP, average prioritized rate: " . format_percent( average( $lcp_img_is_prioritized ) ) . ' (count: ' . count( $lcp_img_is_prioritized ) . ')' . PHP_EOL;
+echo "Rate having OD preload links: " . format_percent( average( $has_od_preload_links ) ) . ' (count: ' . count( $has_od_preload_links ) . ')' . PHP_EOL;
+// echo "Pages either with LCP IMG element untracked or OD preload links added: " . format_percent( average( $lcp_img_unknown ) + average( $has_od_preload_links ) ) . ' (count: ' . ( count( $lcp_img_unknown ) + count( $has_od_preload_links ) ) . ')' . PHP_EOL;
+
+echo "Average successful OD preload rate: " . format_percent( average( $lcp_img_is_prioritized ) ) . ' (count: ' . count( $lcp_img_is_prioritized ) . ')' . PHP_EOL;
 foreach ( $lcp_img_is_prioritized_by_form_factor as $form_factor => $prioritized ) {
-	echo "Pages with IMG LCP, average prioritized rate for $form_factor: " . format_percent( average( $prioritized ) ) . ' (count: ' . count( $prioritized ) . ')' . PHP_EOL;
+	echo "Average successful OD preload rate for $form_factor: " . format_percent( average( $prioritized ) ) . ' (count: ' . count( $prioritized ) . ')' . PHP_EOL;
 }
 
 foreach ( $preload_failure_urls as $form_factor => $urls ) {
@@ -153,8 +158,8 @@ $urls_with_successful_preloads_on_mobile_and_desktop = array_unique( array_inter
 sort( $urls_with_successful_preloads_on_mobile_and_desktop );
 file_put_contents( "image-prioritizer-analysis/urls-with-successful-od-preload-links-on-desktop-and-mobile.txt", join( "\n", $urls_with_successful_preloads_on_mobile_and_desktop ) . "\n" );
 
-$urls_without_preload_links = array_unique( $urls_without_preload_links );
-sort( $urls_without_preload_links );
-file_put_contents( "image-prioritizer-analysis/urls-without-od-preload-links.txt", join( "\n", $urls_without_preload_links ) . "\n" );
+$urls_without_od_preload_links = array_unique( $urls_without_od_preload_links );
+sort( $urls_without_od_preload_links );
+file_put_contents( "image-prioritizer-analysis/urls-without-od-preload-links.txt", join( "\n", $urls_without_od_preload_links ) . "\n" );
 sort( $urls_with_unknown_img );
 file_put_contents( 'image-prioritizer-analysis/urls-with-untracked-lcp-img-elements.txt', join( "\n", array_unique( $urls_with_unknown_img ) ) . "\n" );
