@@ -10,7 +10,6 @@ $lcp_img_is_prioritized_by_form_factor = [];
 $lcp_img_unknown                       = [];
 $has_preload_links                     = [];
 $initiator_types                       = [];
-$lcp_img_has_fetchpriority_high        = [];
 $urls_with_unknown_img                 = [];
 
 $preload_failure_urls       = [];
@@ -82,9 +81,6 @@ foreach ( glob( __DIR__ . '/image-prioritizer-analysis/out/*.json' ) as $json_fi
 		}
 		$od_preload_link_count = count( $data['results'][ $form_factor ]['enabled']['odPreloadLinks'] );
 
-		// Capture whether the LCP IMG element had fetchpriority=high (this is expected to be low in favor of the preload link).
-		$lcp_img_has_fetchpriority_high[] = ( $data['results'][ $form_factor ]['enabled']['metrics']['LCP']['element']['fetchPriority'] === 'high' ) ? 1 : 0;
-
 		$was_preloaded = ( 'link' === $data['results'][ $form_factor ]['enabled']['metrics']['LCP']['initiatorType'] ? 1 : 0 );
 
 		$did_od_successfully_preload = ( $was_preloaded && $did_od_preload );
@@ -143,7 +139,6 @@ echo "Median LCP-TTFB improvement: " . format_percent( median( $lcp_minus_ttfb_v
 echo "Pages with IMG LCP, average LCP element untracked: " . format_percent( average( $lcp_img_unknown ) ) . ' (count: ' . count( $lcp_img_unknown ) . ')' . PHP_EOL;
 echo "Pages with IMG LCP, average has preload links: " . format_percent( average( $has_preload_links ) ) . ' (count: ' . count( $has_preload_links ) . ')' . PHP_EOL;
 echo "Pages either with LCP IMG element untracked or preload links added: " . format_percent( average( $lcp_img_unknown ) + average( $has_preload_links ) ) . ' (count: ' . ( count( $lcp_img_unknown ) + count( $has_preload_links ) ) . ')' . PHP_EOL;
-#echo "Pages with IMG LCP, average has fetchpriority=high: " . ( average($lcp_img_has_fetchpriority_high) ) . PHP_EOL;
 
 echo "Pages with IMG LCP, average prioritized rate: " . format_percent( average( $lcp_img_is_prioritized ) ) . ' (count: ' . count( $lcp_img_is_prioritized ) . ')' . PHP_EOL;
 foreach ( $lcp_img_is_prioritized_by_form_factor as $form_factor => $prioritized ) {
