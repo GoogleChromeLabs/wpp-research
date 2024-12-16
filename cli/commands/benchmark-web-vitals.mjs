@@ -19,7 +19,11 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser, PredefinedNetworkConditions, KnownDevices } from 'puppeteer';
+import puppeteer, {
+	Browser,
+	PredefinedNetworkConditions,
+	KnownDevices,
+} from 'puppeteer';
 import round from 'lodash-es/round.js';
 
 /* eslint-disable jsdoc/valid-types */
@@ -103,7 +107,8 @@ export const options = [
 	},
 	{
 		argname: '-e, --emulate-device <device>',
-		description: 'Enable a specific device by name, for example "Moto G4" or "iPad"',
+		description:
+			'Enable a specific device by name, for example "Moto G4" or "iPad"',
 	},
 	{
 		argname: '-w, --window-viewport <dimensions>',
@@ -171,7 +176,9 @@ function getParamsFromOptions( opt ) {
 		cpuThrottleFactor: null,
 		networkConditions: null,
 		emulateDevice: null,
-		windowViewport: ! opt.emulateDevice ? { width: 960, height: 700 } : null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
+		windowViewport: ! opt.emulateDevice
+			? { width: 960, height: 700 }
+			: null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -473,8 +480,10 @@ async function benchmarkURL(
 		}
 		if ( params.windowViewport ) {
 			await page.setViewport( {
-				...( params.emulateDevice ? params.emulateDevice.viewport : {} ),
-				...params.windowViewport
+				...( params.emulateDevice
+					? params.emulateDevice.viewport
+					: {} ),
+				...params.windowViewport,
 			} );
 		}
 
