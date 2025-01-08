@@ -27,10 +27,10 @@ WITH relevantServerTimings AS (
   SELECT
     client,
     url,
-    EXTRACT_SERVER_TIMING_METRIC(httparchive.all.PARSE_SERVER_TIMING_HEADER(response_header.value), 'wp-load-alloptions-query') AS alloptions_query_time,
-    EXTRACT_SERVER_TIMING_METRIC(httparchive.all.PARSE_SERVER_TIMING_HEADER(response_header.value), 'wp-before-template') AS before_template_time
+    EXTRACT_SERVER_TIMING_METRIC(httparchive.fn.PARSE_SERVER_TIMING_HEADER(response_header.value), 'wp-load-alloptions-query') AS alloptions_query_time,
+    EXTRACT_SERVER_TIMING_METRIC(httparchive.fn.PARSE_SERVER_TIMING_HEADER(response_header.value), 'wp-before-template') AS before_template_time
   FROM
-    `httparchive.all.requests`,
+    `httparchive.crawl.requests`,
     UNNEST(response_headers) AS response_header
   WHERE
     date = '2023-01-01'

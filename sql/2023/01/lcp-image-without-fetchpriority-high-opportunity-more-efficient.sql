@@ -16,11 +16,11 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/27
 CREATE TEMP FUNCTION
-  getFetchPriorityAttr(attributes STRING)
+  getFetchPriorityAttr(performance JSON)
   RETURNS STRING
   LANGUAGE js AS '''
 try {
-  const data = JSON.parse(attributes);
+  const data = performance.lcp_elem_stats.attributes;
   const fetchpriorityAttr = data.find(attr => attr["name"] === "fetchpriority")
   return fetchpriorityAttr.value;
 } catch (e) {
@@ -30,16 +30,22 @@ try {
 
 WITH
   lcp_stats AS (
-  SELECT
-    _TABLE_SUFFIX AS client,
-    url,
-    JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') AS nodeName,
-    JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.url') AS elementUrl,
-    JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes') AS attributes,
-    JSON_EXTRACT(payload, '$._detected_apps.WordPress') AS wpVersion,
-    getFetchPriorityAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes')) AS fetchpriority,
+  # The `DISTINCT` is necessary to strip duplicate entries due to `UNNEST(technology.info)` which will result in 2 entries for each actual record.
+  SELECT DISTINCT
+    client,
+    page AS url,
+    JSON_VALUE(custom_metrics.performance.lcp_elem_stats.nodeName) AS nodeName,
+    JSON_VALUE(custom_metrics.performance.lcp_elem_stats.url) AS elementUrl,
+    wpVersion,
+    getFetchPriorityAttr(custom_metrics.performance) AS fetchpriority,
   FROM
-    `httparchive.pages.2022_10_01_*`
+    `httparchive.crawl.pages`,
+    UNNEST(technologies) AS technology,
+    UNNEST(technology.info) AS wpVersion
+  WHERE
+    date = '2022-10-01'
+    AND is_root_page
+    AND technology.technology = 'WordPress'
 )
 
 SELECT

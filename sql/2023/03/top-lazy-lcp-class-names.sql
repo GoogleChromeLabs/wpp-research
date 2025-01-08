@@ -15,9 +15,9 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/45
-CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING LANGUAGE js AS '''
+CREATE TEMP FUNCTION getAttr(performance JSON, attribute STRING) RETURNS STRING LANGUAGE js AS '''
   try {
-    const data = JSON.parse(attributes);
+    const data = performance.lcp_elem_stats.attributes;
     const attr = data.find(attr => attr["name"] === attribute)
     return attr.value
   } catch (e) {
@@ -28,15 +28,15 @@ CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING
 WITH lazypress AS (
   SELECT
     page,
-    getAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes'), 'loading') = 'lazy' AS native_lazy,
-    getAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes'), 'class') AS class,
-    JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') = 'IMG' AS img_lcp
+    getAttr(custom_metrics.performance, 'loading') = 'lazy' AS native_lazy,
+    getAttr(custom_metrics.performance, 'class') AS class,
+    JSON_VALUE(custom_metrics.performance.lcp_elem_stats.nodeName) = 'IMG' AS img_lcp
   FROM
-    `httparchive.all.pages`,
+    `httparchive.crawl.pages`,
     UNNEST(technologies) AS t
   WHERE
     date = '2023-02-01' AND
-    client = 'desktop' AND 
+    client = 'desktop' AND
     is_root_page AND
     t.technology = 'WordPress'
 ),

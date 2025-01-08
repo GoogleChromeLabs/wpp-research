@@ -15,22 +15,21 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/63
-CREATE TEMP FUNCTION GET_SCRIPT_PLACEMENTS (custom_metrics STRING) RETURNS ARRAY<STRING> LANGUAGE js AS '''
+CREATE TEMP FUNCTION GET_SCRIPT_PLACEMENTS (cms JSON) RETURNS ARRAY<STRING> LANGUAGE js AS '''
 
 const sourceRegExp = new RegExp('/wp-content/(plugin|theme)s/([^/]+)/');
 
 /**
  * Get script placements.
  *
- * @param {object} data
- * @param {object} data.cms
- * @param {object} data.cms.wordpress
- * @param {Array<{src: string, intended_strategy: string, async: boolean, defer: boolean, in_footer: boolean}>} data.cms.wordpress.scripts
+ * @param {object} cms
+ * @param {object} cms.wordpress
+ * @param {Array<{src: string, intended_strategy: string, async: boolean, defer: boolean, in_footer: boolean}>} cms.wordpress.scripts
  * @return {Array} Placements.
  */
-function getScriptPlacements(data) {
+function getScriptPlacements(cms) {
   const placements = [];
-  for (const script of data.cms.wordpress.scripts) {
+  for (const script of cms.wordpress.scripts) {
     if (!sourceRegExp.test(script.src)) {
       continue;
     }
@@ -50,17 +49,16 @@ function getScriptPlacements(data) {
 
 const placements = [];
 try {
-  const data = JSON.parse(custom_metrics);
-  placements.push(...getScriptPlacements(data));
+  placements.push(...getScriptPlacements(cms));
 } catch (e) {}
 return placements;
 ''';
 
 WITH all_placements AS (
   SELECT
-    GET_SCRIPT_PLACEMENTS(custom_metrics) AS placements,
+    GET_SCRIPT_PLACEMENTS(custom_metrics.cms) AS placements,
   FROM
-    `httparchive.all.pages`,
+    `httparchive.crawl.pages`,
     UNNEST(technologies) AS technology
   WHERE
     date = CAST("2023-07-01" AS DATE)

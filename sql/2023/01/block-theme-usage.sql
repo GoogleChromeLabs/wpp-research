@@ -16,35 +16,43 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/32
 SELECT
-  _TABLE_SUFFIX AS client,
-  COUNT(DISTINCT url) AS with_block_theme,
+  client,
+  COUNT(DISTINCT page) AS with_block_theme,
   total_wp_sites,
   COUNT(DISTINCT url) / total_wp_sites AS pct_total,
   # For reference, include number of sites greater than or equal to WP 5.9, since only then block theme support was launched.
   wp_gte_59
 FROM
-  `httparchive.technologies.2022_11_01_*`
+  `httparchive.crawl.pages`,
+  UNNEST(technologies) AS technology,
+  UNNEST(technology.info) AS version
 JOIN
-  `httparchive.response_bodies.2022_11_01_*`
+  `httparchive.crawl.requests`
 USING
-  (_TABLE_SUFFIX, url)
+  (date, client, page, is_root_page)
 JOIN (
   SELECT
-    _TABLE_SUFFIX,
-    COUNT(DISTINCT IF (info = '' OR CAST(REGEXP_EXTRACT(info, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9, url, NULL)) AS wp_gte_59,
-    COUNT(DISTINCT url) AS total_wp_sites
+    client,
+    COUNT(DISTINCT IF (version = '' OR CAST(REGEXP_EXTRACT(version, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9, page, NULL)) AS wp_gte_59,
+    COUNT(DISTINCT page) AS total_wp_sites
   FROM
-    `httparchive.technologies.2022_11_01_*`
+    `httparchive.crawl.pages`,
+    UNNEST(technologies) AS technology,
+    UNNEST(technology.info) AS version
   WHERE
-    app = "WordPress"
+    date = '2022-11-01'
+    AND is_root_page
+    AND technology.technology = "WordPress"
   GROUP BY
-    _TABLE_SUFFIX )
+    client )
 USING
-  (_TABLE_SUFFIX)
+  (client)
 WHERE
-  app = "WordPress"
-  AND (info = '' OR CAST(REGEXP_EXTRACT(info, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9)
-  AND body LIKE '%<div class="wp-site-blocks">%'
+  date = '2022-11-01'
+  AND is_root_page
+  AND technology.technology = "WordPress"
+  AND (version = '' OR CAST(REGEXP_EXTRACT(version, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9)
+  AND response_body LIKE '%<div class="wp-site-blocks">%'
 GROUP BY
   client,
   wp_gte_59,

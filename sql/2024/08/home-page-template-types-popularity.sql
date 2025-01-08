@@ -30,11 +30,11 @@ CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, ca
   )
 );
 
-CREATE TEMPORARY FUNCTION GET_CONTENT_TYPE(custom_metrics STRING) RETURNS STRUCT<template STRING, postType STRING, taxonomy STRING> AS (
+CREATE TEMPORARY FUNCTION GET_CONTENT_TYPE(cms JSON) RETURNS STRUCT<template STRING, postType STRING, taxonomy STRING> AS (
   STRUCT(
-    CAST(JSON_EXTRACT_SCALAR(custom_metrics, "$.cms.wordpress.content_type.template") AS STRING) AS template,
-    CAST(JSON_EXTRACT_SCALAR(custom_metrics, "$.cms.wordpress.content_type.post_type") AS STRING) AS postType,
-    CAST(JSON_EXTRACT_SCALAR(custom_metrics, "$.cms.wordpress.content_type.taxonomy") AS STRING) AS taxonomy
+    CAST(JSON_VALUE(cms.wordpress.content_type.template) AS STRING) AS template,
+    CAST(JSON_VALUE(cms.wordpress.content_type.post_type) AS STRING) AS postType,
+    CAST(JSON_VALUE(cms.wordpress.content_type.taxonomy) AS STRING) AS taxonomy
   )
 );
 
@@ -44,9 +44,9 @@ WITH contentTypes AS (
     "WordPress" AS cms,
     IF(client = "mobile", "phone", "desktop") AS device,
     page AS url,
-    GET_CONTENT_TYPE(custom_metrics) AS contentType
+    GET_CONTENT_TYPE(custom_metrics.cms) AS contentType
   FROM
-    `httparchive.all.pages`
+    `httparchive.crawl.pages`
   WHERE
     date = DATE_TO_QUERY
     AND IS_CMS(technologies, "WordPress", "")

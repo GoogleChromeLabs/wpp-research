@@ -31,33 +31,30 @@ FROM (
       COUNT(0) AS pages,
       COUNTIF(has_webp) / COUNT(0) AS pct_webp
     FROM (
-      SELECT
-        DISTINCT url,
-        REGEXP_EXTRACT(info, r'(\d\.\d+)') AS version
+      SELECT DISTINCT
+        page AS url,
+        REGEXP_EXTRACT(version, r'(\d\.\d+)') AS version
       FROM
-        `httparchive.technologies.2022_10_01_mobile`
+        `httparchive.crawl.pages`,
+        UNNEST(technologies) AS technology,
+        UNNEST(info) AS version
       WHERE
-        app = 'WordPress' )
+        date = '2022-10-01'
+        AND client = 'mobile'
+        AND is_root_page
+        AND technology.technology = 'WordPress' )
     JOIN (
       SELECT
-        url,
-        has_webp
-      FROM (
-        SELECT
-          pageid,
-          COUNTIF(ext = 'webp') > 0 AS has_webp
-        FROM
-          `httparchive.summary_requests.2022_10_01_mobile`
-        GROUP BY
-          pageid )
-      JOIN (
-        SELECT
-          pageid,
-          url
-        FROM
-          `httparchive.summary_pages.2022_10_01_mobile` )
-      USING
-        (pageid) )
+        page AS url,
+        COUNTIF(JSON_VALUE(summary.ext) = 'webp') > 0 AS has_webp
+      FROM
+        `httparchive.crawl.requests`
+      WHERE
+        date = '2022-10-01'
+        AND client = 'mobile'
+        AND is_root_page
+      GROUP BY
+        page )
     USING
       (url)
     WHERE
@@ -79,33 +76,30 @@ JOIN (
       COUNT(0) AS pages,
       COUNTIF(has_webp) / COUNT(0) AS pct_webp
     FROM (
-      SELECT
-        DISTINCT url,
-        REGEXP_EXTRACT(info, r'(\d\.\d+)') AS version
+      SELECT DISTINCT
+        page AS url,
+        REGEXP_EXTRACT(version, r'(\d\.\d+)') AS version
       FROM
-        `httparchive.technologies.2022_10_01_desktop`
+        `httparchive.crawl.pages`,
+        UNNEST(technologies) AS technology,
+        UNNEST(info) AS version
       WHERE
-        app = 'WordPress' )
+        date = '2022-10-01'
+        AND client = 'desktop'
+        AND is_root_page
+        AND technology.technology = 'WordPress' )
     JOIN (
       SELECT
-        url,
-        has_webp
-      FROM (
-        SELECT
-          pageid,
-          COUNTIF(ext = 'webp') > 0 AS has_webp
-        FROM
-          `httparchive.summary_requests.2022_10_01_desktop`
-        GROUP BY
-          pageid )
-      JOIN (
-        SELECT
-          pageid,
-          url
-        FROM
-          `httparchive.summary_pages.2022_10_01_desktop` )
-      USING
-        (pageid) )
+        page AS url,
+        COUNTIF(JSON_VALUE(summary.ext) = 'webp') > 0 AS has_webp
+      FROM
+        `httparchive.crawl.requests`
+      WHERE
+        date = '2022-10-01'
+        AND client = 'desktop'
+        AND is_root_page
+      GROUP BY
+        page )
     USING
       (url)
     WHERE

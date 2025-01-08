@@ -18,14 +18,14 @@ DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
 DECLARE DATE_TO_COMPARE DATE DEFAULT DATE_SUB(DATE_TO_QUERY, INTERVAL 1 MONTH);
 
-CREATE TEMP FUNCTION GET_SPECULATIONRULES(custom_metrics STRING) RETURNS STRING AS (
+CREATE TEMP FUNCTION GET_SPECULATIONRULES(other JSON) RETURNS STRING AS (
   (
     SELECT
-      script
+      TO_JSON_STRING(script)
     FROM
-      UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, "$.almanac.scripts.nodes")) AS script
+      UNNEST(JSON_QUERY_ARRAY(other.almanac.scripts.nodes)) AS script
     WHERE
-      LOWER(JSON_EXTRACT_SCALAR(script, "$.type")) = 'speculationrules'
+      LOWER(JSON_VALUE(script.type)) = 'speculationrules'
     LIMIT
       1
   )
@@ -41,11 +41,11 @@ WITH newUrlsWithSpeculationRules AS (
     client,
     page
   FROM
-    `httparchive.all.pages`
+    `httparchive.crawl.pages`
   WHERE
     date = DATE_TO_QUERY
     AND is_root_page
-    AND GET_SPECULATIONRULES(custom_metrics) IS NOT NULL
+    AND GET_SPECULATIONRULES(custom_metrics.other) IS NOT NULL
 ),
 
 urlsWhichEnabledSpeculationRules AS (
@@ -53,7 +53,7 @@ urlsWhichEnabledSpeculationRules AS (
     IF(client = 'mobile', 'phone', 'desktop') AS device,
     TRIM(page, '/') AS origin
   FROM
-    `httparchive.all.pages` p
+    `httparchive.crawl.pages` p
   INNER JOIN
     newUrlsWithSpeculationRules
   USING
@@ -61,7 +61,7 @@ urlsWhichEnabledSpeculationRules AS (
   WHERE
     p.date = DATE_TO_COMPARE
     AND is_root_page
-    AND GET_SPECULATIONRULES(custom_metrics) IS NULL
+    AND GET_SPECULATIONRULES(custom_metrics.other) IS NULL
 ),
 
 crux AS (
