@@ -20,7 +20,7 @@ WITH pages AS (
     client,
     page AS url
   FROM
-    `httparchive.all.pages`,
+    `httparchive.crawl.pages`,
     UNNEST(technologies) AS t
   WHERE
     date = '2023-08-01' AND
@@ -35,7 +35,7 @@ requests AS (
     url,
     REGEXP_REPLACE( resp_headers.value, ' *;.*$', '' ) AS content_type
   FROM
-    `httparchive.all.requests`,
+    `httparchive.crawl.requests`,
     UNNEST(response_headers) as resp_headers
   WHERE
     date = "2023-08-01" AND

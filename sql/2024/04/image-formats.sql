@@ -40,8 +40,8 @@ CREATE TEMPORARY FUNCTION
     OR info = version ) ) );
 
 CREATE TEMPORARY FUNCTION
-  IS_IMAGE (summary STRING)
-  RETURNS BOOLEAN AS (STARTS_WITH(LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)), 'image/'));
+  IS_IMAGE (summary JSON)
+  RETURNS BOOLEAN AS (STARTS_WITH(LOWER(CAST(JSON_VALUE(summary.mimeType) AS STRING)), 'image/'));
 
 WITH
   pagesWithLcpImages AS (
@@ -49,16 +49,16 @@ WITH
       date,
       client,
       page,
-      JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.url') AS url,
-      JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.naturalWidth') AS image_width,
-      JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.naturalHeight') AS image_height,
+      JSON_VALUE(custom_metrics.performance.lcp_elem_stats.url) AS url,
+      JSON_VALUE(custom_metrics.performance.lcp_elem_stats.naturalWidth) AS image_width,
+      JSON_VALUE(custom_metrics.performance.lcp_elem_stats.naturalHeight) AS image_height,
     FROM
-      `httparchive.all.pages`
+      `httparchive.crawl.pages`
     WHERE
       IS_CMS(technologies,
              'WordPress',
              '')
-      AND LOWER(JSON_EXTRACT_SCALAR(custom_metrics, '$.performance.lcp_elem_stats.nodeName')) = 'img'
+      AND LOWER(JSON_VALUE(custom_metrics.performance.lcp_elem_stats.nodeName)) = 'img'
       AND date = DATE_TO_QUERY ),
 
   imageRequests AS (
@@ -67,10 +67,10 @@ WITH
       client,
       page,
       url,
-      LOWER(CAST(JSON_EXTRACT_SCALAR(summary, "$.mimeType") AS STRING)) AS mime_type,
-      CAST( JSON_EXTRACT_SCALAR(summary, "$.respSize") AS NUMERIC) AS resp_size,
+      LOWER(CAST(JSON_VALUE(summary.mimeType) AS STRING)) AS mime_type,
+      CAST(JSON_VALUE(summary.respSize) AS NUMERIC) AS resp_size,
     FROM
-      `httparchive.all.requests`
+      `httparchive.crawl.requests`
     WHERE
       IS_IMAGE(summary)
       AND date = DATE_TO_QUERY )

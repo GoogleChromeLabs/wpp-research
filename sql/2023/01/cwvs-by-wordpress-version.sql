@@ -43,7 +43,7 @@ SELECT
   AVG( pct_eligible_origins_with_good_cwv ) AS pct_eligible_origins_with_good_cwv
 FROM (
   SELECT
-    REGEXP_EXTRACT(info, '(\\d.\\d).*') AS major_version,
+    REGEXP_EXTRACT(version, '(\\d.\\d).*') AS major_version,
     client,
     COUNT(DISTINCT url) AS origins,
     COUNT(DISTINCT IF (good_fid, url, NULL)) AS origins_with_good_fid,
@@ -79,18 +79,23 @@ FROM (
         'phone') )
   JOIN (
     SELECT
-      DISTINCT CAST('2022-10-01' AS DATE) AS date,
+      date,
       category,
-      app,
-      info,
-      _TABLE_SUFFIX AS client,
-      url
+      technology.technology AS app,
+      version,
+      client,
+      page AS url
     FROM
-      `httparchive.technologies.2022_10_01_*`
+      `httparchive.crawl.pages`,
+      UNNEST(technologies) AS technology,
+      UNNEST(technology.categories) AS category,
+      UNNEST(technology.info) AS version
     WHERE
-      app = 'WordPress'
+      date = '2022-10-01'
+      AND is_root_page
+      AND technology.technology = 'WordPress'
       AND category = 'CMS'
-      AND info != '' )
+      AND version != '' )
   USING
     (date,
       url,
@@ -99,7 +104,7 @@ FROM (
     date,
     major_version,
     app,
-    info,
+    version,
     client )
 WHERE
   origins > 100

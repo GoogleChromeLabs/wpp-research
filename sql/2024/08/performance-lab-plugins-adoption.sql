@@ -30,14 +30,14 @@ CREATE TEMPORARY FUNCTION HAS_TECHNOLOGY(technologies ARRAY<STRUCT<technology ST
   )
 );
 
-CREATE TEMPORARY FUNCTION GET_GENERATOR_CONTENTS(custom_metrics STRING) RETURNS ARRAY<STRING> AS (
+CREATE TEMPORARY FUNCTION GET_GENERATOR_CONTENTS(other JSON) RETURNS ARRAY<STRING> AS (
   ARRAY(
     SELECT
-      JSON_EXTRACT_SCALAR(metaNode, '$.content') AS content
+      JSON_VALUE(metaNode.content) AS content
     FROM
-      UNNEST(JSON_EXTRACT_ARRAY(JSON_EXTRACT(custom_metrics, '$.almanac.meta-nodes.nodes'))) AS metaNode
+      UNNEST(JSON_QUERY_ARRAY(other.almanac["meta-nodes"].nodes)) AS metaNode
     WHERE
-      JSON_EXTRACT_SCALAR(metaNode, '$.name') = 'generator'
+      JSON_VALUE(metaNode.name) = 'generator'
   )
 );
 
@@ -77,15 +77,15 @@ WITH urlsWithPerformanceLabPlugins AS (
   SELECT
     client,
     page,
-    HAS_PERFORMANCE_LAB(GET_GENERATOR_CONTENTS(custom_metrics)) AS has_pl,
-    EXTRACT_PL_PLUGINS_FROM_GENERATOR_CONTENTS(GET_GENERATOR_CONTENTS(custom_metrics)) AS plugins
+    HAS_PERFORMANCE_LAB(GET_GENERATOR_CONTENTS(custom_metrics.other)) AS has_pl,
+    EXTRACT_PL_PLUGINS_FROM_GENERATOR_CONTENTS(GET_GENERATOR_CONTENTS(custom_metrics.other)) AS plugins
   FROM
-    `httparchive.all.pages`
+    `httparchive.crawl.pages`
   WHERE
     date = DATE_TO_QUERY
     AND HAS_TECHNOLOGY(technologies, 'WordPress')
     AND is_root_page = TRUE
-    AND ARRAY_LENGTH(EXTRACT_PL_PLUGINS_FROM_GENERATOR_CONTENTS(GET_GENERATOR_CONTENTS(custom_metrics))) > 0
+    AND ARRAY_LENGTH(EXTRACT_PL_PLUGINS_FROM_GENERATOR_CONTENTS(GET_GENERATOR_CONTENTS(custom_metrics.other))) > 0
 )
 
 SELECT

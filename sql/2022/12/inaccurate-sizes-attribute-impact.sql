@@ -16,7 +16,7 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/19
 CREATE TEMPORARY FUNCTION
-  getSrcsetSizesAccuracy(payload STRING)
+  getSrcsetSizesAccuracy(responsive_images JSON)
   RETURNS ARRAY<STRUCT<sizesAbsoluteError INT64,
   sizesRelativeError FLOAT64,
   wDescriptorAbsoluteError INT64,
@@ -26,9 +26,7 @@ CREATE TEMPORARY FUNCTION
   wastedLoadedPercent FLOAT64>>
   LANGUAGE js AS '''
 try {
-  var $ = JSON.parse(payload);
-  var responsiveImages = JSON.parse($._responsive_images);
-  responsiveImages = responsiveImages['responsive-images'];
+  var responsiveImages = responsive_images['responsive-images'];
   return responsiveImages.map(({
     sizesAbsoluteError,
     sizesRelativeError,
@@ -71,19 +69,16 @@ SELECT
   APPROX_QUANTILES(image.wastedLoadedPercent, 1000)[OFFSET(percentile * 10)] AS wastedLoadedPercent
 FROM (
   SELECT
-    tpages._TABLE_SUFFIX AS client,
+    client,
     image
   FROM
-    `httparchive.pages.2022_10_01_*` AS tpages,
-    UNNEST(getSrcsetSizesAccuracy(payload)) AS image
-  JOIN
-    `httparchive.technologies.2022_10_01_*` AS tech
-  ON
-    tech.url = tpages.url
+    `httparchive.crawl.pages`,
+    UNNEST(technologies) AS technology,
+    UNNEST(getSrcsetSizesAccuracy(custom_metrics.responsive_images)) AS image
   WHERE
-    tpages._TABLE_SUFFIX = tech._TABLE_SUFFIX
-    AND app = 'WordPress'
-    AND category = 'CMS' ),
+    date = '2022-10-01'
+    AND is_root_page
+    AND technology.technology = 'WordPress' ),
   UNNEST([10, 25, 50, 75, 90]) AS percentile
 GROUP BY
   percentile,

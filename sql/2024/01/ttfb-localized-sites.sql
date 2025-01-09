@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 # See https://github.com/GoogleChromeLabs/wpp-research/pull/54
 CREATE TEMP FUNCTION
   IS_GOOD(good FLOAT64,
@@ -33,10 +34,10 @@ WITH
   pages AS (
     SELECT
       client,
-      IS_LOCALIZED(REPLACE(TRIM(LOWER(JSON_VALUE(JSON_VALUE(payload, '$._almanac'), '$.html_node.lang'))), '_', '-' )) AS is_localized,
+      IS_LOCALIZED(REPLACE(TRIM(LOWER(JSON_VALUE(custom_metrics.other.almanac.html_node.lang))), '_', '-' )) AS is_localized,
       page AS url,
     FROM
-      `httparchive.all.pages`,
+      `httparchive.crawl.pages`,
       UNNEST(technologies) AS t
     WHERE
         date = '2023-12-01'

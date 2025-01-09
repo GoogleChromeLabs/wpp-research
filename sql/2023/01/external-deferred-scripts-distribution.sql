@@ -16,16 +16,19 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/29
 SELECT
-  _TABLE_SUFFIX AS client,
+  client,
   percentile,
-  APPROX_QUANTILES(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.src') AS INT64), 1000)[OFFSET(percentile * 10)] AS external_scripts,
-  APPROX_QUANTILES(CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.defer') AS INT64) / CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.src') AS INT64), 1000)[OFFSET(percentile * 10)] AS pct_deferred
+  APPROX_QUANTILES(CAST(JSON_VALUE(custom_metrics.javascript.script_tags.src) AS INT64), 1000)[OFFSET(percentile * 10)] AS external_scripts,
+  APPROX_QUANTILES(CAST(JSON_VALUE(custom_metrics.javascript.script_tags.defer) AS INT64) / CAST(JSON_VALUE(custom_metrics.javascript.script_tags.src) AS INT64), 1000)[OFFSET(percentile * 10)] AS pct_deferred
 FROM
-  `httparchive.pages.2022_10_01_*`,
+  `httparchive.crawl.pages`,
+  UNNEST(technologies) AS technology,
   UNNEST([10, 25, 50, 75, 90, 100]) AS percentile
 WHERE
-  JSON_EXTRACT(payload, '$._detected_apps.WordPress') IS NOT NULL
-  AND CAST(JSON_EXTRACT(JSON_EXTRACT_SCALAR(payload, '$._javascript'), '$.script_tags.src') AS INT64) > 0
+  date = '2022-10-01'
+  AND is_root_page
+  AND technology.technology = 'WordPress'
+  AND CAST(JSON_VALUE(custom_metrics.javascript.script_tags.src) AS INT64) > 0
 GROUP BY
   client,
   percentile

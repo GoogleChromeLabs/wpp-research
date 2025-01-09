@@ -17,9 +17,9 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/73
 
 # h/t https://github.com/GoogleChromeLabs/wpp-research/blob/0b6c2ca8ddc2c68d4eddcb3d4e069c5e75a2ca16/sql/2023/03/top-lazy-lcp-class-names.sql#L18-L26
-CREATE TEMP FUNCTION getAttr(attributes STRING, attribute STRING) RETURNS STRING LANGUAGE js AS '''
+CREATE TEMP FUNCTION getAttr(performance JSON, attribute STRING) RETURNS STRING LANGUAGE js AS '''
   try {
-    const data = JSON.parse(attributes);
+    const data = performance.lcp_elem_stats.attributes;
     const attr = data.find(attr => attr["name"] === attribute)
     return attr.value
   } catch (e) {
@@ -44,10 +44,10 @@ WITH all_device_wordpress_lcp AS (
     SELECT
       page,
       IF(client = "mobile", "phone", "desktop") AS device,
-      IF(getAttr(JSON_EXTRACT(payload, '$._performance.lcp_elem_stats.attributes'), 'fetchpriority') = 'high', true, false) AS has_fetchpriority,
-      JSON_EXTRACT_SCALAR(payload, '$._performance.lcp_elem_stats.nodeName') AS lcp_element,
+      IF(getAttr(custom_metrics.performance, 'fetchpriority') = 'high', true, false) AS has_fetchpriority,
+      JSON_VALUE(custom_metrics.performance.lcp_elem_stats.nodeName) AS lcp_element,
     FROM
-      `httparchive.all.pages`
+      `httparchive.crawl.pages`
     WHERE
       date = '2023-08-01' AND
       is_root_page AND

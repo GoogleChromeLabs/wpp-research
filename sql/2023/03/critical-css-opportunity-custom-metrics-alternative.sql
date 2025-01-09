@@ -23,16 +23,19 @@ SELECT
   (total_wp_sites - sites_with_critical_css) / total_wp_sites AS opportunity
 FROM (
   SELECT
-    pages._TABLE_SUFFIX AS client,
-    COUNT(pages.url) AS total_wp_sites,
+    client,
+    COUNT(page) AS total_wp_sites,
     COUNTIF(
-      CAST(JSON_EXTRACT_SCALAR(payload, '$._renderBlockingCSS') AS INT64) = 0
-      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.inlineCssInHead') AS INT64) > 0
-      AND CAST(JSON_EXTRACT_SCALAR(JSON_EXTRACT_SCALAR(payload, '$._css'), '$.externalCssInBody') AS INT64) > 0
+      CAST(JSON_VALUE(payload._renderBlockingCSS) AS INT64) = 0
+      AND CAST(JSON_VALUE(custom_metrics.other.css.inlineCssInHead) AS INT64) > 0
+      AND CAST(JSON_VALUE(custom_metrics.other.css.externalCssInBody) AS INT64) > 0
     ) AS sites_with_critical_css
   FROM
-    `httparchive.pages.2022_03_01_*` AS pages
+    `httparchive.crawl.pages`,
+    UNNEST(technologies) AS technology
   WHERE
-    JSON_EXTRACT(pages.payload, '$._detected_apps.WordPress') IS NOT NULL
+    date = '2023-03-01'
+    AND is_root_page
+    AND technology.technology = 'WordPress'
   GROUP BY
-    pages._TABLE_SUFFIX )
+    client )

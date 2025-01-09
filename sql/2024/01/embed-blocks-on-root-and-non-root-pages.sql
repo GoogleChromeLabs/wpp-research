@@ -18,11 +18,11 @@
 
 SELECT
   is_root_page,
-  JSON_EXTRACT(custom_metrics, '$.cms.wordpress.has_embed_block') AS has_embed_block,
+  CAST(JSON_VALUE(custom_metrics.cms.wordpress.has_embed_block) AS BOOL) AS has_embed_block,
   COUNT(*) AS page_count,
   ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS percentage_of_total
 FROM
-  `httparchive.all.pages`,
+  `httparchive.crawl.pages`,
   UNNEST(technologies) AS technology
 WHERE
   date = CAST('2023-12-01' AS DATE)

@@ -18,7 +18,7 @@
 
 DECLARE DATE_TO_QUERY DATE DEFAULT '2024-10-01';
 
-CREATE TEMPORARY FUNCTION GET_IMG_DATA(custom_metrics STRING) RETURNS
+CREATE TEMPORARY FUNCTION GET_IMG_DATA(responsive_images JSON) RETURNS
   ARRAY<STRUCT<url STRING,
   width_attr STRING,
   height_attr STRING,
@@ -29,15 +29,15 @@ CREATE TEMPORARY FUNCTION GET_IMG_DATA(custom_metrics STRING) RETURNS
 AS (
   ARRAY(
     SELECT AS STRUCT
-      CAST(JSON_EXTRACT_SCALAR(image, '$.url') AS STRING) AS url,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.widthAttribute') AS STRING) AS width_attr,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.heightAttribute') AS STRING) AS height_attr,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.clientWidth') AS STRING) AS width_client,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.clientHeight') AS STRING) AS height_client,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.computedSizingStyles.width') AS STRING) AS width_computed,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.computedSizingStyles.height') AS STRING) AS height_computed
+      CAST(JSON_VALUE(image.url) AS STRING) AS url,
+      CAST(JSON_VALUE(image.widthAttribute) AS STRING) AS width_attr,
+      CAST(JSON_VALUE(image.heightAttribute) AS STRING) AS height_attr,
+      CAST(JSON_VALUE(image.clientWidth) AS STRING) AS width_client,
+      CAST(JSON_VALUE(image.clientHeight) AS STRING) AS height_client,
+      CAST(JSON_VALUE(image.computedSizingStyles.width) AS STRING) AS width_computed,
+      CAST(JSON_VALUE(image.computedSizingStyles.height) AS STRING) AS height_computed
     FROM
-      UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.responsive_images.responsive-images')) AS image
+      UNNEST(JSON_QUERY_ARRAY(responsive_images['responsive-images'])) AS image
   )
 );
 
@@ -57,9 +57,9 @@ WITH relevantUrls AS (
   SELECT
     client,
     page,
-    custom_metrics
+    custom_metrics.responsive_images AS responsive_images
   FROM
-    `httparchive.all.pages`
+    `httparchive.crawl.pages`
   WHERE
     date = DATE_TO_QUERY
     AND IS_CMS(technologies, 'WordPress', '')
@@ -72,7 +72,7 @@ images AS (
     image.*
   FROM
     relevantUrls,
-    UNNEST(GET_IMG_DATA(custom_metrics)) AS image
+    UNNEST(GET_IMG_DATA(responsive_images)) AS image
 )
 
 SELECT

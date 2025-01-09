@@ -16,7 +16,7 @@
 
 
 # Based on query here: https://github.com/GoogleChromeLabs/wpp-research/pull/63
-CREATE TEMP FUNCTION GET_BLOCKING_HEAD_SOURCES(custom_metrics STRING)
+CREATE TEMP FUNCTION GET_BLOCKING_HEAD_SOURCES(cms JSON)
 RETURNS ARRAY<STRING>
 LANGUAGE js
 AS '''
@@ -40,15 +40,14 @@ function getSource(src) {
 /**
  * Get script sources for scripts in the head which are blocking (not async nor defer).
  *
- * @param {object} data
- * @param {object} data.cms
- * @param {object} data.cms.wordpress
- * @param {Array<{src: string, intended_strategy: string, async: boolean, defer: boolean, in_footer: boolean}>} data.cms.wordpress.scripts
+ * @param {object} cms
+ * @param {object} cms.wordpress
+ * @param {Array<{src: string, intended_strategy: string, async: boolean, defer: boolean, in_footer: boolean}>} cms.wordpress.scripts
  * @return {Array} Sources.
  */
-function getBlockingHeadScriptSources(data) {
+function getBlockingHeadScriptSources(cms) {
   const sources = [];
-  for ( const script of data.cms.wordpress.scripts ) {
+  for ( const script of cms.wordpress.scripts ) {
 
     const source = getSource(script.src);
     if (!source) {
@@ -65,8 +64,7 @@ function getBlockingHeadScriptSources(data) {
 
 const sources = [];
 try {
-  const data = JSON.parse(custom_metrics);
-  sources.push(...getBlockingHeadScriptSources(data));
+  sources.push(...getBlockingHeadScriptSources(cms));
 } catch (e) {}
 return sources;
 ''';
@@ -74,9 +72,9 @@ return sources;
 WITH
   all_sources AS (
     SELECT
-      GET_BLOCKING_HEAD_SOURCES(custom_metrics) AS sources,
+      GET_BLOCKING_HEAD_SOURCES(custom_metrics.cms) AS sources,
     FROM
-      `httparchive.all.pages`,
+      `httparchive.crawl.pages`,
       UNNEST(technologies) AS technology
     WHERE
       date = CAST('2023-07-01' AS DATE)
