@@ -504,7 +504,10 @@ async function benchmarkURL(
 				waitUntil: 'networkidle0',
 			} );
 			if ( scriptTag ) {
-				await page.addScriptTag( { content: scriptTag, type: 'module' } );
+				await page.addScriptTag( {
+					content: scriptTag,
+					type: 'module',
+				} );
 			}
 
 			if ( response.status() !== 200 ) {
@@ -567,11 +570,15 @@ async function benchmarkURL(
 					}
 					return {};
 				} );
-				Object.values( groupedMetrics.serverTiming ).forEach( ( value ) => {
-					if ( serverTimingMetrics[ value.name ] ) {
-						value.results.push( serverTimingMetrics[ value.name ] );
+				Object.values( groupedMetrics.serverTiming ).forEach(
+					( value ) => {
+						if ( serverTimingMetrics[ value.name ] ) {
+							value.results.push(
+								serverTimingMetrics[ value.name ]
+							);
+						}
 					}
-				} );
+				);
 			}
 
 			if ( logProgress ) {
