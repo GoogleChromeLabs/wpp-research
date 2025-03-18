@@ -16,7 +16,7 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/75
 
-CREATE TEMP FUNCTION HAS_SCRIPT(handle STRING, custom_metrics STRING) RETURNS BOOL LANGUAGE js AS
+CREATE TEMP FUNCTION HAS_SCRIPT(handle STRING, cms JSON) RETURNS BOOL LANGUAGE js AS
 # language=javascript
 '''
 
@@ -24,14 +24,13 @@ CREATE TEMP FUNCTION HAS_SCRIPT(handle STRING, custom_metrics STRING) RETURNS BO
  * Get whether a script is present.
  *
  * @param {string} handle
- * @param {object} data
- * @param {object} data.cms
- * @param {object} data.cms.wordpress
- * @param {Array<{handle: string}>} data.cms.wordpress.scripts
+ * @param {object} cms
+ * @param {object} cms.wordpress
+ * @param {Array<{handle: string}>} cms.wordpress.scripts
  * @return {boolean}
  */
-function hasScript(handle, data) {
-  for (const script of data.cms.wordpress.scripts) {
+function hasScript(handle, cms) {
+  for (const script of cms.wordpress.scripts) {
     if (script.handle === handle) {
       return true;
     }
@@ -40,8 +39,7 @@ function hasScript(handle, data) {
 }
 
 try {
-  const data = JSON.parse(custom_metrics);
-  return hasScript(handle, data);
+  return hasScript(handle, cms);
 } catch (e) {}
 return false;
 
@@ -49,9 +47,9 @@ return false;
 
 WITH script_presence AS (
   SELECT
-    HAS_SCRIPT("heartbeat", custom_metrics) AS has_script,
+    HAS_SCRIPT("heartbeat", custom_metrics.cms) AS has_script,
   FROM
-    `httparchive.all.pages`,
+    `httparchive.crawl.pages`,
     UNNEST(technologies) AS technology
   WHERE
     date = CAST("2023-08-01" AS DATE) AND

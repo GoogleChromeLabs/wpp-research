@@ -16,27 +16,33 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/13
 SELECT
-  _TABLE_SUFFIX AS client,
-  app,
-  COUNT(DISTINCT url) AS sites,
-  COUNT(DISTINCT url) / total AS pct_sites
+  client,
+  technology.technology AS app,
+  COUNT(DISTINCT page) AS sites,
+  COUNT(DISTINCT page) / total AS pct_sites
 FROM
-  `httparchive.technologies.2022_10_01_*`
+  `httparchive.crawl.pages`,
+  UNNEST(technologies) AS technology
 JOIN (
   SELECT
-    _TABLE_SUFFIX,
-    COUNT(DISTINCT url) AS total
+    client,
+    COUNT(DISTINCT page) AS total
   FROM
-    `httparchive.technologies.2022_10_01_*`
+    `httparchive.crawl.pages`,
+    UNNEST(technologies) AS technology
   WHERE
-    app = "WordPress"
+    date = '2022-10-01'
+    AND is_root_page
+    AND technology.technology = "WordPress"
   GROUP BY
-    _TABLE_SUFFIX
+    client
 )
 USING
-  (_TABLE_SUFFIX)
+  (client)
 WHERE
-  app IN (
+  date = '2022-10-01'
+  AND is_root_page
+  AND technology.technology IN (
     "Twenty Eleven",
     "Twenty Twelve",
     "Twenty Thirteen",

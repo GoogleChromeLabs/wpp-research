@@ -21,9 +21,9 @@ WITH
   wordPressPages AS (
     SELECT
       page as url,
-      JSON_EXTRACT(lighthouse, '$.audits.bf-cache.score') AS bfCacheScore
+      JSON_VALUE(lighthouse.audits['bf-cache'].score) AS bfCacheScore
     FROM
-      `httparchive.all.pages`,
+      `httparchive.crawl.pages`,
       UNNEST(technologies) AS t
     WHERE
       date = '2023-08-01' AND

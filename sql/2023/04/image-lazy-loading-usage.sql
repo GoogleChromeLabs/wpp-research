@@ -15,12 +15,11 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/51
-CREATE TEMPORARY FUNCTION get_image_loading_attributes(images_string STRING)
+CREATE TEMPORARY FUNCTION get_image_loading_attributes(images JSON)
 RETURNS ARRAY<STRUCT<loading STRING>>
 LANGUAGE js AS '''
 var result = [];
 try {
-  var images = JSON.parse(images_string);
   for (const img of images){
     result.push({
       loading: img.loading
@@ -31,16 +30,26 @@ return result;
 ''';
 
 SELECT
-  _TABLE_SUFFIX AS client,
-  COUNT(DISTINCT url) AS urls_with_images,
-  COUNT(DISTINCT IF (loading = 'lazy', url, NULL)) AS urls_with_loading_lazy,
-  COUNT(DISTINCT IF (loading = 'lazy', url, NULL)) / COUNT(DISTINCT url) AS pct_with_loading_lazy
+  client,
+  COUNT(DISTINCT page) AS urls_with_images,
+  COUNT(DISTINCT IF (loading = 'lazy', page, NULL)) AS urls_with_loading_lazy,
+  COUNT(DISTINCT IF (loading = 'lazy', page, NULL)) / COUNT(DISTINCT page) AS pct_with_loading_lazy
 FROM
-  `httparchive.pages.2023_03_01_*`,
-  UNNEST(get_image_loading_attributes(JSON_EXTRACT_SCALAR(payload, '$._Images'))) AS image_loading
+  `httparchive.crawl.pages`,
+  UNNEST(technologies) AS technology,
+  UNNEST(get_image_loading_attributes(custom_metrics.other.Images)) AS image_loading
 WHERE
-  JSON_EXTRACT(payload, '$._detected_apps.WordPress') IS NOT NULL
-  AND (CAST(REGEXP_EXTRACT(JSON_EXTRACT(payload, '$._detected_apps.WordPress'), r'^"(\d+\.\d+)') AS FLOAT64) >= 5.5)
+  date = '2023-03-01'
+  AND is_root_page
+  AND technology.technology = 'WordPress'
+  AND EXISTS(
+    SELECT
+      version
+    FROM
+      UNNEST(technology.info) AS version
+    WHERE
+      CAST(REGEXP_EXTRACT(version, r'^(\d+\.\d+)') AS FLOAT64) >= 5.5
+  )
 GROUP BY
   client
 ORDER BY

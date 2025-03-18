@@ -15,26 +15,18 @@
 # limitations under the License.
 
 SELECT
-  info as version,
-  COUNT(DISTINCT url) AS sites,
-  COUNT(DISTINCT url) / total AS pct_sites
-FROM
-  `httparchive.technologies.2022_10_01_*`
-JOIN (
-  SELECT
-    app,
-    COUNT(DISTINCT url) AS total
-  FROM
-    `httparchive.technologies.2022_10_01_*`
-  GROUP BY
-    app
-)
-USING
-  (app)
-WHERE
-  app = 'Performance Lab'
-GROUP BY
   version,
-  total
+  COUNT(DISTINCT page) AS sites,
+  COUNT(DISTINCT page) / SUM(COUNT(DISTINCT page)) OVER () AS pct_sites
+FROM
+  `httparchive.crawl.pages`,
+  UNNEST(technologies) AS technology,
+  UNNEST(technology.info) AS version
+WHERE
+  date = '2022-10-01'
+  AND is_root_page
+  AND technology.technology = 'Performance Lab'
+GROUP BY
+  version
 ORDER BY
   sites DESC

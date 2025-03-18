@@ -16,16 +16,15 @@
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/75
 
-CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE js AS
+CREATE TEMP FUNCTION getItemReasons(items JSON) RETURNS ARRAY<STRING> LANGUAGE js AS
 # language=javascript
 '''
   try {
     if ( ! items ) {
       return [];
     }
-    const parsedItems = JSON.parse(items);
     const reasons = [];
-    for ( const item of parsedItems ) {
+    for ( const item of items ) {
       reasons.push( item.reason );
     }
     return reasons;
@@ -35,13 +34,12 @@ CREATE TEMP FUNCTION getItemReasons(items STRING) RETURNS ARRAY<STRING> LANGUAGE
 ''';
 
 WITH
-
    wordPressPages AS (
     SELECT
       page as url,
-      getItemReasons( JSON_EXTRACT(lighthouse, '$.audits.bf-cache.details.items')) AS reasons
+      getItemReasons(lighthouse.audits['bf-cache'].details.items) AS reasons
     FROM
-      `httparchive.all.pages`,
+      `httparchive.crawl.pages`,
       UNNEST(technologies) AS t
     WHERE
       date = '2023-08-01' AND

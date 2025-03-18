@@ -18,7 +18,7 @@
 
 DECLARE DATE_TO_QUERY DATE DEFAULT '2024-03-01';
 
-CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
+CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(responsive_images JSON) RETURNS
   ARRAY<STRUCT<hasSrcset BOOL,
   hasSizes BOOL,
   sizesAbsoluteError FLOAT64,
@@ -32,24 +32,24 @@ CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(custom_metrics STRING) RETURNS
 AS (
   ARRAY(
     SELECT AS STRUCT
-      CAST(JSON_EXTRACT_SCALAR(image, '$.hasSrcset') AS BOOL) AS hasSrcset,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.hasSizes') AS BOOL) AS hasSizes,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesAbsoluteError') AS FLOAT64) AS sizesAbsoluteError,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.sizesRelativeError') AS FLOAT64) AS sizesRelativeError,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
+      CAST(JSON_VALUE(image.hasSrcset) AS BOOL) AS hasSrcset,
+      CAST(JSON_VALUE(image.hasSizes) AS BOOL) AS hasSizes,
+      CAST(JSON_VALUE(image.sizesAbsoluteError) AS FLOAT64) AS sizesAbsoluteError,
+      CAST(JSON_VALUE(image.sizesRelativeError) AS FLOAT64) AS sizesRelativeError,
+      CAST(JSON_VALUE(image.idealSizesSelectedResourceEstimatedPixels) AS INT64) AS idealSizesSelectedResourceEstimatedPixels,
+      CAST(JSON_VALUE(image.actualSizesEstimatedWastedLoadedPixels) AS INT64) AS actualSizesEstimatedWastedLoadedPixels,
       SAFE_DIVIDE(
-        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedPixels') AS INT64),
-        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedPixels') AS INT64)
+        CAST(JSON_VALUE(image.actualSizesEstimatedWastedLoadedPixels) AS INT64),
+        CAST(JSON_VALUE(image.idealSizesSelectedResourceEstimatedPixels) AS INT64)
       ) AS relativeSizesEstimatedWastedLoadedPixels,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64) AS idealSizesSelectedResourceEstimatedBytes,
-      CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64) AS actualSizesEstimatedWastedLoadedBytes,
+      CAST(JSON_VALUE(image.idealSizesSelectedResourceEstimatedBytes) AS FLOAT64) AS idealSizesSelectedResourceEstimatedBytes,
+      CAST(JSON_VALUE(image.actualSizesEstimatedWastedLoadedBytes) AS FLOAT64) AS actualSizesEstimatedWastedLoadedBytes,
       SAFE_DIVIDE(
-        CAST(JSON_EXTRACT_SCALAR(image, '$.actualSizesEstimatedWastedLoadedBytes') AS FLOAT64),
-        CAST(JSON_EXTRACT_SCALAR(image, '$.idealSizesSelectedResourceEstimatedBytes') AS FLOAT64)
+        CAST(JSON_VALUE(image.actualSizesEstimatedWastedLoadedBytes) AS FLOAT64),
+        CAST(JSON_VALUE(image.idealSizesSelectedResourceEstimatedBytes) AS FLOAT64)
       ) AS relativeSizesEstimatedWastedLoadedBytes,
     FROM
-      UNNEST(JSON_EXTRACT_ARRAY(custom_metrics, '$.responsive_images.responsive-images')) AS image
+      UNNEST(JSON_QUERY_ARRAY(responsive_images['responsive-images'])) AS image
   )
 );
 
@@ -70,8 +70,8 @@ WITH wordpressSizesData AS (
     client,
     image
   FROM
-    `httparchive.all.pages`,
-    UNNEST(GET_IMG_SIZES_ACCURACY(custom_metrics)) AS image
+    `httparchive.crawl.pages`,
+    UNNEST(GET_IMG_SIZES_ACCURACY(custom_metrics.responsive_images)) AS image
   WHERE
     date = DATE_TO_QUERY
     AND IS_CMS(technologies, 'WordPress', '')

@@ -1,4 +1,4 @@
-# HTTP Archive query to compare the image sizes attribute impact of using the `auto-sizes` plugin.
+# HTTP Archive query to compare the image sizes attribute impact of using WordPress 6.7.
 #
 # WPP Research, Copyright 2024 Google LLC
 #
@@ -14,12 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# See https://github.com/GoogleChromeLabs/wpp-research/pull/162
+# See https://github.com/GoogleChromeLabs/wpp-research/pull/167
 
-# This intentionally queries between May and June, since in July additional functionality was added to the
-# `auto-sizes` plugin, which we do not want to influence the results here.
-DECLARE DATE_BEFORE DATE DEFAULT '2024-05-01';
-DECLARE DATE_AFTER DATE DEFAULT '2024-06-01';
+DECLARE DATE_BEFORE DATE DEFAULT '2024-10-01';
+DECLARE DATE_AFTER DATE DEFAULT '2024-11-01';
 
 CREATE TEMPORARY FUNCTION GET_IMG_SIZES_ACCURACY(responsive_images JSON) RETURNS
   ARRAY<STRUCT<url STRING,
@@ -70,28 +68,6 @@ CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, ca
   )
 );
 
-CREATE TEMPORARY FUNCTION GET_GENERATOR_CONTENTS(other JSON) RETURNS ARRAY<STRING> AS (
-  ARRAY(
-    SELECT
-      JSON_VALUE(metaNode.content) AS content
-    FROM
-      UNNEST(JSON_QUERY_ARRAY(other.almanac["meta-nodes"].nodes)) AS metaNode
-    WHERE
-      JSON_VALUE(metaNode.name) = 'generator'
-  )
-);
-
-CREATE TEMPORARY FUNCTION HAS_GENERATOR(other JSON, identifier STRING) RETURNS BOOL AS (
-  EXISTS(
-    SELECT
-      *
-    FROM
-      UNNEST(GET_GENERATOR_CONTENTS(other)) AS generator
-    WHERE
-      generator LIKE CONCAT(identifier, ' %')
-  )
-);
-
 WITH relevantUrlsAfter AS (
   SELECT
     client,
@@ -102,8 +78,7 @@ WITH relevantUrlsAfter AS (
   WHERE
     date = DATE_AFTER
     AND is_root_page = TRUE
-    AND IS_CMS(technologies, 'WordPress', '')
-    AND HAS_GENERATOR(custom_metrics.other, 'auto-sizes') = TRUE
+    AND IS_CMS(technologies, 'WordPress', '6.7.x')
 ),
 
 relevantUrlsBefore AS (
@@ -120,8 +95,7 @@ relevantUrlsBefore AS (
   WHERE
     date = DATE_BEFORE
     AND is_root_page = TRUE
-    AND IS_CMS(technologies, 'WordPress', '')
-    AND HAS_GENERATOR(before.custom_metrics.other, 'auto-sizes') = FALSE
+    AND IS_CMS(technologies, 'WordPress', '6.6.x')
 ),
 
 imageSizesDataAfter AS (
