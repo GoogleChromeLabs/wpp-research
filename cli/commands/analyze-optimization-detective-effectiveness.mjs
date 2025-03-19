@@ -1,7 +1,7 @@
 /**
- * CLI command to analyze sites using Image Prioritizer for  benchmark several URLs for Core Web Vitals and other key metrics.
+ * CLI command to analyze the URL for a page using Optimization Detective to measure its effectiveness at improving performance.
  *
- * WPP Research, Copyright 2023 Google LLC
+ * WPP Research, Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,14 @@
  * limitations under the License.
  */
 
+const version = 1;
+
 /**
  * External dependencies
  */
 import puppeteer, { Browser, PredefinedNetworkConditions, KnownDevices } from 'puppeteer';
-import round from 'lodash-es/round.js';
+import fs from 'fs';
+import path from 'path';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
@@ -39,19 +42,26 @@ import round from 'lodash-es/round.js';
  */
 import {
 	log,
-	logPartial,
 	output,
-	formats,
-	table,
-	isValidTableFormat,
-	OUTPUT_FORMAT_TABLE,
 } from '../lib/cli/logger.mjs';
 
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'A URL to run benchmark tests for',
+		description: 'URL for a page using Optimization Detective.',
+		required: true,
 	},
+	{
+		argname: '-o, --output-dir <output_dir>',
+		description: 'Output directory for the results. Must exist.',
+		required: true,
+	},
+	{
+		argname: '--force',
+		description: 'Force re-analyzing a URL which has already been analyzed.',
+		required: false,
+		default: false,
+	}
 ];
 
 const mobileDevice = {
@@ -83,47 +93,45 @@ const desktopDevice = {
 };
 
 /**
- * @typedef {Object} Params
- * @property {string} url - See above.
+ * @param {object} opt
+ * @param {string} opt.url
+ * @param {string} opt.outputDir
+ * @param {boolean} opt.force
+ * @returns {Promise<void>}
  */
-
-/**
- * @param {Object}  opt
- * @param {string}  opt.url
- * @return {Params} Parameters.
- */
-function getParamsFromOptions( opt ) {
-	/** @type {Params} */
-	const params = {
-		url: opt.url,
-	};
-
-	if ( ! params.url ) {
-		throw new Error(
-			'You need to provide a URL to benchmark via the --url (-u) argument.'
-		);
+export async function handler( opt ) {
+	if ( ! fs.existsSync( opt.outputDir ) ) {
+		throw new Error( `Output directory ${ opt.outputDir } does not exist.` );
 	}
 
-	return params;
-}
+	// TODO: Instead of version.txt it should be something like results.json
 
-export async function handler( opt ) {
-	const params = getParamsFromOptions( opt );
+	// Abort if we've already obtained the results for this.
+	const versionFile = path.join( opt.outputDir, 'version.txt' );
+	if ( ! opt.force && fs.existsSync( versionFile ) ) {
+		const previousVersion = parseInt( fs.readFileSync( versionFile, { encoding: 'utf-8' } ) );
+		if ( version === previousVersion ) {
+			log( 'Output was generated for the current version, so there is nothing to do. Aborting.' );
+			return;
+		}
+	}
 
 	const browser = await puppeteer.launch( {
 		headless: true
 	} );
 
-	const odEnabledUrl = params.url;
+	const odEnabledUrlObj = new URL( opt.url );
+	odEnabledUrlObj.searchParams.set( 'optimization_detective_enabled', '1' ); // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
+	const odEnabledUrl = odEnabledUrlObj.href;
 
-	const odDisabledUrlObj = new URL( params.url );
+	const odDisabledUrlObj = new URL( opt.url );
 	odDisabledUrlObj.searchParams.set( 'optimization_detective_disabled', '1' );
 	const odDisabledUrl = odDisabledUrlObj.href;
 
 	let didError = false;
 	try {
 		const data = {
-			url: params.url,
+			url: opt.url,
 			results: {
 				mobile: {
 					disabled: await analyze( odDisabledUrl, browser, mobileDevice ),
@@ -135,13 +143,22 @@ export async function handler( opt ) {
 				}
 			}
 		};
-		output( JSON.stringify( data, null, 2 ) );
+
+		fs.writeFileSync(
+			path.join( opt.outputDir, 'results.json' ),
+			JSON.stringify( data, null, 2 )
+		);
 	} catch ( err ) {
-		console.error( params.url, err );
+		console.error( opt.url, err );
 		didError = true;
 	} finally {
 		await browser.close();
 	}
+
+	if ( ! didError ) {
+		fs.writeFileSync( versionFile, String( version ) );
+	}
+
 	process.exit( didError ? 1 : 0 );
 }
 

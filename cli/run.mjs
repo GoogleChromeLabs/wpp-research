@@ -34,6 +34,10 @@ import {
 	options as analyzeOptimizationDetectiveEffectivenessOptions,
 } from './commands/analyze-optimization-detective-effectiveness.mjs';
 import {
+	handler as surveyOptimizationDetectiveEffectivenessHandler,
+	options as surveyOptimizationDetectiveEffectivenessOptions,
+} from './commands/survey-optimization-detective-effectiveness.mjs';
+import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
 } from './commands/benchmark-server-timing.mjs';
@@ -84,8 +88,14 @@ withOptions(
 	program.command( 'analyze-optimization-detective-effectiveness' ),
 	analyzeOptimizationDetectiveEffectivenessOptions
 )
-	.description( 'Analyzes LCP image loading prioritization' )
+	.description( 'Analyzes Optimization Detective effectiveness for a single URL.' )
 	.action( catchException( analyzeOptimizationDetectiveEffectivenessHandler ) );
+withOptions(
+	program.command( 'survey-optimization-detective-effectiveness' ),
+	surveyOptimizationDetectiveEffectivenessOptions
+)
+	.description( 'Surveys Optimization Detective effectiveness across a set of URLs.' )
+	.action( catchException( surveyOptimizationDetectiveEffectivenessHandler ) );
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions
