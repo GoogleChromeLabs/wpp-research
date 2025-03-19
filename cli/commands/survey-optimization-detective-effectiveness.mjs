@@ -103,6 +103,7 @@ export async function handler( opt ) {
 		const processOutputDir = path.join(outputDir, md5Hash.substring(0, 2), md5Hash.substring(2, 4), md5Hash);
 
 		fs.mkdirSync(processOutputDir, { recursive: true });
+		fs.writeFileSync(path.join(outputDir, 'url.txt'), url);
 
 		// Create a symlink to the latest.
 		const symlinkPath = path.join( outputDir, 'latest' );

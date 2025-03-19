@@ -120,54 +120,60 @@ export async function handler( opt ) {
 		headless: true
 	} );
 
-	let didError = false;
+	let caughtError = null;
 	try {
-		const data = {
-			url: opt.url,
-			results: {
-				mobile: {
-					disabled: await analyze( opt.url, browser, mobileDevice, false ),
-					enabled: await analyze( opt.url, browser, mobileDevice, true ),
-				},
-				desktop: {
-					disabled: await analyze( opt.url, browser, desktopDevice, false ),
-					enabled: await analyze( opt.url, browser, desktopDevice, true ),
-				}
-			}
-		};
+		for ( const isMobile of [ true, false ] ) {
+			const deviceDir = path.join( opt.outputDir, isMobile ? 'mobile' : 'desktop' );
+			fs.mkdirSync( deviceDir, { recursive: true } );
 
-		fs.writeFileSync(
-			path.join( opt.outputDir, 'results.json' ),
-			JSON.stringify( data, null, 2 )
-		);
+			const originalDir = path.join( deviceDir, 'original' );
+			fs.mkdirSync( originalDir, { recursive: true } );
+			const originalResult  = await analyze( originalDir, opt.url, browser, isMobile, false );
+
+			const optimizedDir = path.join( deviceDir, 'optimized' );
+			fs.mkdirSync( optimizedDir, { recursive: true } );
+			const optimizedResult  = await analyze( optimizedDir, opt.url, browser, isMobile, true );
+
+			// TODO: Put a diff of originalResult  and optimizedResult in the deviceDir.
+		}
 	} catch ( err ) {
 		console.error( opt.url, err );
-		didError = true;
+		caughtError = err;
 	} finally {
 		await browser.close();
 	}
 
-	if ( ! didError ) {
+	const errorFile = path.join( opt.outputDir, 'error.txt' );
+	if ( caughtError ) {
+		fs.writeFileSync( errorFile, caughtError.message, { mode: 'a' } );
+	} else {
 		fs.writeFileSync( versionFile, String( version ) );
+		try {
+			fs.unlinkSync( errorFile )
+		} catch ( err ) {}
 	}
 
-	process.exit( didError ? 1 : 0 );
+	process.exit( caughtError ? 1 : 0 );
 }
 
 /**
+ * @param {string}  outputDir
  * @param {string}  url
  * @param {Browser} browser
- * @param {Device}  emulateDevice
+ * @param {boolean} isMobile
  * @param {boolean} optimizationDetectiveEnabled
  * @return {Promise<Object>} Results
  */
 async function analyze(
+	outputDir,
 	url,
 	browser,
-	emulateDevice,
+	isMobile,
 	optimizationDetectiveEnabled
 ) {
 	const globalVariablePrefix = '__wppResearchWebVitals';
+
+	const emulateDevice = isMobile ? mobileDevice : desktopDevice;
 
 	const urlObj = new URL( url );
 	urlObj.searchParams.set(
@@ -329,6 +335,11 @@ async function analyze(
 			}
 			return pluginVersions;
 		}
+	);
+
+	fs.writeFileSync(
+		path.join( outputDir, 'results.json' ),
+		JSON.stringify( data, null, 2 )
 	);
 
 	return data;
