@@ -120,26 +120,18 @@ export async function handler( opt ) {
 		headless: true
 	} );
 
-	const odEnabledUrlObj = new URL( opt.url );
-	odEnabledUrlObj.searchParams.set( 'optimization_detective_enabled', '1' ); // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
-	const odEnabledUrl = odEnabledUrlObj.href;
-
-	const odDisabledUrlObj = new URL( opt.url );
-	odDisabledUrlObj.searchParams.set( 'optimization_detective_disabled', '1' );
-	const odDisabledUrl = odDisabledUrlObj.href;
-
 	let didError = false;
 	try {
 		const data = {
 			url: opt.url,
 			results: {
 				mobile: {
-					disabled: await analyze( odDisabledUrl, browser, mobileDevice ),
-					enabled: await analyze( odEnabledUrl, browser, mobileDevice ),
+					disabled: await analyze( opt.url, browser, mobileDevice, false ),
+					enabled: await analyze( opt.url, browser, mobileDevice, true ),
 				},
 				desktop: {
-					disabled: await analyze( odDisabledUrl, browser, desktopDevice ),
-					enabled: await analyze( odEnabledUrl, browser, desktopDevice ),
+					disabled: await analyze( opt.url, browser, desktopDevice, false ),
+					enabled: await analyze( opt.url, browser, desktopDevice, true ),
 				}
 			}
 		};
@@ -166,14 +158,24 @@ export async function handler( opt ) {
  * @param {string}  url
  * @param {Browser} browser
  * @param {Device}  emulateDevice
+ * @param {boolean} optimizationDetectiveEnabled
  * @return {Promise<Object>} Results
  */
 async function analyze(
 	url,
 	browser,
 	emulateDevice,
+	optimizationDetectiveEnabled
 ) {
 	const globalVariablePrefix = '__wppResearchWebVitals';
+
+	const urlObj = new URL( url );
+	urlObj.searchParams.set(
+		optimizationDetectiveEnabled
+			? 'optimization_detective_enabled' // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
+			: 'optimization_detective_disabled',
+		'1'
+	);
 
 	const scriptTag = /** lang=JS */`
 		import { onLCP, onTTFB } from "https://unpkg.com/web-vitals@4.2.4/dist/web-vitals.js?module";
@@ -184,9 +186,6 @@ async function analyze(
 	const page = await browser.newPage();
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 	await page.emulate( emulateDevice );
-
-	// Load the page.
-	const urlObj = new URL( url );
 
 	// Make sure any username and password in the URL is passed along for authentication.
 	if ( urlObj.username && urlObj.password ) {
