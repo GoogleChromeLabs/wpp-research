@@ -104,6 +104,13 @@ export async function handler( opt ) {
 
 		fs.mkdirSync(processOutputDir, { recursive: true });
 
+		// Create a symlink to the latest.
+		const symlinkPath = path.join( outputDir, 'latest' );
+		try {
+			fs.unlinkSync( symlinkPath );
+		} catch ( err ) {}
+		fs.symlinkSync( processOutputDir, path.join( outputDir, 'latest' ) );
+
 		const args = [
 			'run',
 			'research',
