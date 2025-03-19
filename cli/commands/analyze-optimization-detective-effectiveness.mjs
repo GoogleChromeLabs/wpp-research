@@ -201,8 +201,6 @@ async function analyze(
 		} );
 	}
 
-	log( `Loading ${ url } as ${ emulateDevice.userAgent }` );
-
 	const response = await page.goto( urlObj.toString(), {
 		waitUntil: 'networkidle0',
 	} );

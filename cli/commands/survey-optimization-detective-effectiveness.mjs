@@ -87,6 +87,7 @@ export async function handler( opt ) {
 	log( `Number of URLs being surveyed: ${ urls.length }` );
 	const activeProcesses = new Set();
 	let urlIndex = 0;
+	const timeStarted = Date.now();
 
 	const isoString = ( new Date() ).toISOString();
 	const sanitizedIsoString = isoString.replace(/[:.-]/g, '').replace(/\./g, '-');
@@ -96,9 +97,10 @@ export async function handler( opt ) {
 
 	/**
 	 * @param {string} url
+	 * @param {number} i
 	 * @returns {Promise<void>}
 	 */
-	async function spawnProcess(url) {
+	async function spawnProcess(url, i) {
 		const md5Hash = crypto.createHash('md5').update(url).digest('hex');
 		const processOutputDir = path.join(outputDir, md5Hash.substring(0, 2), md5Hash.substring(2, 4), md5Hash);
 
@@ -113,6 +115,7 @@ export async function handler( opt ) {
 		fs.symlinkSync( processOutputDir, path.join( outputDir, 'latest' ) );
 
 		const args = [
+			'--silent',
 			'run',
 			'research',
 			'--',
@@ -139,16 +142,23 @@ export async function handler( opt ) {
 
 			fs.writeFileSync( resultManifestFile, [ url, code, processOutputDir ].join( "\t" ) + "\n", { flag: 'a' } );
 
-			log(`Process for ${url} finished with code ${code}`);
+			const now = Date.now();
+			const timeTranspired = now - timeStarted;
+			const timePerUrl = timeTranspired / (i + 1);
+			const remainingUrlsCount = urls.length - ( i + 1 );
+
+			log(`Process for ${url} (${i + 1} of ${urls.length}) finished with code ${code}. Avg time per URL: ${Math.round( timePerUrl / 1000 )}s. Estimated time remaining: ${ remainingUrlsCount * Math.round( timePerUrl / 1000 ) }s`);
 			if (urlIndex < urls.length) {
-				spawnProcess(urls[urlIndex++]);
+				spawnProcess(urls[urlIndex], urlIndex);
+				urlIndex++;
 			}
 		});
 	}
 
 	// Start initial processes
 	for ( let i = 0; i < Math.min(opt.parallel, urls.length); i++) {
-		await spawnProcess( urls[urlIndex++] );
+		await spawnProcess( urls[urlIndex], urlIndex );
+		urlIndex++;
 	}
 
 	// Wait for all processes to finish
