@@ -123,17 +123,38 @@ export async function handler( opt ) {
 
 	let caughtError = null;
 	try {
+		let deviceIterationIndex = 0;
 		for ( const isMobile of [ true, false ] ) {
 			const deviceDir = path.join( opt.outputDir, isMobile ? 'mobile' : 'desktop' );
 			fs.mkdirSync( deviceDir, { recursive: true } );
 
-			const originalDir = path.join( deviceDir, 'original' );
-			fs.mkdirSync( originalDir, { recursive: true } );
-			const originalResult  = await analyze( originalDir, opt.url, browser, isMobile, false );
+			const getOriginalResult = async () => {
+				const originalDir = path.join( deviceDir, 'original' );
+				fs.mkdirSync( originalDir, { recursive: true } );
+				return await analyze( originalDir, opt.url, browser, isMobile, false );
+			};
 
-			const optimizedDir = path.join( deviceDir, 'optimized' );
-			fs.mkdirSync( optimizedDir, { recursive: true } );
-			const optimizedResult  = await analyze( optimizedDir, opt.url, browser, isMobile, true );
+			const getOptimizedResult = async () => {
+				const optimizedDir = path.join( deviceDir, 'optimized' );
+				fs.mkdirSync( optimizedDir, { recursive: true } );
+				return await analyze( optimizedDir, opt.url, browser, isMobile, true );
+			};
+
+			const [ originalResult, optimizedResult ] = await ( async () => {
+				// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
+				// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
+				if ( deviceIterationIndex === 0 ) {
+					return [
+						await getOptimizedResult(),
+						await getOriginalResult(),
+					];
+				} else {
+					return [
+						await getOriginalResult(),
+						await getOptimizedResult(),
+					];
+				}
+			} )();
 
 			const diffResult = {
 				TTFB: {
@@ -170,6 +191,8 @@ export async function handler( opt ) {
 				JSON.stringify( diffResult, null, 2 ),
 				{ encoding: "utf8" }
 			);
+
+			deviceIterationIndex++;
 		}
 	} catch ( err ) {
 		console.error( opt.url, err );
