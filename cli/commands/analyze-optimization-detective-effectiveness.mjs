@@ -106,6 +106,7 @@ export async function handler( opt ) {
 
 	// TODO: Instead of version.txt it should be something like results.json
 
+	// TODO: Add an option like `--previously-errored-only` which will only proceed if there is an errors.txt file.
 	// Abort if we've already obtained the results for this.
 	const versionFile = path.join( opt.outputDir, 'version.txt' );
 	if ( ! opt.force && fs.existsSync( versionFile ) ) {
@@ -134,7 +135,41 @@ export async function handler( opt ) {
 			fs.mkdirSync( optimizedDir, { recursive: true } );
 			const optimizedResult  = await analyze( optimizedDir, opt.url, browser, isMobile, true );
 
-			// TODO: Put a diff of originalResult  and optimizedResult in the deviceDir.
+			const diffResult = {
+				TTFB: {
+					original_time: null,
+					optimized_time: null,
+					diff_time: null,
+					diff_percent: null,
+				},
+				LCP: {
+					original_time: null,
+					optimized_time: null,
+					diff_time: null,
+					diff_percent: null,
+				},
+				'LCP-TTFB': {
+					original_time: null,
+					optimized_time: null,
+					diff_time: null,
+					diff_percent: null,
+				},
+			};
+
+			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
+				diffResult[ key ].original_time = originalResult.metrics[ key ].value;
+				diffResult[ key ].optimized_time = optimizedResult.metrics[ key ].value;
+				if ( null !== originalResult.metrics[ key ].diff_time && null !== optimizedResult.metrics[ key ].diff_time ) {
+					diffResult[ key ].diff_time = optimizedResult.metrics[ key ].value - originalResult.metrics[ key ].value;
+					diffResult[ key ].diff_percent = ( diffResult[ key ].diff_time / originalResult.metrics[ key ].value ) * 100;
+				}
+			}
+
+			fs.writeFileSync(
+				path.join( deviceDir, 'results-diff.json' ),
+				JSON.stringify( diffResult, null, 2 ),
+				{ encoding: "utf8" }
+			);
 		}
 	} catch ( err ) {
 		console.error( opt.url, err );
@@ -145,9 +180,9 @@ export async function handler( opt ) {
 
 	const errorsFile = path.join( opt.outputDir, 'errors.txt' );
 	if ( caughtError ) {
-		fs.writeFileSync( errorsFile, caughtError.message + "\n", { flag: 'a' } );
+		fs.writeFileSync( errorsFile, caughtError.message + "\n", { flag: 'a', encoding: 'utf8' } );
 	} else {
-		fs.writeFileSync( versionFile, String( version ) );
+		fs.writeFileSync( versionFile, String( version ), { encoding: "utf8" } );
 		try {
 			fs.unlinkSync( errorsFile )
 		} catch ( err ) {}
@@ -162,7 +197,21 @@ export async function handler( opt ) {
  * @param {Browser} browser
  * @param {boolean} isMobile
  * @param {boolean} optimizationDetectiveEnabled
- * @return {Promise<Object>} Results
+ * @return {Promise<{
+ *     device: Object,
+ *     metrics: {
+ *         TTFB: {
+ *             value: number
+ *         },
+ *         LCP: {
+ *             value: number|null,
+ *             url: string|null,
+ *             element: object,
+ *             initiatorType: string|null
+ *         },
+ *         'LCP-TTFB': number|null,
+ *     }
+ * }>} Results
  */
 async function analyze(
 	outputDir,
@@ -217,7 +266,8 @@ async function analyze(
 	}
 	fs.writeFileSync(
 		path.join( outputDir, 'headers.txt' ),
-		headers.join( "\n" ) + "\n"
+		headers.join( "\n" ) + "\n",
+		'utf8'
 	);
 
 	if ( response.status() !== 200 ) {

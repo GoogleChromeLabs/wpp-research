@@ -93,7 +93,7 @@ export async function handler( opt ) {
 	const sanitizedIsoString = isoString.replace(/[:.-]/g, '').replace(/\./g, '-');
 	const resultManifestFile = path.join( outputDir, `result-manifest-${ sanitizedIsoString }.tsv` );
 	log( `A manifest of the results will be written to ${ resultManifestFile }` );
-	fs.writeFileSync( resultManifestFile, [ 'url', 'exitCode', 'outputDir' ].join( "\t" ) + "\n", { flag: 'a' } );
+	fs.writeFileSync( resultManifestFile, [ 'url', 'exitCode', 'outputDir' ].join( "\t" ) + "\n", { flag: 'a', encoding: "utf8" } );
 
 	/**
 	 * @param {string} url
@@ -105,7 +105,7 @@ export async function handler( opt ) {
 		const processOutputDir = path.join(outputDir, md5Hash.substring(0, 2), md5Hash.substring(2, 4), md5Hash);
 
 		fs.mkdirSync(processOutputDir, { recursive: true });
-		fs.writeFileSync(path.join(processOutputDir, 'url.txt'), url);
+		fs.writeFileSync(path.join(processOutputDir, 'url.txt'), url, {encoding: "utf8"});
 
 		// Create a symlink to the latest.
 		const symlinkPath = path.join( outputDir, 'latest' );
@@ -140,7 +140,7 @@ export async function handler( opt ) {
 		childProcess.on('close', (code) => {
 			activeProcesses.delete(childProcess);
 
-			fs.writeFileSync( resultManifestFile, [ url, code, processOutputDir ].join( "\t" ) + "\n", { flag: 'a' } );
+			fs.writeFileSync( resultManifestFile, [ url, code, processOutputDir ].join( "\t" ) + "\n", { flag: 'a', encoding: "utf8" } );
 
 			const now = Date.now();
 			const timeTranspired = now - timeStarted;
