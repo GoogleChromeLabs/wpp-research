@@ -519,7 +519,7 @@ async function analyze(
 				imgCount: document.querySelectorAll( 'img' ).length,
 				lazyImgCount: lazyLoadedImages.length,
 				lazyImgInsideViewportCount: 0,
-				jsLazyLoadedImgCount: document.querySelectorAll( 'img.lazyload, img[data-src], img[data-srcset]' ).length,
+				jsLazyLoadedImgCount: document.querySelectorAll( 'img.lazyload, img.lazyloaded, img[data-src], img[data-srcset]' ).length,
 			};
 
 			if ( lazyLoadedImages.length > 0 ) {
