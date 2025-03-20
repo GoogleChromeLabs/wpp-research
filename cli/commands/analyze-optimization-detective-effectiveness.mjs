@@ -204,6 +204,22 @@ async function analyze(
 	const response = await page.goto( urlObj.toString(), {
 		waitUntil: 'networkidle0',
 	} );
+
+	// Store the content for debugging.
+	const content = await response.content();
+	fs.writeFileSync(
+		path.join( outputDir, 'content.html' ),
+		content
+	);
+	const headers = [];
+	for ( const [ key, value ] of Object.entries( response.headers() ) ) {
+		headers.push( `${ key }: ${ value }` );
+	}
+	fs.writeFileSync(
+		path.join( outputDir, 'headers.txt' ),
+		headers.join( "\n" ) + "\n"
+	);
+
 	if ( response.status() !== 200 ) {
 		throw new Error( `Error: Bad response code ${ response.status() }.` );
 	}
