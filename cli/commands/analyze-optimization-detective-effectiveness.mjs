@@ -378,13 +378,28 @@ async function analyze(
 		throw new Error( `Detection script module was blocked from loading potentially due to some delayed script loading logic on ${ isMobile ? 'mobile' : 'desktop' }` );
 	}
 
-	const imagePrioritizerUnknownTagCount = await page.evaluate(
+	const imagePrioritizerNotWorking = await page.evaluate(
 		() => {
-			return document.querySelectorAll( 'img[ data-od-unknown-tag ]' ).length;
+			return (
+				document.querySelectorAll( 'img[ data-od-unknown-tag ]' ).length > 0
+				&&
+				document.querySelectorAll( [
+					'img[data-od-removed-fetchpriority]',
+					'img[data-od-added-fetchpriority]',
+					'img[data-od-replaced-fetchpriority]',
+					'img[data-od-fetchpriority-already-added]',
+					'img[data-od-added-sizes]',
+					'img[data-od-replaced-sizes]',
+					'img[data-od-removed-loading]',
+					'img[data-od-added-loading]',
+					'img[data-od-replaced-loading]',
+					'link[data-od-added-tag]'
+				].join( ',' ) ).length === 0
+			);
 		}
 	);
-	if ( imagePrioritizerUnknownTagCount > 0 ) {
-		throw new Error( `There are ${ imagePrioritizerUnknownTagCount } image(s) with the data-od-unknown-tag attribute which indicate detection is not working on ${ isMobile ? 'mobile' : 'desktop' }` );
+	if ( imagePrioritizerNotWorking ) {
+		throw new Error( `Image Prioritizer is does not seem to be working due to detection issues according to presence of data-od-unknown-tag attributes on ${ isMobile ? 'mobile' : 'desktop' }` );
 	}
 
 	await Promise.all(
