@@ -311,6 +311,9 @@ async function analyze(
 	if ( data.pluginVersions['optimization-detective'].includes( 'rest_api_unavailable' ) ) {
 		throw new Error( `REST API for optimization-detective is not available for ${ isMobile ? 'mobile' : 'desktop' }` );
 	}
+	if ( ! ( 'image-prioritizer' in data.pluginVersions ) ) {
+		throw new Error( `Meta generator tag for image-prioritizer is absent for ${ isMobile ? 'mobile' : 'desktop' }` );
+	}
 
 	await Promise.all(
 		[ 'LCP', 'TTFB' ].map( async ( metricName ) => {
