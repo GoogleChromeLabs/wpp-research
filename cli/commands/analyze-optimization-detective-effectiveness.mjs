@@ -338,6 +338,55 @@ async function analyze(
 		throw new Error( `Meta generator tag for image-prioritizer is absent for ${ isMobile ? 'mobile' : 'desktop' }` );
 	}
 
+	/*
+	 * This detects the following scenario where a plugin like WP Rocket is blocking the loading of the detection script
+	 * with delayed loading:
+	 *
+	 * <script type="rocketlazyloadscript" data-rocket-type="module">
+	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742358407046.32,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"170f4e7f67","currentUrl":"https:\/\/example.com\/article\/photographer-greg-girard-unveils-kowloon-walled-citys-hidden-past","urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"10e711535e","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
+	 * </script>
+	 *
+	 * When WP Rocket delay-loads the script, it then looks like this:
+	 *
+	 * <script type="module" src="data:text/javascript;base64,CmltcG9ydCBkZXRlY3QgZnJvbSAiaHR0cHM6XC9cL2V4YW1wbGUuY29tXC93cC1jb250ZW50XC9wbHVnaW5zXC9vcHRpbWl6YXRpb24tZGV0ZWN0aXZlXC9kZXRlY3QuanM/dmVyPTAuNC4xIjsgZGV0ZWN0KCB7InNlcnZlVGltZSI6MTc0MjQ5ODA2NzEyNC4yODYsImRldGVjdGlvblRpbWVXaW5kb3ciOjUwMDAsImlzRGVidWciOmZhbHNlLCJyZXN0QXBpRW5kcG9pbnQiOiJodHRwczpcL1wvcmFkaWkuY29cL3dwLWpzb25cL29wdGltaXphdGlvbi1kZXRlY3RpdmVcL3YxXC91cmwtbWV0cmljczpzdG9yZSIsInJlc3RBcGlOb25jZSI6Ijc1MjU3NmFmOGEiLCJjdXJyZW50VXJsIjoiaHR0cHM6XC9cL3JhZGlpLmNvXC9hcnRpY2xlXC9waG90b2dyYXBoZXItZ3JlZy1naXJhcmQtdW52ZWlscy1rb3dsb29uLXdhbGxlZC1jaXR5cy1oaWRkZW4tcGFzdCIsInVybE1ldHJpY3NTbHVnIjoiZjA4N2I4ODQ3MmYxNWE0NzJjM2I5OWM1MGE5OTJiZDkiLCJ1cmxNZXRyaWNzTm9uY2UiOiIxY2Q2OGQyMmI2IiwidXJsTWV0cmljc0dyb3VwU3RhdHVzZXMiOlt7Im1pbmltdW1WaWV3cG9ydFdpZHRoIjowLCJjb21wbGV0ZSI6ZmFsc2V9LHsibWluaW11bVZpZXdwb3J0V2lkdGgiOjQ4MSwiY29tcGxldGUiOmZhbHNlfSx7Im1pbmltdW1WaWV3cG9ydFdpZHRoIjo2MDEsImNvbXBsZXRlIjpmYWxzZX0seyJtaW5pbXVtVmlld3BvcnRXaWR0aCI6NzgzLCJjb21wbGV0ZSI6ZmFsc2V9XSwic3RvcmFnZUxvY2tUVEwiOjYwLCJ3ZWJWaXRhbHNMaWJyYXJ5U3JjIjoiaHR0cHM6XC9cL3JhZGlpLmNvXC93cC1jb250ZW50XC9wbHVnaW5zXC9vcHRpbWl6YXRpb24tZGV0ZWN0aXZlXC9idWlsZFwvd2ViLXZpdGFscy5qcz92ZXI9NC4yLjEifSApOwo=" data-rocket-status="executed">
+	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742498067124.286,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"752576af8a","currentUrl":"https:\/\/example.com\/article\/photographer-greg-girard-unveils-kowloon-walled-citys-hidden-past","urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"1cd68d22b6","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
+	 * </script>
+	 *
+	 * If no detection script is on the page in the first place, then it's likely they already have URL Metrics collected.
+	 * Note that this WP Rocket functionality seems to only load the module once the page is scrolled or when the page is
+	 * hidden, at which point the scroll position will not be at the top and the module will short-circuit.
+	 * TODO: Optimization Detective should augment the meta generator tag with whether the URL Metrics are complete, partially populated, etc.
+	 * TODO: This logic doesn't seem to always work. In a Puppeteer context, no script delaying seems to occur in WP Rocket.
+	 */
+	const isDetectionScriptBlocked = await page.evaluate(
+		() => {
+			for ( const script of document.querySelectorAll( 'script' ) ) {
+				if (
+					script.textContent.includes( 'import detect from' )
+					&&
+					script.textContent.includes( 'optimization-detective' )
+					&&
+					script.type !== 'module'
+				) {
+					return true;
+				}
+			}
+			return false;
+		}
+	);
+	if ( isDetectionScriptBlocked ) {
+		throw new Error( `Detection script module was blocked from loading potentially due to some delayed script loading logic on ${ isMobile ? 'mobile' : 'desktop' }` );
+	}
+
+	const imagePrioritizerUnknownTagCount = await page.evaluate(
+		() => {
+			return document.querySelectorAll( 'img[ data-od-unknown-tag ]' ).length;
+		}
+	);
+	if ( imagePrioritizerUnknownTagCount > 0 ) {
+		throw new Error( `There are ${ imagePrioritizerUnknownTagCount } image(s) with the data-od-unknown-tag attribute which indicate detection is not working on ${ isMobile ? 'mobile' : 'desktop' }` );
+	}
+
 	await Promise.all(
 		[ 'LCP', 'TTFB' ].map( async ( metricName ) => {
 			await page.waitForFunction(
