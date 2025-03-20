@@ -143,13 +143,13 @@ export async function handler( opt ) {
 		await browser.close();
 	}
 
-	const errorFile = path.join( opt.outputDir, 'error.txt' );
+	const errorsFile = path.join( opt.outputDir, 'errors.txt' );
 	if ( caughtError ) {
-		fs.writeFileSync( errorFile, caughtError.message, { mode: 'a' } );
+		fs.writeFileSync( errorsFile, caughtError.message + "\n", { flag: 'a' } );
 	} else {
 		fs.writeFileSync( versionFile, String( version ) );
 		try {
-			fs.unlinkSync( errorFile )
+			fs.unlinkSync( errorsFile )
 		} catch ( err ) {}
 	}
 
