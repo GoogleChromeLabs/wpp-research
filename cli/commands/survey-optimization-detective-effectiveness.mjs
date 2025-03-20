@@ -82,7 +82,7 @@ export async function handler( opt ) {
 	}
 
 	const urlsContent = fs.readFileSync( opt.urlsFile, { encoding: 'utf-8' } );
-	const urls = urlsContent.split('\n').filter(Boolean);
+	const urls = urlsContent.split(/\s+/).filter(Boolean);
 
 	log( `Number of URLs being surveyed: ${ urls.length }` );
 	const activeProcesses = new Set();
