@@ -292,6 +292,23 @@ async function analyze(
 		}
 	};
 
+	data.pluginVersions = await page.evaluate(
+		() => {
+			const pluginVersions = {};
+			const pluginSlugs = [ 'optimization-detective', 'image-prioritizer' ];
+			for ( const pluginSlug of pluginSlugs ) {
+				const meta = document.querySelector( `meta[name="generator"][content^="${ pluginSlug } "]` );
+				if ( meta ) {
+					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( ' ' )[1];
+				}
+			}
+			return pluginVersions;
+		}
+	);
+	if ( ! ( 'optimization-detective' in data.pluginVersions ) ) {
+		throw new Error( `Meta generator tag for optimization-detective is absent for ${ isMobile ? 'mobile' : 'desktop' }` );
+	}
+
 	await Promise.all(
 		[ 'LCP', 'TTFB' ].map( async ( metricName ) => {
 			await page.waitForFunction(
@@ -399,20 +416,6 @@ async function analyze(
 				preloadLinks.push( linkAttributes );
 			}
 			return preloadLinks;
-		}
-	);
-
-	data.pluginVersions = await page.evaluate(
-		() => {
-			const pluginVersions = {};
-			const pluginSlugs = [ 'optimization-detective', 'image-prioritizer' ];
-			for ( const pluginSlug of pluginSlugs ) {
-				const meta = document.querySelector( `meta[name="generator"][content^="${ pluginSlug } "]` );
-				if ( meta ) {
-					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( ' ' )[1];
-				}
-			}
-			return pluginVersions;
 		}
 	);
 
