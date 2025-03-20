@@ -424,6 +424,37 @@ async function analyze(
 		}
 	);
 
+	data.images = await page.evaluate(
+		async () => {
+			const lazyLoadedImages = document.body.querySelectorAll( 'img[loading="lazy"]' );
+
+			const data = {
+				imgCount: document.body.querySelectorAll( 'img' ).length,
+				lazyImgCount: lazyLoadedImages.length,
+				lazyImgInsideViewportCount: 0,
+				// TODO: Count of images with JS-based lazy-loading.
+			};
+
+			if ( lazyLoadedImages.length > 0 ) {
+				await new Promise( ( resolve ) => {
+					const observer = new IntersectionObserver( ( entries ) => {
+						for ( const entry of entries ) {
+							if ( entry.isIntersecting ) {
+								data.lazyImgInsideViewportCount++;
+							}
+						}
+						resolve();
+					} );
+					for ( const img of lazyLoadedImages ) {
+						observer.observe( img );
+					}
+				} );
+			}
+
+			return data;
+		}
+	);
+
 	fs.writeFileSync(
 		path.join( outputDir, 'results.json' ),
 		JSON.stringify( data, null, 2 )
