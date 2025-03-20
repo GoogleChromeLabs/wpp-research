@@ -363,16 +363,15 @@ async function analyze(
 						if ( entry.element ) {
 							amendedData.element = {
 								tagName: entry.element.tagName,
+								attributes: {},
+								metaAttributes: {},
 							};
-							if ( entry.element instanceof HTMLImageElement ) {
-								amendedData.element.fetchPriority = entry.element.getAttribute( 'fetchpriority' );
-								amendedData.element.loading = entry.element.getAttribute( 'loading' );
-							}
-							amendedData.element.odMeta = {};
+							const metaAttrPrefix = 'data-od-';
 							for ( const attribute of entry.element.attributes ) {
-								const attrPrefix = 'data-od-';
-								if ( attribute.name.startsWith( attrPrefix ) ) {
-									amendedData.element.odMeta[ attribute.name.substring( attrPrefix.length ) ] = attribute.value;
+								if ( attribute.name.startsWith( metaAttrPrefix ) ) {
+									amendedData.element.metaAttributes[ attribute.name.substring( metaAttrPrefix.length ) ] = attribute.value;
+								} else {
+									amendedData.element.attributes[ attribute.name ] = attribute.value;
 								}
 							}
 						} else {
