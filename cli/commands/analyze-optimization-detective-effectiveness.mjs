@@ -299,7 +299,7 @@ async function analyze(
 			for ( const pluginSlug of pluginSlugs ) {
 				const meta = document.querySelector( `meta[name="generator"][content^="${ pluginSlug } "]` );
 				if ( meta ) {
-					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( ' ' )[1];
+					pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' );
 				}
 			}
 			return pluginVersions;
@@ -307,6 +307,9 @@ async function analyze(
 	);
 	if ( ! ( 'optimization-detective' in data.pluginVersions ) ) {
 		throw new Error( `Meta generator tag for optimization-detective is absent for ${ isMobile ? 'mobile' : 'desktop' }` );
+	}
+	if ( data.pluginVersions['optimization-detective'].includes( 'rest_api_unavailable' ) ) {
+		throw new Error( `REST API for optimization-detective is not available for ${ isMobile ? 'mobile' : 'desktop' }` );
 	}
 
 	await Promise.all(
