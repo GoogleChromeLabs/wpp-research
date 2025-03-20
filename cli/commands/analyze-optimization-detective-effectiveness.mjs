@@ -229,8 +229,9 @@ export async function handler( opt ) {
  *         LCP: {
  *             value: number|null,
  *             url: string|null,
- *             element: object,
- *             initiatorType: string|null
+ *             element: object|null,
+ *             initiatorType: string|null,
+ *             preloadedByOD: boolean,
  *         },
  *         'LCP-TTFB': number|null,
  *     }
@@ -302,7 +303,7 @@ async function analyze(
 		device: emulateDevice,
 		metrics: {
 			TTFB: {
-				value: null,
+				value: -1,
 			},
 			LCP: {
 				value: null,
@@ -519,26 +520,40 @@ async function analyze(
 
 	data.images = await page.evaluate(
 		async () => {
-			const lazyLoadedImages = document.body.querySelectorAll( 'img[loading="lazy"]' );
+			const imgElements = document.body.querySelectorAll( 'img' );
 
 			const data = {
 				imgCount: document.querySelectorAll( 'img' ).length,
-				lazyImgCount: lazyLoadedImages.length,
+				lazyImgCount: imgElements.length,
 				lazyImgInsideViewportCount: 0,
 				jsLazyLoadedImgCount: document.querySelectorAll( 'img.lazyload, img.lazyloaded, img[data-src], img[data-srcset]' ).length,
+				fetchpriorityHighAttrImages: {
+					insideViewportCount: 0,
+					outsideViewportCount: 0,
+				},
 			};
 
-			if ( lazyLoadedImages.length > 0 ) {
+			if ( imgElements.length > 0 ) {
 				await new Promise( ( resolve ) => {
 					const observer = new IntersectionObserver( ( entries ) => {
 						for ( const entry of entries ) {
+							const element = /** @type {HTMLImageElement} */ entry.target;
 							if ( entry.isIntersecting ) {
-								data.lazyImgInsideViewportCount++;
+								if ( element.loading === 'lazy' ) {
+									data.lazyImgInsideViewportCount++;
+								}
+								if ( element.fetchPriority === 'high' ) {
+									data.fetchpriorityHighAttrImages.insideViewportCount++;
+								}
+							} else {
+								if ( element.fetchPriority === 'high' ) {
+									data.fetchpriorityHighAttrImages.outsideViewportCount++;
+								}
 							}
 						}
 						resolve();
 					} );
-					for ( const img of lazyLoadedImages ) {
+					for ( const img of imgElements ) {
 						observer.observe( img );
 					}
 				} );
