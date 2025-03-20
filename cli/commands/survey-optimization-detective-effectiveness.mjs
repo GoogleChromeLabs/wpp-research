@@ -144,7 +144,7 @@ export async function handler( opt ) {
 
 			const now = Date.now();
 			const timeTranspired = now - timeStarted;
-			const timePerUrl = timeTranspired / (i + 1);
+			const timePerUrl = timeTranspired / (i + 1); // TODO: This is not taking into account the skipped already-processed URLs.
 			const remainingUrlsCount = urls.length - ( i + 1 );
 
 			const format = code === 0 ? formats.success : formats.error;
