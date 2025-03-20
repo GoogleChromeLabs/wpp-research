@@ -501,10 +501,10 @@ async function analyze(
 			const lazyLoadedImages = document.body.querySelectorAll( 'img[loading="lazy"]' );
 
 			const data = {
-				imgCount: document.body.querySelectorAll( 'img' ).length,
+				imgCount: document.querySelectorAll( 'img' ).length,
 				lazyImgCount: lazyLoadedImages.length,
 				lazyImgInsideViewportCount: 0,
-				// TODO: Count of images with JS-based lazy-loading.
+				jsLazyLoadedImgCount: document.querySelectorAll( 'img.lazyload, img[data-src], img[data-srcset]' ).length,
 			};
 
 			if ( lazyLoadedImages.length > 0 ) {
