@@ -286,6 +286,7 @@ async function analyze(
 				url: null,
 				element: null,
 				initiatorType: null,
+				preloadedByOD: false,
 			},
 			'LCP-TTFB': null,
 		}
@@ -322,6 +323,20 @@ async function analyze(
 					if ( 'LCP' === metric.name ) {
 						const entry = /** @type LargestContentfulPaint */ metric.entries[0];
 						amendedData.url = entry.url;
+
+						if ( entry.url ) {
+							for ( /** @type HTMLLinkElement */ const odPreloadLink of document.querySelectorAll( 'link[data-od-added-tag][rel="preload"]' ) ) {
+								if (
+									odPreloadLink.href === entry.url
+									||
+									odPreloadLink.imageSrcset && odPreloadLink.imageSrcset.includes( entry.url + ' ' )
+								) {
+									amendedData.preloadedByOD = true;
+									break;
+								}
+							}
+						}
+
 						if ( entry.element ) {
 							amendedData.element = {
 								tagName: entry.element.tagName,
