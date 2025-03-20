@@ -25,7 +25,7 @@ import puppeteer, { Browser, PredefinedNetworkConditions, KnownDevices } from 'p
 import round from 'lodash-es/round.js';
 import fs from 'fs';
 import path from 'path';
-import { log } from '../lib/cli/logger.mjs';
+import { log, formats } from '../lib/cli/logger.mjs';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
 
@@ -147,7 +147,8 @@ export async function handler( opt ) {
 			const timePerUrl = timeTranspired / (i + 1);
 			const remainingUrlsCount = urls.length - ( i + 1 );
 
-			log(`Process for ${url} (${i + 1} of ${urls.length}) finished with code ${code}. Avg time per URL: ${Math.round( timePerUrl / 1000 )}s. Estimated time remaining: ${ remainingUrlsCount * Math.round( timePerUrl / 1000 ) }s`);
+			const format = code === 0 ? formats.success : formats.error;
+			log( format( `${ code === 0 ? '✅' : '❌' }  ${i + 1} of ${urls.length} (${ (((i + 1)/urls.length)*100).toFixed( 1 )  }%). Avg time per URL: ${Math.round( timePerUrl / 1000 )}s. Estimated time remaining: ${ remainingUrlsCount * Math.round( timePerUrl / 1000 ) }s. URL: ${url}` ));
 			if (urlIndex < urls.length) {
 				spawnProcess(urls[urlIndex], urlIndex);
 				urlIndex++;
