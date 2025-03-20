@@ -195,7 +195,7 @@ export async function handler( opt ) {
 			deviceIterationIndex++;
 		}
 	} catch ( err ) {
-		console.error( opt.url, err );
+		console.error( `Error: ${err.message} for ${opt.url}` );
 		caughtError = err;
 	} finally {
 		await browser.close();
