@@ -511,6 +511,12 @@ async function analyze(
 		}
 	);
 
+	data.odTagsWithXpathAttrs = await page.evaluate(
+		() => {
+			return document.querySelectorAll( '[ data-od-xpath ]' ).length;
+		}
+	);
+
 	data.images = await page.evaluate(
 		async () => {
 			const lazyLoadedImages = document.body.querySelectorAll( 'img[loading="lazy"]' );
