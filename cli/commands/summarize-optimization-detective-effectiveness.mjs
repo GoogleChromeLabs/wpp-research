@@ -62,20 +62,67 @@ export async function handler( opt ) {
 		throw new Error( `Directory does not exist: ${ outputDir }` );
 	}
 
-	//const summaryDir = path.join( outputDir, 'summary' );
-	//log( `Outputting summary to ${ summaryDir }` );
-
 	const errorManifest = obtainErrorManifest( outputDir );
-	delete errorManifest.errorUrlMap;
+
+	log( '# Error Info' );
 
 	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
 	log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).` );
+	log( '' );
+
+	const errorCounts = [];
+	for ( const [ errorMessage, urls ] of Object.entries( errorManifest.errorUrlMap ) ) {
+		errorCounts.push( { errorMessage, errorCount: urls.length } );
+	}
+	errorCounts.sort( ( a, b ) => {
+		return b.errorCount - a.errorCount;
+	} );
+	log( 'Error Message | URL Count' );
+	log( '-- | --:' );
+	for ( const { errorMessage, errorCount } of errorCounts ) {
+		log( `${ errorMessage } | ${ errorCount }` );
+	}
+	log( '' );
+	log( '--------------------------------------' );
+	log( '' );
+	log( '# Metrics' );
 
 	const aggregateDiffs = obtainAverageDiffMetrics( outputDir );
 	console.log(aggregateDiffs);
 
-	const report = obtainLcpElementPrioritizationReport( outputDir );
+	for ( const key of Object.keys( aggregateDiffs ) ) {
+		log( `## ${ key }` );
+		log( `Average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%)` );
+		log( `Median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%)` );
+		log( '' );
+	}
+
+	log( '' );
+	log( '--------------------------------------------------------' );
+	log( '' );
+	log( '# Optimization Accuracy Stats' );
+
+	const report = obtainOptimizationAccuracyReport( outputDir );
+
 	console.log( report );
+
+	log( ` | Original | Optimized` );
+	log( `-- | --: | --:` );
+	log( [
+		'LCP image prioritized',
+		( report.original.lcpImagePrioritized.passRate * 100 ).toFixed( 1 ) + '%',
+		( report.optimized.lcpImagePrioritized.passRate * 100 ).toFixed( 1 ) + '%',
+	].join( ' | ' ) );
+	log( [
+		'Lazy loaded `IMG` not in viewport',
+		( report.original.lazyLoadedImgNotInViewport.passRate * 100 ).toFixed( 1 ) + '%',
+		( report.optimized.lazyLoadedImgNotInViewport.passRate * 100 ).toFixed( 1 ) + '%',
+	].join( ' | ' ) );
+	log( [
+		'`IMG` with `fetchpriority=high` only in viewport',
+		( report.original.imgWithFetchpriorityHighAttrInViewport.passRate * 100 ).toFixed( 1 ) + '%',
+		( report.optimized.imgWithFetchpriorityHighAttrInViewport.passRate * 100 ).toFixed( 1 ) + '%',
+	].join( ' | ' ) );
 }
 
 /**
@@ -134,27 +181,17 @@ function obtainAverageDiffMetrics( resultDir ) {
 
 	walkSync(resultDir);
 
-	/**
-	 *
-	 * @param {number} num
-	 * @returns {string}
-	 */
-	const formatNumber = ( num ) => {
-		return ( num > 0 ? '+' : '' ) + num.toFixed( 1 );
-	};
-
-	for ( const key of Object.keys( aggregateDiffs ) ) {
-		console.log( '#', key );
-		console.log( `average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms` );
-		console.log( `median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms` );
-		console.log( `average diff percent: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%` );
-		console.log( `median diff percent: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%` );
-		console.log();
-	}
-
-
-	return {  };
+	return aggregateDiffs;
 }
+
+/**
+ *
+ * @param {number} num
+ * @returns {string}
+ */
+const formatNumber = ( num ) => {
+	return ( num > 0 ? '+' : '' ) + num.toFixed( 1 );
+};
 
 /**
  * @param {number[]} numbers
@@ -264,9 +301,9 @@ function obtainErrorManifest( outputDir ) {
 /**
  *
  * @param {string} outputDir
- * @returns {{original: {lcpImagePrioritized: {pass: number, fail: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number}}}}
+ * @returns {{original: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}}}
  */
-function obtainLcpElementPrioritizationReport( outputDir ) {
+function obtainOptimizationAccuracyReport( outputDir ) {
 	const defaultReportValues = {
 		lcpImagePrioritized: {
 			pass: 0,
