@@ -154,55 +154,47 @@ function obtainErrorManifest( outputDir ) {
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
 	function walkSync(dirPath) {
-		try {
-			const files = fs.readdirSync(dirPath);
+		const files = fs.readdirSync(dirPath);
 
-			// The analyze-optimization-detective-effectiveness script outputs version.txt when successfully complete, or else it outputs errors.txt when there was an error.
-			if ( files.includes('url.txt') && (files.includes('errors.txt') || files.includes('version.txt')) ) {
-				urlCount++;
-				if (files.includes('errors.txt')) {
-					errorUrlCount++;
-				} else {
-					// If there's no errors.txt, then there's nothing to do.
-					return;
-				}
-
-				const errorsFilePath = path.join(dirPath, 'errors.txt');
-				const urlFilePath = path.join(dirPath, 'url.txt');
-
-				try {
-					// Read the URL from url.txt
-					const url = fs.readFileSync(urlFilePath, 'utf8').trim();
-
-					// Read the errors from errors.txt, splitting by line
-					const errors = fs.readFileSync(errorsFilePath, 'utf8').trim().split('\n');
-
-					// Process each error message
-					errors.forEach(error => {
-						// Trim the error message to remove leading/trailing whitespace
-						const trimmedError = error.trim();
-						if (trimmedError) { // Only process non-empty errors
-							if (!errorUrlMap[trimmedError]) {
-								errorUrlMap[trimmedError] = [];
-							}
-							errorUrlMap[trimmedError].push(url);
-						}
-					});
-				} catch (fileError) {
-					console.error(`Error reading or processing files in: ${dirPath}`, fileError);
-				}
+		// The analyze-optimization-detective-effectiveness script outputs version.txt when successfully complete, or else it outputs errors.txt when there was an error.
+		if ( files.includes('url.txt') && (files.includes('errors.txt') || files.includes('version.txt')) ) {
+			urlCount++;
+			if (files.includes('errors.txt')) {
+				errorUrlCount++;
 			} else {
-				// Check for subdirectories
-				for (const file of files) {
-					const filePath = path.join(dirPath, file);
-					const stats = fs.statSync(filePath);
-					if (stats.isDirectory()) {
-						walkSync(filePath); // Recurse into subdirectories
+				// If there's no errors.txt, then there's nothing to do.
+				return;
+			}
+
+			const errorsFilePath = path.join(dirPath, 'errors.txt');
+			const urlFilePath = path.join(dirPath, 'url.txt');
+
+			// Read the URL from url.txt
+			const url = fs.readFileSync(urlFilePath, 'utf8').trim();
+
+			// Read the errors from errors.txt, splitting by line
+			const errors = fs.readFileSync(errorsFilePath, 'utf8').trim().split('\n');
+
+			// Process each error message
+			errors.forEach(error => {
+				// Trim the error message to remove leading/trailing whitespace
+				const trimmedError = error.trim();
+				if (trimmedError) { // Only process non-empty errors
+					if (!errorUrlMap[trimmedError]) {
+						errorUrlMap[trimmedError] = [];
 					}
+					errorUrlMap[trimmedError].push(url);
+				}
+			});
+		} else {
+			// Check for subdirectories
+			for (const file of files) {
+				const filePath = path.join(dirPath, file);
+				const stats = fs.statSync(filePath);
+				if (stats.isDirectory()) {
+					walkSync(filePath); // Recurse into subdirectories
 				}
 			}
-		} catch (readDirError) {
-			console.error(`Error reading directory: ${dirPath}`, readDirError);
 		}
 	}
 
