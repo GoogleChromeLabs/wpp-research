@@ -225,7 +225,7 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 			pass: 0,
 			fail: 0,
 		},
-		lazyLoadedImagesInViewport: {
+		lazyLoadedImagesNotInViewport: {
 			pass: 0,
 			fail: 0,
 		},
@@ -293,7 +293,7 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 				}
 			}
 
-			checkLazyLoadedImagesInsideViewport( report.original.lazyLoadedImagesInViewport, resultsData );
+			checkLazyLoadedImagesInsideViewport( report.original.lazyLoadedImagesNotInViewport, resultsData );
 			checkImgWithFetchpriorityHighAttrOutsideViewport( report.original.imgWithFetchpriorityHighAttrInViewport, resultsData );
 		}
 
@@ -313,7 +313,7 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 				}
 			}
 
-			checkLazyLoadedImagesInsideViewport( report.optimized.lazyLoadedImagesInViewport, resultsData );
+			checkLazyLoadedImagesInsideViewport( report.optimized.lazyLoadedImagesNotInViewport, resultsData );
 			checkImgWithFetchpriorityHighAttrOutsideViewport( report.optimized.imgWithFetchpriorityHighAttrInViewport, resultsData );
 		}
 
