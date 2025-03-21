@@ -70,16 +70,24 @@ export async function handler( opt ) {
 	log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).` );
 	log( '' );
 
-	const errorCounts = [];
+	const normalizedErrorCounts = /** @type {Object<string, number>} */ {};
 	for ( const [ errorMessage, urls ] of Object.entries( errorManifest.errorUrlMap ) ) {
-		errorCounts.push( { errorMessage, errorCount: urls.length } );
+		let sanitizedErrorMessage = errorMessage.replace( / on (mobile|desktop)/, '' );
+		sanitizedErrorMessage = sanitizedErrorMessage.replace( / at http.+/, '' );
+		if ( ! ( sanitizedErrorMessage in normalizedErrorCounts ) ) {
+			normalizedErrorCounts[ sanitizedErrorMessage ] = urls.length;
+		} else {
+			normalizedErrorCounts[ sanitizedErrorMessage ] += urls.length;
+		}
 	}
-	errorCounts.sort( ( a, b ) => {
-		return b.errorCount - a.errorCount;
+
+	const errorMessageCountTuples = Object.entries( normalizedErrorCounts );
+	errorMessageCountTuples.sort( ( a, b ) => {
+		return b[1] - a[1];
 	} );
 	log( 'Error Message | URL Count' );
 	log( '-- | --:' );
-	for ( const { errorMessage, errorCount } of errorCounts ) {
+	for ( const [ errorMessage, errorCount ] of errorMessageCountTuples ) {
 		log( `${ errorMessage } | ${ errorCount }` );
 	}
 	log( '' );
@@ -88,7 +96,6 @@ export async function handler( opt ) {
 	log( '# Metrics' );
 
 	const aggregateDiffs = obtainAverageDiffMetrics( outputDir );
-	console.log(aggregateDiffs);
 
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		log( `## ${ key }` );
