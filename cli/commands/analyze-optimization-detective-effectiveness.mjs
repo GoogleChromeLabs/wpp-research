@@ -140,21 +140,17 @@ export async function handler( opt ) {
 				return await analyze( optimizedDir, opt.url, browser, isMobile, true );
 			};
 
-			const [ originalResult, optimizedResult ] = await ( async () => {
-				// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
-				// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
-				if ( deviceIterationIndex === 0 ) {
-					return [
-						await getOptimizedResult(),
-						await getOriginalResult(),
-					];
-				} else {
-					return [
-						await getOriginalResult(),
-						await getOptimizedResult(),
-					];
-				}
-			} )();
+			let originalResult, optimizedResult;
+
+			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
+			// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
+			if ( deviceIterationIndex === 0 ) {
+				optimizedResult = await getOptimizedResult();
+				originalResult = await getOriginalResult();
+			} else {
+				originalResult = await getOriginalResult();
+				optimizedResult = await getOptimizedResult();
+			}
 
 			const diffResult = {
 				TTFB: {
