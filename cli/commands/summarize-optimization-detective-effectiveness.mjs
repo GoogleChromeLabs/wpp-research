@@ -230,7 +230,7 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 	 * @param {object} results
 	 */
 	function checkLazyLoadedImagesInsideViewport( passFailCounts, results ) {
-		if ( results.images && results.images.imgCount > 0 ) {
+		if ( results.images.imgCount > 0 ) {
 			if ( results.images.lazyImgInsideViewportCount === 0 ) {
 				passFailCounts.pass++;
 			} else {
@@ -244,7 +244,11 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 	 * @param {object} results
 	 */
 	function checkImgWithFetchpriorityHighAttrOutsideViewport( passFailCounts, results ) {
-		if ( results.images && results.images.imgCount > 0 && results.images.fetchpriorityHighAttrImages ) {
+		if (
+			// There is at least one IMG with fetchpriority=high.
+			results.images.fetchpriorityHighAttrImages.outsideViewportCount > 0 ||
+			results.images.fetchpriorityHighAttrImages.insideViewportCount > 0
+		) {
 			if ( results.images.fetchpriorityHighAttrImages.outsideViewportCount === 0 ) {
 				passFailCounts.pass++;
 			} else {
