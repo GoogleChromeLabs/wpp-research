@@ -23,7 +23,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { log, formats } from '../lib/cli/logger.mjs';
+import { log } from '../lib/cli/logger.mjs';
 
 export const options = [
 	{
@@ -78,6 +78,10 @@ export async function handler( opt ) {
 	console.log( report );
 }
 
+/**
+ * @param {string} resultDir
+ * @returns {{}}
+ */
 function obtainAverageDiffMetrics( resultDir ) {
 	const aggregateDiffs = {
 		'LCP': {
@@ -152,6 +156,10 @@ function obtainAverageDiffMetrics( resultDir ) {
 	return {  };
 }
 
+/**
+ * @param {number[]} numbers
+ * @returns {number|null}
+ */
 function computeAverage(numbers) {
 	if (!Array.isArray(numbers) || numbers.length === 0) {
 		return null;
@@ -161,6 +169,10 @@ function computeAverage(numbers) {
 	return sum / numbers.length;
 }
 
+/**
+ * @param {number[]} numbers
+ * @returns {number|null}
+ */
 function computeMedian(numbers) {
 	if (!Array.isArray(numbers) || numbers.length === 0) {
 		return null;
@@ -180,6 +192,11 @@ function computeMedian(numbers) {
 	}
 }
 
+/**
+ *
+ * @param {string} outputDir
+ * @returns {{urlCount: number, errorUrlCount: number, errorUrlMap: {}}}
+ */
 function obtainErrorManifest( outputDir ) {
 	// Initialize the data structure to store errors and URLs
 	const errorUrlMap = {};
@@ -244,6 +261,11 @@ function obtainErrorManifest( outputDir ) {
 	return {urlCount, errorUrlCount, errorUrlMap};
 }
 
+/**
+ *
+ * @param {string} outputDir
+ * @returns {{original: {lcpImagePrioritized: {pass: number, fail: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number}}}}
+ */
 function obtainLcpElementPrioritizationReport( outputDir ) {
 	const defaultReportValues = {
 		lcpImagePrioritized: {
