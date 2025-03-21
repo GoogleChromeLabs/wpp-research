@@ -453,7 +453,7 @@ async function benchmarkURL(
 	if ( groupedMetrics.webVitals ) {
 		scriptTag = `import { ${ Object.values( groupedMetrics.webVitals )
 			.map( ( value ) => value.listen )
-			.join( ', ' ) } } from "https://unpkg.com/web-vitals@3?module";`;
+			.join( ', ' ) } } from "https://unpkg.com/web-vitals@3/dist/web-vitals.js";`;
 		Object.values( groupedMetrics.webVitals ).forEach( ( value ) => {
 			scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
 		} );
