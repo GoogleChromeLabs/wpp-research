@@ -140,53 +140,15 @@ export async function handler( opt ) {
 				return await analyze( optimizedDir, opt.url, browser, isMobile, true );
 			};
 
-			let originalResult, optimizedResult;
-
 			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
 			// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
 			if ( deviceIterationIndex === 0 ) {
-				optimizedResult = await getOptimizedResult();
-				originalResult = await getOriginalResult();
+				await getOptimizedResult();
+				await getOriginalResult();
 			} else {
-				originalResult = await getOriginalResult();
-				optimizedResult = await getOptimizedResult();
+				await getOriginalResult();
+				await getOptimizedResult();
 			}
-
-			const diffResult = {
-				TTFB: {
-					original_time: null,
-					optimized_time: null,
-					diff_time: null,
-					diff_percent: null,
-				},
-				LCP: {
-					original_time: null,
-					optimized_time: null,
-					diff_time: null,
-					diff_percent: null,
-				},
-				'LCP-TTFB': {
-					original_time: null,
-					optimized_time: null,
-					diff_time: null,
-					diff_percent: null,
-				},
-			};
-
-			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
-				diffResult[ key ].original_time = originalResult.metrics[ key ].value;
-				diffResult[ key ].optimized_time = optimizedResult.metrics[ key ].value;
-				if ( null !== originalResult.metrics[ key ].diff_time && null !== optimizedResult.metrics[ key ].diff_time ) {
-					diffResult[ key ].diff_time = optimizedResult.metrics[ key ].value - originalResult.metrics[ key ].value;
-					diffResult[ key ].diff_percent = ( diffResult[ key ].diff_time / originalResult.metrics[ key ].value ) * 100;
-				}
-			}
-
-			fs.writeFileSync(
-				path.join( deviceDir, 'results-diff.json' ),
-				JSON.stringify( diffResult, null, 2 ),
-				{ encoding: "utf8" }
-			);
 
 			deviceIterationIndex++;
 		}

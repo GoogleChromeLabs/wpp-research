@@ -24,8 +24,6 @@
 import fs from 'fs';
 import path from 'path';
 import { log, formats } from '../lib/cli/logger.mjs';
-import crypto from 'crypto';
-import { spawn } from 'child_process';
 
 export const options = [
 	{
@@ -83,16 +81,16 @@ export async function handler( opt ) {
 function obtainAverageDiffMetrics( resultDir ) {
 	const aggregateDiffs = {
 		'LCP': {
-			'diff_time': [],
-			'diff_percent': []
+			diff_time: [],
+			diff_percent: []
 		},
 		'TTFB': {
-			'diff_time': [],
-			'diff_percent': []
+			diff_time: [],
+			diff_percent: []
 		},
 		'LCP-TTFB': {
-			'diff_time': [],
-			'diff_percent': []
+			diff_time: [],
+			diff_percent: []
 		}
 	};
 
@@ -105,23 +103,21 @@ function obtainAverageDiffMetrics( resultDir ) {
 	function walkSync(dirPath) {
 		const files = fs.readdirSync(dirPath);
 
-		for (const file of files) {
-			const filePath = path.join(dirPath, file);
-			const stats = fs.statSync(filePath);
+		if ( files.includes( 'original' ) && files.includes( 'optimized' ) ) {
+			const originalResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'original', 'results.json' ), 'utf8'));
+			const optimizedResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'optimized', 'results.json' ), 'utf8'));
 
-			if (stats.isDirectory()) {
-				walkSync(filePath); // Recursively call for subdirectories
-			} else if (stats.isFile() && file === 'results-diff.json') {
-				const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
-				for (const metric in data) {
-					if (aggregateDiffs[metric]) { // Check if the metric exists in aggregateDiffs
-						for (const key of ['diff_percent', 'diff_time']) {
-							if(data[metric] && data[metric][key]){
-								aggregateDiffs[metric][key].push(data[metric][key]);
-							}
-						}
-					}
+			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
+				const diffTime = optimizedResults.metrics[ key ].value - originalResults.metrics[ key ].value;
+				aggregateDiffs[ key ].diff_time.push( diffTime );
+				aggregateDiffs[ key ].diff_percent.push( ( diffTime / originalResults.metrics[ key ].value ) * 100 );
+			}
+		} else {
+			for (const file of files) {
+				const filePath = path.join(dirPath, file);
+				const stats = fs.statSync(filePath);
+				if (stats.isDirectory()) {
+					walkSync(filePath);
 				}
 			}
 		}
@@ -129,15 +125,45 @@ function obtainAverageDiffMetrics( resultDir ) {
 
 	walkSync(resultDir);
 
-	for (const metric in aggregateDiffs) {
-		for (const key in aggregateDiffs[metric]) {
-			const values = aggregateDiffs[metric][key];
-			const sum = values.reduce((acc, val) => acc + val, 0);
-			aggregateDiffs[metric][key] = values.length > 0 ? sum / values.length : 0;
-		}
+	for ( const key of Object.keys( aggregateDiffs ) ) {
+		console.log( '#', key );
+		console.log( 'average diff time:', computeAverage( aggregateDiffs[ key ].diff_time ) );
+		console.log( 'median diff time:', computeMedian( aggregateDiffs[ key ].diff_time ) );
+		console.log( 'average percent time:', computeAverage( aggregateDiffs[ key ].diff_percent ) );
+		console.log( 'median percent time:', computeMedian( aggregateDiffs[ key ].diff_percent ) );
+		console.log();
 	}
 
-	return { aggregateDiffs };
+
+	return {  };
+}
+
+function computeAverage(numbers) {
+	if (!Array.isArray(numbers) || numbers.length === 0) {
+		return null;
+	}
+
+	const sum = numbers.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+	return sum / numbers.length;
+}
+
+function computeMedian(numbers) {
+	if (!Array.isArray(numbers) || numbers.length === 0) {
+		return null;
+	}
+
+	// 1. Sort the array in ascending order.
+	const sortedNumbers = numbers.slice().sort((a, b) => a - b);
+	const middleIndex = Math.floor(sortedNumbers.length / 2);
+
+	// 2. Handle even and odd length arrays.
+	if (sortedNumbers.length % 2 === 0) {
+		// Even number of elements: median is the average of the two middle elements.
+		return (sortedNumbers[middleIndex - 1] + sortedNumbers[middleIndex]) / 2;
+	} else {
+		// Odd number of elements: median is the middle element.
+		return sortedNumbers[middleIndex];
+	}
 }
 
 function obtainErrorManifest( outputDir ) {
