@@ -71,7 +71,6 @@ export async function handler( opt ) {
 	console.log(aggregateDiffs);
 
 	const errorManifest = obtainErrorManifest( outputDir );
-	//console.log(errorManifest);
 
 	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
 	console.log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% ( ${ successCount } of ${ errorManifest.urlCount } ).` );
@@ -225,7 +224,6 @@ function obtainErrorManifest( outputDir ) {
 
 function obtainLcpElementPrioritizationReport( outputDir ) {
 	const defaultReportValues = {
-		// If there is an LCP image: passing means it is an IMG element which has fetchpriority=high (where if the LCP element is non-IMG then this is a fail).
 		lcpImagePrioritized: {
 			pass: 0,
 			fail: 0,
@@ -241,8 +239,8 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 	};
 
 	const report = {
-		original: Object.assign( {}, defaultReportValues ),
-		optimized: Object.assign( {}, defaultReportValues ),
+		original: structuredClone( defaultReportValues ),
+		optimized: structuredClone( defaultReportValues ),
 	};
 
 	/**
@@ -331,8 +329,6 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 			}
 		}
 	}
-
-	report.optimized.imgWithFetchpriorityHighAttrInViewport.pass += 1;
 
 	walkSync(outputDir);
 
