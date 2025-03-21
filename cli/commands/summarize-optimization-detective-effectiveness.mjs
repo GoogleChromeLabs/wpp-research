@@ -104,6 +104,11 @@ function obtainAverageDiffMetrics( resultDir ) {
 		const files = fs.readdirSync(dirPath);
 
 		if ( files.includes( 'original' ) && files.includes( 'optimized' ) ) {
+			// If there was an error during analysis, abort.
+			if ( fs.existsSync( path.join( dirPath, '..', 'errors.txt',  ) ) ) {
+				return;
+			}
+
 			const originalResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'original', 'results.json' ), 'utf8'));
 			const optimizedResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'optimized', 'results.json' ), 'utf8'));
 
