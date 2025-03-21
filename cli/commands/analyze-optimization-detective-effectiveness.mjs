@@ -253,7 +253,7 @@ async function analyze(
 	);
 
 	const scriptTag = /** lang=JS */`
-		import { onLCP, onTTFB } from "https://unpkg.com/web-vitals@4.2.4/dist/web-vitals.js?module";
+		import { onLCP, onTTFB } from "https://unpkg.com/web-vitals@4/dist/web-vitals.js";
 		onLCP( ( metric ) => { window.${ globalVariablePrefix }LCP = metric; } );
 		onTTFB( ( metric ) => { window.${ globalVariablePrefix }TTFB = metric; } );
 	`;
