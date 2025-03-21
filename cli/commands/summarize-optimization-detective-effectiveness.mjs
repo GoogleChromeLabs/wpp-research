@@ -104,8 +104,8 @@ function obtainAverageDiffMetrics( resultDir ) {
 		const files = fs.readdirSync(dirPath);
 
 		if ( files.includes( 'original' ) && files.includes( 'optimized' ) ) {
-			// If there was an error during analysis, abort.
-			if ( fs.existsSync( path.join( dirPath, '..', 'errors.txt',  ) ) ) {
+			// Abort if the analysis was not completed yet (where version.txt is written after the analysis of a URL is complete) or if there was an error.
+			if ( ! fs.existsSync( path.join( dirPath, '..', 'version.txt' ) ) || fs.existsSync( path.join( dirPath, '..', 'errors.txt' ) ) ) {
 				return;
 			}
 
