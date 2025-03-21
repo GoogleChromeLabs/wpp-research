@@ -81,16 +81,16 @@ export async function handler( opt ) {
 function obtainAverageDiffMetrics( resultDir ) {
 	const aggregateDiffs = {
 		'LCP': {
-			diff_time: [],
-			diff_percent: []
+			diffTime: [],
+			diffPercent: []
 		},
 		'TTFB': {
-			diff_time: [],
-			diff_percent: []
+			diffTime: [],
+			diffPercent: []
 		},
 		'LCP-TTFB': {
-			diff_time: [],
-			diff_percent: []
+			diffTime: [],
+			diffPercent: []
 		}
 	};
 
@@ -114,8 +114,8 @@ function obtainAverageDiffMetrics( resultDir ) {
 
 			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
 				const diffTime = optimizedResults.metrics[ key ].value - originalResults.metrics[ key ].value;
-				aggregateDiffs[ key ].diff_time.push( diffTime );
-				aggregateDiffs[ key ].diff_percent.push( ( diffTime / originalResults.metrics[ key ].value ) * 100 );
+				aggregateDiffs[ key ].diffTime.push( diffTime );
+				aggregateDiffs[ key ].diffPercent.push( ( diffTime / originalResults.metrics[ key ].value ) * 100 );
 			}
 		} else {
 			for (const file of files) {
@@ -130,12 +130,21 @@ function obtainAverageDiffMetrics( resultDir ) {
 
 	walkSync(resultDir);
 
+	/**
+	 *
+	 * @param {number} num
+	 * @returns {string}
+	 */
+	const formatNumber = ( num ) => {
+		return ( num > 0 ? '+' : '' ) + num.toFixed( 1 );
+	};
+
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		console.log( '#', key );
-		console.log( 'average diff time:', computeAverage( aggregateDiffs[ key ].diff_time ) );
-		console.log( 'median diff time:', computeMedian( aggregateDiffs[ key ].diff_time ) );
-		console.log( 'average percent time:', computeAverage( aggregateDiffs[ key ].diff_percent ) );
-		console.log( 'median percent time:', computeMedian( aggregateDiffs[ key ].diff_percent ) );
+		console.log( `average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms` );
+		console.log( `median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms` );
+		console.log( `average diff percent: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%` );
+		console.log( `median diff percent: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%` );
 		console.log();
 	}
 
