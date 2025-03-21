@@ -71,6 +71,7 @@ export async function handler( opt ) {
 	console.log(aggregateDiffs);
 
 	const errorManifest = obtainErrorManifest( outputDir );
+	delete errorManifest.errorUrlMap;
 
 	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
 	console.log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% ( ${ successCount } of ${ errorManifest.urlCount } ).` );
@@ -95,8 +96,6 @@ function obtainAverageDiffMetrics( resultDir ) {
 		}
 	};
 
-	let urlCount = 0;
-
 	/**
 	 * Recursively traverses a directory and its subdirectories,
 	 * processing files that match the specified criteria.
@@ -104,36 +103,34 @@ function obtainAverageDiffMetrics( resultDir ) {
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
 	function walkSync(dirPath) {
-		try {
-			const files = fs.readdirSync(dirPath);
+		const files = fs.readdirSync(dirPath);
 
-			for (const file of files) {
-				const filePath = path.join(dirPath, file);
-				const stats = fs.statSync(filePath);
+		for (const file of files) {
+			const filePath = path.join(dirPath, file);
+			const stats = fs.statSync(filePath);
 
-				if (stats.isDirectory()) {
-					walkSync(filePath); // Recursively call for subdirectories
-				} else if (stats.isFile() && file === 'results-diff.json') {
-					try {
-						const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+			if (stats.isDirectory()) {
+				walkSync(filePath); // Recursively call for subdirectories
+			} else if (stats.isFile() && file === 'results-diff.json') {
+				const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-						for (const metric in data) {
-							if (aggregateDiffs[metric]) { // Check if the metric exists in aggregateDiffs
-								for (const key of ['diff_percent', 'diff_time']) {
-									if(data[metric] && data[metric][key]){
-										aggregateDiffs[metric][key].push(data[metric][key]);
-										urlCount++;
-									}
-								}
+				// TODO: Remove. Debug code.
+				console.log(
+					data['LCP-TTFB'].diff_percent,
+					path.basename( dirPath ),
+					fs.readFileSync( path.join( dirPath, '..', 'url.txt' ), { encoding: 'utf8' } )
+				);
+
+				for (const metric in data) {
+					if (aggregateDiffs[metric]) { // Check if the metric exists in aggregateDiffs
+						for (const key of ['diff_percent', 'diff_time']) {
+							if(data[metric] && data[metric][key]){
+								aggregateDiffs[metric][key].push(data[metric][key]);
 							}
 						}
-					} catch (parseError) {
-						console.error(`Error parsing JSON file: ${filePath}`, parseError);
 					}
 				}
 			}
-		} catch (readDirError) {
-			console.error(`Error reading directory: ${dirPath}`, readDirError);
 		}
 	}
 
@@ -147,7 +144,7 @@ function obtainAverageDiffMetrics( resultDir ) {
 		}
 	}
 
-	return { aggregateDiffs, urlCount };
+	return { aggregateDiffs };
 }
 
 function obtainErrorManifest( outputDir ) {
