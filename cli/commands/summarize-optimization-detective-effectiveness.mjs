@@ -64,17 +64,17 @@ export async function handler( opt ) {
 		throw new Error( `Directory does not exist: ${ outputDir }` );
 	}
 
-	const summaryDir = path.join( outputDir, 'summary' );
-	log( `Outputting summary to ${ summaryDir }` );
-
-	const aggregateDiffs = obtainAverageDiffMetrics( outputDir );
-	console.log(aggregateDiffs);
+	//const summaryDir = path.join( outputDir, 'summary' );
+	//log( `Outputting summary to ${ summaryDir }` );
 
 	const errorManifest = obtainErrorManifest( outputDir );
 	delete errorManifest.errorUrlMap;
 
 	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
-	console.log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% ( ${ successCount } of ${ errorManifest.urlCount } ).` );
+	log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).` );
+
+	const aggregateDiffs = obtainAverageDiffMetrics( outputDir );
+	console.log(aggregateDiffs);
 
 	const report = obtainLcpElementPrioritizationReport( outputDir );
 	console.log( report );
