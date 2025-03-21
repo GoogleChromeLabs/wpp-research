@@ -114,13 +114,6 @@ function obtainAverageDiffMetrics( resultDir ) {
 			} else if (stats.isFile() && file === 'results-diff.json') {
 				const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
-				// TODO: Remove. Debug code.
-				console.log(
-					data['LCP-TTFB'].diff_percent,
-					path.basename( dirPath ),
-					fs.readFileSync( path.join( dirPath, '..', 'url.txt' ), { encoding: 'utf8' } )
-				);
-
 				for (const metric in data) {
 					if (aggregateDiffs[metric]) { // Check if the metric exists in aggregateDiffs
 						for (const key of ['diff_percent', 'diff_time']) {
