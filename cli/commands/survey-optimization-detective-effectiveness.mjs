@@ -21,8 +21,6 @@
 /**
  * External dependencies
  */
-import puppeteer, { Browser, PredefinedNetworkConditions, KnownDevices } from 'puppeteer';
-import round from 'lodash-es/round.js';
 import fs from 'fs';
 import path from 'path';
 import { log, formats } from '../lib/cli/logger.mjs';
@@ -42,7 +40,7 @@ export const options = [
 	},
 	{
 		argname: '-p, --parallel <processes>',
-		description: 'Number of concurrent processes to survet the URLs.',
+		description: 'Number of concurrent processes to survey the URLs.',
 		defaults: 4,
 	},
 	{
