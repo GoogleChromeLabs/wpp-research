@@ -332,5 +332,12 @@ function obtainLcpElementPrioritizationReport( outputDir ) {
 
 	walkSync(outputDir);
 
+	// Compute pass rate.
+	for ( const reportPart of Object.values( report )  ) {
+		for ( const passFailCounts of Object.values( reportPart ) ) {
+			passFailCounts.passRate = passFailCounts.pass / ( passFailCounts.pass + passFailCounts.fail );
+		}
+	}
+
 	return report;
 }
