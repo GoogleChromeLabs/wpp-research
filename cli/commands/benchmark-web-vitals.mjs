@@ -451,9 +451,10 @@ async function benchmarkURL(
 	let scriptTag;
 
 	if ( groupedMetrics.webVitals ) {
-		scriptTag = `import { ${ Object.values( groupedMetrics.webVitals )
+		const imports = Object.values( groupedMetrics.webVitals )
 			.map( ( value ) => value.listen )
-			.join( ', ' ) } } from "https://unpkg.com/web-vitals@4/dist/web-vitals.js";`;
+			.join( ',' );
+		scriptTag = `import { ${ imports } } from "https://unpkg.com/web-vitals@4/dist/web-vitals.js";`;
 		Object.values( groupedMetrics.webVitals ).forEach( ( value ) => {
 			scriptTag += `${ value.listen }( ( { name, delta } ) => { window.${ value.global } = name === 'CLS' ? delta * 1000 : delta; } );`;
 		} );
