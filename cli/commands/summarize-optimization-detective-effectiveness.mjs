@@ -72,7 +72,7 @@ export async function handler( opt ) {
 
 	const normalizedErrorCounts = /** @type {Object<string, number>} */ {};
 	for ( const [ errorMessage, urls ] of Object.entries( errorManifest.errorUrlMap ) ) {
-		let sanitizedErrorMessage = errorMessage.replace( / on (mobile|desktop)/, '' );
+		let sanitizedErrorMessage = errorMessage.replace( / (for|on) (mobile|desktop)/, '' );
 		sanitizedErrorMessage = sanitizedErrorMessage.replace( / at http.+/, '' );
 		if ( ! ( sanitizedErrorMessage in normalizedErrorCounts ) ) {
 			normalizedErrorCounts[ sanitizedErrorMessage ] = urls.length;
@@ -99,8 +99,8 @@ export async function handler( opt ) {
 
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		log( `## ${ key }` );
-		log( `Average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%)` );
-		log( `Median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%)` );
+		log( `* Average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%)` );
+		log( `* Median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%)` );
 		log( '' );
 	}
 
@@ -113,7 +113,7 @@ export async function handler( opt ) {
 
 	console.log( report );
 
-	log( ` | Original | Optimized` );
+	log( `Optimization | Original | Optimized` );
 	log( `-- | --: | --:` );
 	log( [
 		'LCP image prioritized',
