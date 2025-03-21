@@ -80,7 +80,9 @@ export async function handler( opt ) {
 	}
 
 	const urlsContent = fs.readFileSync( opt.urlsFile, { encoding: 'utf-8' } );
-	const urls = urlsContent.split(/\s+/).filter(Boolean);
+	const urls = urlsContent.split(/\s+/).filter( ( url ) => {
+		return url && ! url.startsWith( '#' );
+	});
 
 	log( `Number of URLs being surveyed: ${ urls.length }` );
 	const activeProcesses = new Set();
@@ -146,7 +148,6 @@ export async function handler( opt ) {
 			const remainingUrlsCount = urls.length - ( i + 1 );
 
 			const format = code === 0 ? formats.success : formats.error;
-			// TODO: The estimated time remaining needs to take into account opt.parallel!
 			log( format( `${ code === 0 ? '✅' : '❌' }  ${i + 1} of ${urls.length} (${ (((i + 1)/urls.length)*100).toFixed( 1 )  }%). Avg time per URL: ${Math.round( timePerUrl / 1000 )}s. Estimated time remaining: ${ ( remainingUrlsCount * Math.round( timePerUrl / 1000 ) / Number( opt.parallel )) }s. URL: ${url}` ));
 			if (urlIndex < urls.length) {
 				spawnProcess(urls[urlIndex], urlIndex);
