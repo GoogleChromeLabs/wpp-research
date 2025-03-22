@@ -92,20 +92,32 @@ withOptions(
 	program.command( 'analyze-optimization-detective-effectiveness' ),
 	analyzeOptimizationDetectiveEffectivenessOptions
 )
-	.description( 'Analyzes Optimization Detective effectiveness for a single URL.' )
-	.action( catchException( analyzeOptimizationDetectiveEffectivenessHandler ) );
+	.description(
+		'Analyzes Optimization Detective effectiveness for a single URL.'
+	)
+	.action(
+		catchException( analyzeOptimizationDetectiveEffectivenessHandler )
+	);
 withOptions(
 	program.command( 'survey-optimization-detective-effectiveness' ),
 	surveyOptimizationDetectiveEffectivenessOptions
 )
-	.description( 'Surveys Optimization Detective effectiveness across a set of URLs.' )
-	.action( catchException( surveyOptimizationDetectiveEffectivenessHandler ) );
+	.description(
+		'Surveys Optimization Detective effectiveness across a set of URLs.'
+	)
+	.action(
+		catchException( surveyOptimizationDetectiveEffectivenessHandler )
+	);
 withOptions(
 	program.command( 'summarize-optimization-detective-effectiveness' ),
 	summarizeOptimizationDetectiveEffectivenessOptions
 )
-	.description( 'summarizes Optimization Detective effectiveness across a set of URLs.' )
-	.action( catchException( summarizeOptimizationDetectiveEffectivenessHandler ) );
+	.description(
+		'summarizes Optimization Detective effectiveness across a set of URLs.'
+	)
+	.action(
+		catchException( summarizeOptimizationDetectiveEffectivenessHandler )
+	);
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions

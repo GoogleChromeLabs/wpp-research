@@ -28,9 +28,10 @@ import { log } from '../lib/cli/logger.mjs';
 export const options = [
 	{
 		argname: '-o, --output-dir <output_dir>',
-		description: 'Base output directory for the results. Each subdirectory contains the results for a single URL, where the directory name is a hash of the URL. Defaults to "output/survey-optimization-detective-effectiveness".',
+		description:
+			'Base output directory for the results. Each subdirectory contains the results for a single URL, where the directory name is a hash of the URL. Defaults to "output/survey-optimization-detective-effectiveness".',
 		defaults: 'output/survey-optimization-detective-effectiveness',
-	}
+	},
 ];
 
 /**
@@ -43,7 +44,7 @@ function getAbsoluteOutputDir( outputDir ) {
 	if ( outputDir.startsWith( '/' ) ) {
 		return outputDir;
 	} else {
-		return path.join(process.cwd(), outputDir);
+		return path.join( process.cwd(), outputDir );
 	}
 }
 
@@ -67,13 +68,26 @@ export async function handler( opt ) {
 	log( '# Error Info' );
 
 	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
-	log( `Success rate for being able to analyze a URL: ${ ( ( successCount / errorManifest.urlCount ) * 100 ).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).` );
+	log(
+		`Success rate for being able to analyze a URL: ${ (
+			( successCount / errorManifest.urlCount ) *
+			100
+		).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).`
+	);
 	log( '' );
 
 	const normalizedErrorCounts = /** @type {Object<string, number>} */ {};
-	for ( const [ errorMessage, urls ] of Object.entries( errorManifest.errorUrlMap ) ) {
-		let sanitizedErrorMessage = errorMessage.replace( / (for|on) (mobile|desktop)/, '' );
-		sanitizedErrorMessage = sanitizedErrorMessage.replace( / at http.+/, '' );
+	for ( const [ errorMessage, urls ] of Object.entries(
+		errorManifest.errorUrlMap
+	) ) {
+		let sanitizedErrorMessage = errorMessage.replace(
+			/ (for|on) (mobile|desktop)/,
+			''
+		);
+		sanitizedErrorMessage = sanitizedErrorMessage.replace(
+			/ at http.+/,
+			''
+		);
 		if ( ! ( sanitizedErrorMessage in normalizedErrorCounts ) ) {
 			normalizedErrorCounts[ sanitizedErrorMessage ] = urls.length;
 		} else {
@@ -83,7 +97,7 @@ export async function handler( opt ) {
 
 	const errorMessageCountTuples = Object.entries( normalizedErrorCounts );
 	errorMessageCountTuples.sort( ( a, b ) => {
-		return b[1] - a[1];
+		return b[ 1 ] - a[ 1 ];
 	} );
 	log( 'Error Message | URL Count' );
 	log( '-- | --:' );
@@ -99,8 +113,20 @@ export async function handler( opt ) {
 
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		log( `## ${ key }` );
-		log( `* Average diff time: ${ formatNumber( computeAverage( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeAverage( aggregateDiffs[ key ].diffPercent ) ) }%)` );
-		log( `* Median diff time: ${ formatNumber( computeMedian( aggregateDiffs[ key ].diffTime ) ) }ms (${ formatNumber( computeMedian( aggregateDiffs[ key ].diffPercent ) ) }%)` );
+		log(
+			`* Average diff time: ${ formatNumber(
+				computeAverage( aggregateDiffs[ key ].diffTime )
+			) }ms (${ formatNumber(
+				computeAverage( aggregateDiffs[ key ].diffPercent )
+			) }%)`
+		);
+		log(
+			`* Median diff time: ${ formatNumber(
+				computeMedian( aggregateDiffs[ key ].diffTime )
+			) }ms (${ formatNumber(
+				computeMedian( aggregateDiffs[ key ].diffPercent )
+			) }%)`
+		);
 		log( '' );
 	}
 
@@ -115,21 +141,41 @@ export async function handler( opt ) {
 
 	log( `Optimization | Original | Optimized` );
 	log( `-- | --: | --:` );
-	log( [
-		'LCP image prioritized',
-		( report.original.lcpImagePrioritized.passRate * 100 ).toFixed( 1 ) + '%',
-		( report.optimized.lcpImagePrioritized.passRate * 100 ).toFixed( 1 ) + '%',
-	].join( ' | ' ) );
-	log( [
-		'Lazy loaded `IMG` not in viewport',
-		( report.original.lazyLoadedImgNotInViewport.passRate * 100 ).toFixed( 1 ) + '%',
-		( report.optimized.lazyLoadedImgNotInViewport.passRate * 100 ).toFixed( 1 ) + '%',
-	].join( ' | ' ) );
-	log( [
-		'`IMG` with `fetchpriority=high` only in viewport',
-		( report.original.imgWithFetchpriorityHighAttrInViewport.passRate * 100 ).toFixed( 1 ) + '%',
-		( report.optimized.imgWithFetchpriorityHighAttrInViewport.passRate * 100 ).toFixed( 1 ) + '%',
-	].join( ' | ' ) );
+	log(
+		[
+			'LCP image prioritized',
+			( report.original.lcpImagePrioritized.passRate * 100 ).toFixed(
+				1
+			) + '%',
+			( report.optimized.lcpImagePrioritized.passRate * 100 ).toFixed(
+				1
+			) + '%',
+		].join( ' | ' )
+	);
+	log(
+		[
+			'Lazy loaded `IMG` not in viewport',
+			(
+				report.original.lazyLoadedImgNotInViewport.passRate * 100
+			).toFixed( 1 ) + '%',
+			(
+				report.optimized.lazyLoadedImgNotInViewport.passRate * 100
+			).toFixed( 1 ) + '%',
+		].join( ' | ' )
+	);
+	log(
+		[
+			'`IMG` with `fetchpriority=high` only in viewport',
+			(
+				report.original.imgWithFetchpriorityHighAttrInViewport
+					.passRate * 100
+			).toFixed( 1 ) + '%',
+			(
+				report.optimized.imgWithFetchpriorityHighAttrInViewport
+					.passRate * 100
+			).toFixed( 1 ) + '%',
+		].join( ' | ' )
+	);
 }
 
 /**
@@ -138,18 +184,18 @@ export async function handler( opt ) {
  */
 function obtainAverageDiffMetrics( resultDir ) {
 	const aggregateDiffs = {
-		'LCP': {
+		LCP: {
 			diffTime: [],
-			diffPercent: []
+			diffPercent: [],
 		},
-		'TTFB': {
+		TTFB: {
 			diffTime: [],
-			diffPercent: []
+			diffPercent: [],
 		},
 		'LCP-TTFB': {
 			diffTime: [],
-			diffPercent: []
-		}
+			diffPercent: [],
+		},
 	};
 
 	/**
@@ -158,35 +204,52 @@ function obtainAverageDiffMetrics( resultDir ) {
 	 *
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
-	function walkSync(dirPath) {
-		const files = fs.readdirSync(dirPath);
+	function walkSync( dirPath ) {
+		const files = fs.readdirSync( dirPath );
 
 		if ( files.includes( 'original' ) && files.includes( 'optimized' ) ) {
 			// Abort if the analysis was not completed yet (where version.txt is written after the analysis of a URL is complete) or if there was an error.
-			if ( ! fs.existsSync( path.join( dirPath, '..', 'version.txt' ) ) || fs.existsSync( path.join( dirPath, '..', 'errors.txt' ) ) ) {
+			if (
+				! fs.existsSync( path.join( dirPath, '..', 'version.txt' ) ) ||
+				fs.existsSync( path.join( dirPath, '..', 'errors.txt' ) )
+			) {
 				return;
 			}
 
-			const originalResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'original', 'results.json' ), 'utf8'));
-			const optimizedResults = JSON.parse(fs.readFileSync(path.join( dirPath, 'optimized', 'results.json' ), 'utf8'));
+			const originalResults = JSON.parse(
+				fs.readFileSync(
+					path.join( dirPath, 'original', 'results.json' ),
+					'utf8'
+				)
+			);
+			const optimizedResults = JSON.parse(
+				fs.readFileSync(
+					path.join( dirPath, 'optimized', 'results.json' ),
+					'utf8'
+				)
+			);
 
 			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
-				const diffTime = optimizedResults.metrics[ key ].value - originalResults.metrics[ key ].value;
+				const diffTime =
+					optimizedResults.metrics[ key ].value -
+					originalResults.metrics[ key ].value;
 				aggregateDiffs[ key ].diffTime.push( diffTime );
-				aggregateDiffs[ key ].diffPercent.push( ( diffTime / originalResults.metrics[ key ].value ) * 100 );
+				aggregateDiffs[ key ].diffPercent.push(
+					( diffTime / originalResults.metrics[ key ].value ) * 100
+				);
 			}
 		} else {
-			for (const file of files) {
-				const filePath = path.join(dirPath, file);
-				const stats = fs.statSync(filePath);
-				if (stats.isDirectory()) {
-					walkSync(filePath);
+			for ( const file of files ) {
+				const filePath = path.join( dirPath, file );
+				const stats = fs.statSync( filePath );
+				if ( stats.isDirectory() ) {
+					walkSync( filePath );
 				}
 			}
 		}
 	}
 
-	walkSync(resultDir);
+	walkSync( resultDir );
 
 	return aggregateDiffs;
 }
@@ -204,12 +267,15 @@ const formatNumber = ( num ) => {
  * @param {number[]} numbers
  * @returns {number|null}
  */
-function computeAverage(numbers) {
-	if (!Array.isArray(numbers) || numbers.length === 0) {
+function computeAverage( numbers ) {
+	if ( ! Array.isArray( numbers ) || numbers.length === 0 ) {
 		return null;
 	}
 
-	const sum = numbers.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+	const sum = numbers.reduce(
+		( accumulator, currentValue ) => accumulator + currentValue,
+		0
+	);
 	return sum / numbers.length;
 }
 
@@ -217,22 +283,26 @@ function computeAverage(numbers) {
  * @param {number[]} numbers
  * @returns {number|null}
  */
-function computeMedian(numbers) {
-	if (!Array.isArray(numbers) || numbers.length === 0) {
+function computeMedian( numbers ) {
+	if ( ! Array.isArray( numbers ) || numbers.length === 0 ) {
 		return null;
 	}
 
 	// 1. Sort the array in ascending order.
-	const sortedNumbers = numbers.slice().sort((a, b) => a - b);
-	const middleIndex = Math.floor(sortedNumbers.length / 2);
+	const sortedNumbers = numbers.slice().sort( ( a, b ) => a - b );
+	const middleIndex = Math.floor( sortedNumbers.length / 2 );
 
 	// 2. Handle even and odd length arrays.
-	if (sortedNumbers.length % 2 === 0) {
+	if ( sortedNumbers.length % 2 === 0 ) {
 		// Even number of elements: median is the average of the two middle elements.
-		return (sortedNumbers[middleIndex - 1] + sortedNumbers[middleIndex]) / 2;
+		return (
+			( sortedNumbers[ middleIndex - 1 ] +
+				sortedNumbers[ middleIndex ] ) /
+			2
+		);
 	} else {
 		// Odd number of elements: median is the middle element.
-		return sortedNumbers[middleIndex];
+		return sortedNumbers[ middleIndex ];
 	}
 }
 
@@ -254,55 +324,63 @@ function obtainErrorManifest( outputDir ) {
 	 *
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
-	function walkSync(dirPath) {
-		const files = fs.readdirSync(dirPath);
+	function walkSync( dirPath ) {
+		const files = fs.readdirSync( dirPath );
 
 		// The analyze-optimization-detective-effectiveness script outputs version.txt when successfully complete, or else it outputs errors.txt when there was an error.
-		if ( files.includes('url.txt') && (files.includes('errors.txt') || files.includes('version.txt')) ) {
+		if (
+			files.includes( 'url.txt' ) &&
+			( files.includes( 'errors.txt' ) ||
+				files.includes( 'version.txt' ) )
+		) {
 			urlCount++;
-			if (files.includes('errors.txt')) {
+			if ( files.includes( 'errors.txt' ) ) {
 				errorUrlCount++;
 			} else {
 				// If there's no errors.txt, then there's nothing to do.
 				return;
 			}
 
-			const errorsFilePath = path.join(dirPath, 'errors.txt');
-			const urlFilePath = path.join(dirPath, 'url.txt');
+			const errorsFilePath = path.join( dirPath, 'errors.txt' );
+			const urlFilePath = path.join( dirPath, 'url.txt' );
 
 			// Read the URL from url.txt
-			const url = fs.readFileSync(urlFilePath, 'utf8').trim();
+			const url = fs.readFileSync( urlFilePath, 'utf8' ).trim();
 
 			// Read the errors from errors.txt, splitting by line
-			const errors = fs.readFileSync(errorsFilePath, 'utf8').trim().split('\n');
+			const errors = fs
+				.readFileSync( errorsFilePath, 'utf8' )
+				.trim()
+				.split( '\n' );
 
 			// Process each error message
-			errors.forEach(error => {
+			errors.forEach( ( error ) => {
 				// Trim the error message to remove leading/trailing whitespace
 				const trimmedError = error.trim();
-				if (trimmedError) { // Only process non-empty errors
-					if (!errorUrlMap[trimmedError]) {
-						errorUrlMap[trimmedError] = [];
+				if ( trimmedError ) {
+					// Only process non-empty errors
+					if ( ! errorUrlMap[ trimmedError ] ) {
+						errorUrlMap[ trimmedError ] = [];
 					}
-					errorUrlMap[trimmedError].push(url);
+					errorUrlMap[ trimmedError ].push( url );
 				}
-			});
+			} );
 		} else {
 			// Check for subdirectories
-			for (const file of files) {
-				const filePath = path.join(dirPath, file);
-				const stats = fs.statSync(filePath);
-				if (stats.isDirectory()) {
-					walkSync(filePath); // Recurse into subdirectories
+			for ( const file of files ) {
+				const filePath = path.join( dirPath, file );
+				const stats = fs.statSync( filePath );
+				if ( stats.isDirectory() ) {
+					walkSync( filePath ); // Recurse into subdirectories
 				}
 			}
 		}
 	}
 
 	// Start the directory traversal
-	walkSync(outputDir);
+	walkSync( outputDir );
 
-	return {urlCount, errorUrlCount, errorUrlMap};
+	return { urlCount, errorUrlCount, errorUrlMap };
 }
 
 /**
@@ -349,13 +427,20 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 	 * @param {{pass: number, fail: number}} passFailCounts
 	 * @param {object} results
 	 */
-	function checkImgWithFetchpriorityHighAttrOutsideViewport( passFailCounts, results ) {
+	function checkImgWithFetchpriorityHighAttrOutsideViewport(
+		passFailCounts,
+		results
+	) {
 		if (
 			// There is at least one IMG with fetchpriority=high.
-			results.images.fetchpriorityHighAttrImages.outsideViewportCount > 0 ||
+			results.images.fetchpriorityHighAttrImages.outsideViewportCount >
+				0 ||
 			results.images.fetchpriorityHighAttrImages.insideViewportCount > 0
 		) {
-			if ( results.images.fetchpriorityHighAttrImages.outsideViewportCount === 0 ) {
+			if (
+				results.images.fetchpriorityHighAttrImages
+					.outsideViewportCount === 0
+			) {
 				passFailCounts.pass++;
 			} else {
 				passFailCounts.fail++;
@@ -370,64 +455,91 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 	 *
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
-	function walkSync(dirPath) {
-		const files = fs.readdirSync(dirPath);
+	function walkSync( dirPath ) {
+		const files = fs.readdirSync( dirPath );
 
 		// Check original.
-		if (path.basename(dirPath) === 'original' && files.includes('results.json')) {
-			const resultsFilePath = path.join(dirPath, 'results.json');
-			const resultsData = JSON.parse(fs.readFileSync(resultsFilePath, 'utf8'));
+		if (
+			path.basename( dirPath ) === 'original' &&
+			files.includes( 'results.json' )
+		) {
+			const resultsFilePath = path.join( dirPath, 'results.json' );
+			const resultsData = JSON.parse(
+				fs.readFileSync( resultsFilePath, 'utf8' )
+			);
 
 			// If there is an LCP image: passing means it is an IMG element which has fetchpriority=high (where if the LCP element is non-IMG then this is a fail).
 			const lcpData = resultsData?.metrics?.LCP;
-			if (lcpData && lcpData.url) {
-				if ( lcpData.element?.tagName === 'IMG' && lcpData.element?.attributes?.fetchpriority === 'high' ) {
+			if ( lcpData && lcpData.url ) {
+				if (
+					lcpData.element?.tagName === 'IMG' &&
+					lcpData.element?.attributes?.fetchpriority === 'high'
+				) {
 					report.original.lcpImagePrioritized.pass++;
 				} else {
 					report.original.lcpImagePrioritized.fail++;
 				}
 			}
 
-			checkLazyLoadedImagesInsideViewport( report.original.lazyLoadedImgNotInViewport, resultsData );
-			checkImgWithFetchpriorityHighAttrOutsideViewport( report.original.imgWithFetchpriorityHighAttrInViewport, resultsData );
+			checkLazyLoadedImagesInsideViewport(
+				report.original.lazyLoadedImgNotInViewport,
+				resultsData
+			);
+			checkImgWithFetchpriorityHighAttrOutsideViewport(
+				report.original.imgWithFetchpriorityHighAttrInViewport,
+				resultsData
+			);
 		}
 
 		// Check optimized.
-		if (path.basename(dirPath) === 'optimized' && files.includes('results.json')) {
-			const resultsFilePath = path.join(dirPath, 'results.json');
-			const resultsData = JSON.parse(fs.readFileSync(resultsFilePath, 'utf8'));
+		if (
+			path.basename( dirPath ) === 'optimized' &&
+			files.includes( 'results.json' )
+		) {
+			const resultsFilePath = path.join( dirPath, 'results.json' );
+			const resultsData = JSON.parse(
+				fs.readFileSync( resultsFilePath, 'utf8' )
+			);
 
 			// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 			// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
 			const lcpData = resultsData?.metrics?.LCP;
-			if (lcpData && lcpData.url) {
-				if (lcpData.preloadedByOD === true) {
+			if ( lcpData && lcpData.url ) {
+				if ( lcpData.preloadedByOD === true ) {
 					report.optimized.lcpImagePrioritized.pass++;
 				} else {
 					report.optimized.lcpImagePrioritized.fail++;
 				}
 			}
 
-			checkLazyLoadedImagesInsideViewport( report.optimized.lazyLoadedImgNotInViewport, resultsData );
-			checkImgWithFetchpriorityHighAttrOutsideViewport( report.optimized.imgWithFetchpriorityHighAttrInViewport, resultsData );
+			checkLazyLoadedImagesInsideViewport(
+				report.optimized.lazyLoadedImgNotInViewport,
+				resultsData
+			);
+			checkImgWithFetchpriorityHighAttrOutsideViewport(
+				report.optimized.imgWithFetchpriorityHighAttrInViewport,
+				resultsData
+			);
 		}
 
 		// Check for subdirectories
-		for (const file of files) {
-			const filePath = path.join(dirPath, file);
-			const stats = fs.statSync(filePath);
-			if (stats.isDirectory()) {
-				walkSync(filePath); // Recurse into subdirectories
+		for ( const file of files ) {
+			const filePath = path.join( dirPath, file );
+			const stats = fs.statSync( filePath );
+			if ( stats.isDirectory() ) {
+				walkSync( filePath ); // Recurse into subdirectories
 			}
 		}
 	}
 
-	walkSync(outputDir);
+	walkSync( outputDir );
 
 	// Compute pass rate.
-	for ( const reportPart of Object.values( report )  ) {
+	for ( const reportPart of Object.values( report ) ) {
 		for ( const passFailCounts of Object.values( reportPart ) ) {
-			passFailCounts.passRate = passFailCounts.pass / ( passFailCounts.pass + passFailCounts.fail );
+			passFailCounts.passRate =
+				passFailCounts.pass /
+				( passFailCounts.pass + passFailCounts.fail );
 		}
 	}
 
