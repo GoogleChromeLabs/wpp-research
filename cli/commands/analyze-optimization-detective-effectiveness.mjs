@@ -21,21 +21,14 @@ const version = 1;
 /**
  * External dependencies
  */
-import puppeteer, {
-	Browser,
-	PredefinedNetworkConditions,
-	KnownDevices,
-} from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 
 /* eslint-disable jsdoc/valid-types */
-/** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
-/** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
-/** @typedef {import("puppeteer").Device} Device */
-/** @typedef {keyof typeof KnownDevices} KnownDeviceName */
 /** @typedef {import("web-vitals").Metric} Metric */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
+/** @typedef {import("web-vitals").LargestContentfulPaint} LargestContentfulPaint */
 
 /* eslint-enable jsdoc/valid-types */
 // TODO: deviceScaleFactor, isMobile, isLandscape, hasTouch.
@@ -44,7 +37,7 @@ import path from 'path';
 /**
  * Internal dependencies
  */
-import { log, output } from '../lib/cli/logger.mjs';
+import { log } from '../lib/cli/logger.mjs';
 
 export const options = [
 	{
@@ -97,11 +90,11 @@ const desktopDevice = {
 };
 
 /**
- * @param {object} opt
- * @param {string} opt.url
- * @param {string} opt.outputDir
+ * @param {Object}  opt
+ * @param {string}  opt.url
+ * @param {string}  opt.outputDir
  * @param {boolean} opt.force
- * @returns {Promise<void>}
+ * @return {Promise<void>}
  */
 export async function handler( opt ) {
 	if ( ! fs.existsSync( opt.outputDir ) ) {
@@ -178,7 +171,7 @@ export async function handler( opt ) {
 			deviceIterationIndex++;
 		}
 	} catch ( err ) {
-		console.error( `Error: ${ err.message } for ${ opt.url }` );
+		log( `Error: ${ err.message } for ${ opt.url }` );
 		caughtError = err;
 	} finally {
 		await browser.close();
@@ -426,8 +419,8 @@ async function analyze(
 			} );
 
 			const amendedData = await page.evaluate(
-				( /** @type string */ global ) => {
-					const metric = /** @type Metric */ window[ global ];
+				( /** @type {string} */ global ) => {
+					const metric = /** @type {Metric} */ window[ global ];
 
 					if ( metric.entries.length !== 1 ) {
 						throw new Error(
@@ -435,17 +428,17 @@ async function analyze(
 						);
 					}
 
-					const amendedData = {
+					const metricData = {
 						value: metric.value,
 					};
 					if ( 'LCP' === metric.name ) {
 						const entry =
-							/** @type LargestContentfulPaint */ metric
+							/** @type {LargestContentfulPaint} */ metric
 								.entries[ 0 ];
-						amendedData.url = entry.url;
+						metricData.url = entry.url;
 
 						if ( entry.url ) {
-							for ( /** @type HTMLLinkElement */ const odPreloadLink of document.querySelectorAll(
+							for ( /** @type {HTMLLinkElement} */ const odPreloadLink of document.querySelectorAll(
 								'link[data-od-added-tag][rel="preload"]'
 							) ) {
 								if (
@@ -455,14 +448,14 @@ async function analyze(
 											entry.url + ' '
 										) )
 								) {
-									amendedData.preloadedByOD = true;
+									metricData.preloadedByOD = true;
 									break;
 								}
 							}
 						}
 
 						if ( entry.element ) {
-							amendedData.element = {
+							metricData.element = {
 								tagName: entry.element.tagName,
 								attributes: {},
 								metaAttributes: {},
@@ -473,23 +466,23 @@ async function analyze(
 								if (
 									attribute.name.startsWith( metaAttrPrefix )
 								) {
-									amendedData.element.metaAttributes[
+									metricData.element.metaAttributes[
 										attribute.name.substring(
 											metaAttrPrefix.length
 										)
 									] = attribute.value;
 								} else {
-									amendedData.element.attributes[
+									metricData.element.attributes[
 										attribute.name
 									] = attribute.value;
 								}
 							}
 						} else {
-							amendedData.element = null;
+							metricData.element = null;
 						}
 					}
 
-					return amendedData;
+					return metricData;
 				},
 				globalVariablePrefix + metricName
 			);
@@ -504,13 +497,13 @@ async function analyze(
 
 	if ( data.metrics.LCP.url ) {
 		data.metrics.LCP.initiatorType = await page.evaluate(
-			( /** @type string */ url ) => {
+			( /** @type {string} */ _url ) => {
 				const entries =
-					/** @type PerformanceResourceTiming[] */ performance.getEntriesByType(
+					/** @type {PerformanceResourceTiming[]} */ performance.getEntriesByType(
 						'resource'
 					);
 				for ( const entry of entries ) {
-					if ( entry.name === url ) {
+					if ( entry.name === _url ) {
 						return entry.initiatorType;
 					}
 				}
@@ -541,7 +534,7 @@ async function analyze(
 	data.images = await page.evaluate( async () => {
 		const imgElements = document.body.querySelectorAll( 'img' );
 
-		const data = {
+		const imageData = {
 			imgCount: document.querySelectorAll( 'img' ).length,
 			lazyImgCount: imgElements.length,
 			lazyImgInsideViewportCount: 0,
@@ -556,23 +549,22 @@ async function analyze(
 
 		if ( imgElements.length > 0 ) {
 			await new Promise( ( resolve ) => {
+				// eslint-disable-next-line no-undef
 				const observer = new IntersectionObserver( ( entries ) => {
 					for ( const entry of entries ) {
 						const element =
 							/** @type {HTMLImageElement} */ entry.target;
 						if ( entry.isIntersecting ) {
 							if ( element.loading === 'lazy' ) {
-								data.lazyImgInsideViewportCount++;
+								imageData.lazyImgInsideViewportCount++;
 							}
 							if ( element.fetchPriority === 'high' ) {
-								data.fetchpriorityHighAttrImages
+								imageData.fetchpriorityHighAttrImages
 									.insideViewportCount++;
 							}
-						} else {
-							if ( element.fetchPriority === 'high' ) {
-								data.fetchpriorityHighAttrImages
-									.outsideViewportCount++;
-							}
+						} else if ( element.fetchPriority === 'high' ) {
+							imageData.fetchpriorityHighAttrImages
+								.outsideViewportCount++;
 						}
 					}
 					resolve();
@@ -583,7 +575,7 @@ async function analyze(
 			} );
 		}
 
-		return data;
+		return imageData;
 	} );
 
 	fs.writeFileSync(

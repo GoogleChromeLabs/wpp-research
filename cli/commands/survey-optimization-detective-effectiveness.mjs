@@ -55,24 +55,23 @@ export const options = [
  * Gets the absolute output directory.
  *
  * @param {string} outputDir
- * @returns {string}
+ * @return {string} Absolute dir.
  */
 function getAbsoluteOutputDir( outputDir ) {
 	if ( outputDir.startsWith( '/' ) ) {
 		return outputDir;
-	} else {
-		return path.join( process.cwd(), outputDir );
 	}
+	return path.join( process.cwd(), outputDir );
 }
 
 /**
  *
- * @param {object} opt
- * @param {string} opt.urlsFile
- * @param {string} opt.outputDir
- * @param {number} opt.parallel
+ * @param {Object}  opt
+ * @param {string}  opt.urlsFile
+ * @param {string}  opt.outputDir
+ * @param {number}  opt.parallel
  * @param {boolean} opt.force
- * @returns {Promise<void>}
+ * @return {Promise<void>}
  */
 export async function handler( opt ) {
 	const outputDir = getAbsoluteOutputDir( opt.outputDir );
@@ -110,7 +109,7 @@ export async function handler( opt ) {
 	/**
 	 * @param {string} url
 	 * @param {number} i
-	 * @returns {Promise<void>}
+	 * @return {Promise<void>}
 	 */
 	async function spawnProcess( url, i ) {
 		const md5Hash = crypto

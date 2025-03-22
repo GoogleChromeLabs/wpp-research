@@ -38,24 +38,23 @@ export const options = [
  * Gets the absolute output directory.
  *
  * @param {string} outputDir
- * @returns {string}
+ * @return {string} Abosolute dir.
  */
 function getAbsoluteOutputDir( outputDir ) {
 	if ( outputDir.startsWith( '/' ) ) {
 		return outputDir;
-	} else {
-		return path.join( process.cwd(), outputDir );
 	}
+	return path.join( process.cwd(), outputDir );
 }
 
 /**
  *
- * @param {object} opt
- * @param {string} opt.urlsFile
- * @param {string} opt.outputDir
- * @param {number} opt.parallel
+ * @param {Object}  opt
+ * @param {string}  opt.urlsFile
+ * @param {string}  opt.outputDir
+ * @param {number}  opt.parallel
  * @param {boolean} opt.force
- * @returns {Promise<void>}
+ * @return {Promise<void>}
  */
 export async function handler( opt ) {
 	const outputDir = getAbsoluteOutputDir( opt.outputDir );
@@ -109,22 +108,22 @@ export async function handler( opt ) {
 	log( '' );
 	log( '# Metrics' );
 
-	const aggregateDiffs = obtainAverageDiffMetrics( outputDir );
+	const aggregateDiffMetrics = obtainAggregateDiffMetrics( outputDir );
 
-	for ( const key of Object.keys( aggregateDiffs ) ) {
+	for ( const key of Object.keys( aggregateDiffMetrics ) ) {
 		log( `## ${ key }` );
 		log(
 			`* Average diff time: ${ formatNumber(
-				computeAverage( aggregateDiffs[ key ].diffTime )
+				computeAverage( aggregateDiffMetrics[ key ].diffTime )
 			) }ms (${ formatNumber(
-				computeAverage( aggregateDiffs[ key ].diffPercent )
+				computeAverage( aggregateDiffMetrics[ key ].diffPercent )
 			) }%)`
 		);
 		log(
 			`* Median diff time: ${ formatNumber(
-				computeMedian( aggregateDiffs[ key ].diffTime )
+				computeMedian( aggregateDiffMetrics[ key ].diffTime )
 			) }ms (${ formatNumber(
-				computeMedian( aggregateDiffs[ key ].diffPercent )
+				computeMedian( aggregateDiffMetrics[ key ].diffPercent )
 			) }%)`
 		);
 		log( '' );
@@ -137,7 +136,7 @@ export async function handler( opt ) {
 
 	const report = obtainOptimizationAccuracyReport( outputDir );
 
-	console.log( report );
+	log( report );
 
 	log( `Optimization | Original | Optimized` );
 	log( `-- | --: | --:` );
@@ -180,9 +179,9 @@ export async function handler( opt ) {
 
 /**
  * @param {string} resultDir
- * @returns {{}}
+ * @return {{}} Aggregate diff metrics.
  */
-function obtainAverageDiffMetrics( resultDir ) {
+function obtainAggregateDiffMetrics( resultDir ) {
 	const aggregateDiffs = {
 		LCP: {
 			diffTime: [],
@@ -257,7 +256,7 @@ function obtainAverageDiffMetrics( resultDir ) {
 /**
  *
  * @param {number} num
- * @returns {string}
+ * @return {string} Formatted number.
  */
 const formatNumber = ( num ) => {
 	return ( num > 0 ? '+' : '' ) + num.toFixed( 1 );
@@ -265,7 +264,7 @@ const formatNumber = ( num ) => {
 
 /**
  * @param {number[]} numbers
- * @returns {number|null}
+ * @return {number|null} Average.
  */
 function computeAverage( numbers ) {
 	if ( ! Array.isArray( numbers ) || numbers.length === 0 ) {
@@ -281,7 +280,7 @@ function computeAverage( numbers ) {
 
 /**
  * @param {number[]} numbers
- * @returns {number|null}
+ * @return {number|null} Median.
  */
 function computeMedian( numbers ) {
 	if ( ! Array.isArray( numbers ) || numbers.length === 0 ) {
@@ -300,16 +299,15 @@ function computeMedian( numbers ) {
 				sortedNumbers[ middleIndex ] ) /
 			2
 		);
-	} else {
-		// Odd number of elements: median is the middle element.
-		return sortedNumbers[ middleIndex ];
 	}
+	// Odd number of elements: median is the middle element.
+	return sortedNumbers[ middleIndex ];
 }
 
 /**
  *
  * @param {string} outputDir
- * @returns {{urlCount: number, errorUrlCount: number, errorUrlMap: {}}}
+ * @return {{urlCount: number, errorUrlCount: number, errorUrlMap: {}}} Error mainfest.
  */
 function obtainErrorManifest( outputDir ) {
 	// Initialize the data structure to store errors and URLs
@@ -386,7 +384,7 @@ function obtainErrorManifest( outputDir ) {
 /**
  *
  * @param {string} outputDir
- * @returns {{original: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}}}
+ * @return {{original: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}}} Report.
  */
 function obtainOptimizationAccuracyReport( outputDir ) {
 	const defaultReportValues = {
@@ -411,7 +409,7 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 
 	/**
 	 * @param {{pass: number, fail: number}} passFailCounts
-	 * @param {object} results
+	 * @param {Object}                       results
 	 */
 	function checkLazyLoadedImagesInsideViewport( passFailCounts, results ) {
 		if ( results.images.imgCount > 0 ) {
@@ -425,7 +423,7 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 
 	/**
 	 * @param {{pass: number, fail: number}} passFailCounts
-	 * @param {object} results
+	 * @param {Object}                       results
 	 */
 	function checkImgWithFetchpriorityHighAttrOutsideViewport(
 		passFailCounts,
