@@ -32,6 +32,11 @@ export const options = [
 			'Base output directory for the results. Each subdirectory contains the results for a single URL, where the directory name is a hash of the URL. Defaults to "output/survey-optimization-detective-effectiveness".',
 		defaults: 'output/survey-optimization-detective-effectiveness',
 	},
+	{
+		argname: '-l, --limit <count>',
+		description: 'Limits summarizing to the provided count of URLs.',
+		defaults: null,
+	},
 ];
 
 /**
@@ -49,11 +54,9 @@ function getAbsoluteOutputDir( outputDir ) {
 
 /**
  *
- * @param {Object}  opt
- * @param {string}  opt.urlsFile
- * @param {string}  opt.outputDir
- * @param {number}  opt.parallel
- * @param {boolean} opt.force
+ * @param {Object} opt
+ * @param {string} opt.outputDir
+ * @param {number} opt.limit
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
@@ -62,11 +65,17 @@ export async function handler( opt ) {
 		throw new Error( `Directory does not exist: ${ outputDir }` );
 	}
 
-	const errorManifest = obtainErrorManifest( outputDir );
+	let limit = null;
+	if ( opt.limit ) {
+		limit = parseInt( opt.limit, 10 );
+	}
+
+	const errorManifest = obtainErrorManifest( outputDir, limit );
 
 	log( '# Error Info' );
 
-	const successCount = errorManifest.urlCount - errorManifest.errorUrlCount;
+	const successCount =
+		errorManifest.totalUrlCount - errorManifest.totalErroredUrlCount;
 	log(
 		`Success rate for being able to analyze a URL: ${ (
 			( successCount / errorManifest.urlCount ) *
@@ -75,31 +84,13 @@ export async function handler( opt ) {
 	);
 	log( '' );
 
-	const normalizedErrorCounts = /** @type {Object<string, number>} */ {};
-	for ( const [ errorMessage, urls ] of Object.entries(
-		errorManifest.errorUrlMap
-	) ) {
-		let sanitizedErrorMessage = errorMessage.replace(
-			/ (for|on) (mobile|desktop)/,
-			''
-		);
-		sanitizedErrorMessage = sanitizedErrorMessage.replace(
-			/ at http.+/,
-			''
-		);
-		if ( ! ( sanitizedErrorMessage in normalizedErrorCounts ) ) {
-			normalizedErrorCounts[ sanitizedErrorMessage ] = urls.length;
-		} else {
-			normalizedErrorCounts[ sanitizedErrorMessage ] += urls.length;
-		}
-	}
+	log( 'Error Message | URL Count' );
+	log( '-- | --:' );
 
-	const errorMessageCountTuples = Object.entries( normalizedErrorCounts );
+	const errorMessageCountTuples = Object.entries( errorManifest.errorCounts );
 	errorMessageCountTuples.sort( ( a, b ) => {
 		return b[ 1 ] - a[ 1 ];
 	} );
-	log( 'Error Message | URL Count' );
-	log( '-- | --:' );
 	for ( const [ errorMessage, errorCount ] of errorMessageCountTuples ) {
 		log( `${ errorMessage } | ${ errorCount }` );
 	}
@@ -108,7 +99,7 @@ export async function handler( opt ) {
 	log( '' );
 	log( '# Metrics' );
 
-	const aggregateDiffMetrics = obtainAggregateDiffMetrics( outputDir );
+	const aggregateDiffMetrics = obtainAggregateDiffMetrics( outputDir, limit );
 
 	for ( const key of Object.keys( aggregateDiffMetrics ) ) {
 		log( `## ${ key }` );
@@ -134,7 +125,7 @@ export async function handler( opt ) {
 	log( '' );
 	log( '# Optimization Accuracy Stats' );
 
-	const report = obtainOptimizationAccuracyReport( outputDir );
+	const report = obtainOptimizationAccuracyReport( outputDir, limit );
 
 	log( report );
 
@@ -179,9 +170,12 @@ export async function handler( opt ) {
 
 /**
  * @param {string} resultDir
+ * @param {number|null} limit
  * @return {{}} Aggregate diff metrics.
  */
-function obtainAggregateDiffMetrics( resultDir ) {
+function obtainAggregateDiffMetrics( resultDir, limit ) {
+	let i = 0;
+
 	const aggregateDiffs = {
 		LCP: {
 			diffTime: [],
@@ -237,6 +231,10 @@ function obtainAggregateDiffMetrics( resultDir ) {
 					( diffTime / originalResults.metrics[ key ].value ) * 100
 				);
 			}
+
+			if ( limit !== null && i++ === limit ) {
+				throw new Error( 'limit_reached' );
+			}
 		} else {
 			for ( const file of files ) {
 				const filePath = path.join( dirPath, file );
@@ -248,7 +246,13 @@ function obtainAggregateDiffMetrics( resultDir ) {
 		}
 	}
 
-	walkSync( resultDir );
+	try {
+		walkSync( resultDir );
+	} catch ( err ) {
+		if ( err.message !== 'limit_reached' ) {
+			throw err;
+		}
+	}
 
 	return aggregateDiffs;
 }
@@ -307,14 +311,17 @@ function computeMedian( numbers ) {
 /**
  *
  * @param {string} outputDir
- * @return {{urlCount: number, errorUrlCount: number, errorUrlMap: {}}} Error mainfest.
+ * @param {number|null} limit
+ * @return {{totalUrlCount: number, errorUrlCount: number, errorUrlMap: {}, errorCounts: Object<string, number>}} Error mainfest.
  */
-function obtainErrorManifest( outputDir ) {
+function obtainErrorManifest( outputDir, limit ) {
+	let i = 0;
+
 	// Initialize the data structure to store errors and URLs
 	const errorUrlMap = {};
 
-	let urlCount = 0;
-	let errorUrlCount = 0;
+	let totalUrlCount = 0;
+	let totalErroredUrlCount = 0;
 
 	/**
 	 * Recursively traverses the directory, processes "errors.txt" and "url.txt" files,
@@ -331,9 +338,9 @@ function obtainErrorManifest( outputDir ) {
 			( files.includes( 'errors.txt' ) ||
 				files.includes( 'version.txt' ) )
 		) {
-			urlCount++;
+			totalUrlCount++;
 			if ( files.includes( 'errors.txt' ) ) {
-				errorUrlCount++;
+				totalErroredUrlCount++;
 			} else {
 				// If there's no errors.txt, then there's nothing to do.
 				return;
@@ -354,8 +361,15 @@ function obtainErrorManifest( outputDir ) {
 			// Process each error message
 			errors.forEach( ( error ) => {
 				// Trim the error message to remove leading/trailing whitespace
-				const trimmedError = error.trim();
+				let trimmedError = error.trim();
 				if ( trimmedError ) {
+					// Apply some normalization.
+					trimmedError = trimmedError.replace(
+						/ (for|on) (mobile|desktop)/,
+						''
+					);
+					trimmedError = trimmedError.replace( / at http.+/, '' );
+
 					// Only process non-empty errors
 					if ( ! errorUrlMap[ trimmedError ] ) {
 						errorUrlMap[ trimmedError ] = [];
@@ -363,6 +377,10 @@ function obtainErrorManifest( outputDir ) {
 					errorUrlMap[ trimmedError ].push( url );
 				}
 			} );
+
+			if ( limit !== null && i++ === limit ) {
+				throw new Error( 'limit_reached' );
+			}
 		} else {
 			// Check for subdirectories
 			for ( const file of files ) {
@@ -375,18 +393,35 @@ function obtainErrorManifest( outputDir ) {
 		}
 	}
 
-	// Start the directory traversal
-	walkSync( outputDir );
+	try {
+		walkSync( outputDir );
+	} catch ( err ) {
+		if ( err.message !== 'limit_reached' ) {
+			throw err;
+		}
+	}
 
-	return { urlCount, errorUrlCount, errorUrlMap };
+	const errorCounts = /** @type {Object<string, number>} */ {};
+	for ( const [ errorMessage, urls ] of Object.entries( errorUrlMap ) ) {
+		if ( ! ( errorMessage in errorCounts ) ) {
+			errorCounts[ errorMessage ] = urls.length;
+		} else {
+			errorCounts[ errorMessage ] += urls.length;
+		}
+	}
+
+	return { totalUrlCount, totalErroredUrlCount, errorUrlMap, errorCounts };
 }
 
 /**
  *
  * @param {string} outputDir
+ * @param {number|null} limit
  * @return {{original: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}, optimized: {lcpImagePrioritized: {pass: number, fail: number, passRate: number}, lazyLoadedImgNotInViewport: {pass: number, fail: number, passRate: number}, imgWithFetchpriorityHighAttrInViewport: {pass: number, fail: number, passRate: number}}}} Report.
  */
-function obtainOptimizationAccuracyReport( outputDir ) {
+function obtainOptimizationAccuracyReport( outputDir, limit ) {
+	let i = 0;
+
 	const defaultReportValues = {
 		lcpImagePrioritized: {
 			pass: 0,
@@ -456,68 +491,68 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 	function walkSync( dirPath ) {
 		const files = fs.readdirSync( dirPath );
 
-		// Check original.
-		if (
-			path.basename( dirPath ) === 'original' &&
-			files.includes( 'results.json' )
-		) {
-			const resultsFilePath = path.join( dirPath, 'results.json' );
-			const resultsData = JSON.parse(
-				fs.readFileSync( resultsFilePath, 'utf8' )
-			);
+		if ( files.includes( 'results.json' ) ) {
+			// Check original.
+			if ( path.basename( dirPath ) === 'original' ) {
+				const resultsFilePath = path.join( dirPath, 'results.json' );
+				const resultsData = JSON.parse(
+					fs.readFileSync( resultsFilePath, 'utf8' )
+				);
 
-			// If there is an LCP image: passing means it is an IMG element which has fetchpriority=high (where if the LCP element is non-IMG then this is a fail).
-			const lcpData = resultsData?.metrics?.LCP;
-			if ( lcpData && lcpData.url ) {
-				if (
-					lcpData.element?.tagName === 'IMG' &&
-					lcpData.element?.attributes?.fetchpriority === 'high'
-				) {
-					report.original.lcpImagePrioritized.pass++;
-				} else {
-					report.original.lcpImagePrioritized.fail++;
+				// If there is an LCP image: passing means it is an IMG element which has fetchpriority=high (where if the LCP element is non-IMG then this is a fail).
+				const lcpData = resultsData?.metrics?.LCP;
+				if ( lcpData && lcpData.url ) {
+					if (
+						lcpData.element?.tagName === 'IMG' &&
+						lcpData.element?.attributes?.fetchpriority === 'high'
+					) {
+						report.original.lcpImagePrioritized.pass++;
+					} else {
+						report.original.lcpImagePrioritized.fail++;
+					}
 				}
+
+				checkLazyLoadedImagesInsideViewport(
+					report.original.lazyLoadedImgNotInViewport,
+					resultsData
+				);
+				checkImgWithFetchpriorityHighAttrOutsideViewport(
+					report.original.imgWithFetchpriorityHighAttrInViewport,
+					resultsData
+				);
 			}
 
-			checkLazyLoadedImagesInsideViewport(
-				report.original.lazyLoadedImgNotInViewport,
-				resultsData
-			);
-			checkImgWithFetchpriorityHighAttrOutsideViewport(
-				report.original.imgWithFetchpriorityHighAttrInViewport,
-				resultsData
-			);
-		}
+			// Check optimized.
+			if ( path.basename( dirPath ) === 'optimized' ) {
+				const resultsFilePath = path.join( dirPath, 'results.json' );
+				const resultsData = JSON.parse(
+					fs.readFileSync( resultsFilePath, 'utf8' )
+				);
 
-		// Check optimized.
-		if (
-			path.basename( dirPath ) === 'optimized' &&
-			files.includes( 'results.json' )
-		) {
-			const resultsFilePath = path.join( dirPath, 'results.json' );
-			const resultsData = JSON.parse(
-				fs.readFileSync( resultsFilePath, 'utf8' )
-			);
-
-			// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
-			// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
-			const lcpData = resultsData?.metrics?.LCP;
-			if ( lcpData && lcpData.url ) {
-				if ( lcpData.preloadedByOD === true ) {
-					report.optimized.lcpImagePrioritized.pass++;
-				} else {
-					report.optimized.lcpImagePrioritized.fail++;
+				// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
+				// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
+				const lcpData = resultsData?.metrics?.LCP;
+				if ( lcpData && lcpData.url ) {
+					if ( lcpData.preloadedByOD === true ) {
+						report.optimized.lcpImagePrioritized.pass++;
+					} else {
+						report.optimized.lcpImagePrioritized.fail++;
+					}
 				}
+
+				checkLazyLoadedImagesInsideViewport(
+					report.optimized.lazyLoadedImgNotInViewport,
+					resultsData
+				);
+				checkImgWithFetchpriorityHighAttrOutsideViewport(
+					report.optimized.imgWithFetchpriorityHighAttrInViewport,
+					resultsData
+				);
 			}
 
-			checkLazyLoadedImagesInsideViewport(
-				report.optimized.lazyLoadedImgNotInViewport,
-				resultsData
-			);
-			checkImgWithFetchpriorityHighAttrOutsideViewport(
-				report.optimized.imgWithFetchpriorityHighAttrInViewport,
-				resultsData
-			);
+			if ( limit !== null && i++ === limit ) {
+				throw new Error( 'limit_reached' );
+			}
 		}
 
 		// Check for subdirectories
@@ -530,7 +565,13 @@ function obtainOptimizationAccuracyReport( outputDir ) {
 		}
 	}
 
-	walkSync( outputDir );
+	try {
+		walkSync( outputDir );
+	} catch ( err ) {
+		if ( err.message !== 'limit_reached' ) {
+			throw err;
+		}
+	}
 
 	// Compute pass rate.
 	for ( const reportPart of Object.values( report ) ) {
