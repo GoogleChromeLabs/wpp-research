@@ -395,7 +395,7 @@ async function analyze(
 	} );
 	if ( imagePrioritizerNotWorking ) {
 		throw new Error(
-			`Image Prioritizer is does not seem to be working due to detection issues according to presence of data-od-unknown-tag attributes on ${
+			`Image Prioritizer does not seem to be working due to detection issues according to presence of data-od-unknown-tag attributes on ${
 				isMobile ? 'mobile' : 'desktop'
 			}`
 		);
