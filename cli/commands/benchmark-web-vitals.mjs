@@ -364,8 +364,6 @@ export async function handler( opt ) {
 	const params = getParamsFromOptions( opt );
 	const results = [];
 
-	const browser = await puppeteer.launch( { headless: true } );
-
 	const metricsDefinition = getMetricsDefinition( params.metrics );
 
 	// Log progress only under certain conditions (multiple URLs to benchmark).
@@ -386,7 +384,6 @@ export async function handler( opt ) {
 		try {
 			const { completeRequests, metrics } = await benchmarkURL(
 				url,
-				browser,
 				metricsDefinition,
 				params,
 				logIterationsProgress
@@ -409,8 +406,6 @@ export async function handler( opt ) {
 		}
 	}
 
-	await browser.close();
-
 	if ( results.length === 0 ) {
 		log( formats.error( 'No results returned.' ) );
 	} else {
@@ -426,13 +421,12 @@ export async function handler( opt ) {
  * @param {boolean}                                logProgress
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL(
-	url,
-	browser,
-	metricsDefinition,
-	params,
-	logProgress
-) {
+async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
+	const browser = await puppeteer.launch( {
+		headless: true,
+		args: [ '--disable-cache' ],
+	} );
+
 	// Group the required metrics by type.
 	const groupedMetrics = {};
 	Object.keys( metricsDefinition ).forEach( ( metric ) => {
@@ -644,6 +638,8 @@ async function benchmarkURL(
 			}
 		);
 	}
+
+	await browser.close();
 
 	/*
 	 * Include only all the metrics which were requested by the command parameter.
