@@ -28,7 +28,6 @@ import path from 'path';
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("web-vitals").Metric} Metric */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
-/** @typedef {import("web-vitals").LargestContentfulPaint} LargestContentfulPaint */
 
 /* eslint-enable jsdoc/valid-types */
 // TODO: deviceScaleFactor, isMobile, isLandscape, hasTouch.
@@ -102,8 +101,6 @@ export async function handler( opt ) {
 			`Output directory ${ opt.outputDir } does not exist.`
 		);
 	}
-
-	// TODO: Instead of version.txt it should be something like results.json
 
 	// TODO: Add an option like `--previously-errored-only` which will only proceed if there is an errors.txt file.
 	// Abort if we've already obtained the results for this.
@@ -428,25 +425,35 @@ async function analyze(
 						);
 					}
 
-					// TODO: Capture the entire thing, not just the value.
-					const metricData = {
-						value: metric.value,
-					};
-					if ( 'LCP' === metric.name ) {
-						const entry =
-							/** @type {LargestContentfulPaint} */ metric
-								.entries[ 0 ];
-						metricData.url = entry.url;
+					const [ entry ] = metric.entries;
 
-						if ( entry.url ) {
+					const metricData = entry.toJSON();
+					metricData.value = metric.value;
+					if ( 'TTFB' === metric.name ) {
+						const ttfbEntry = /** @type {PerformanceEntry} */ entry;
+
+						// For some reason the PerformanceServerTiming objects aren't included when doing toJSON().
+						if ( 'serverTiming' in ttfbEntry && ttfbEntry.serverTiming.length > 0 ) {
+							metricData.serverTiming = ttfbEntry.serverTiming.map( ( /** @type {PerformanceServerTiming} */ serverTiming ) => {
+								return {
+									name: serverTiming.name,
+									description: serverTiming.description,
+									duration: serverTiming.duration,
+								};
+							} );
+						}
+					} else if ( 'LCP' === metric.name ) {
+						const lcpEntry = /** @type {LargestContentfulPaint} */ entry;
+
+						if ( lcpEntry.url ) {
 							for ( /** @type {HTMLLinkElement} */ const odPreloadLink of document.querySelectorAll(
 								'link[data-od-added-tag][rel="preload"]'
 							) ) {
 								if (
-									odPreloadLink.href === entry.url ||
+									odPreloadLink.href === lcpEntry.url ||
 									( odPreloadLink.imageSrcset &&
 										odPreloadLink.imageSrcset.includes(
-											entry.url + ' '
+											lcpEntry.url + ' '
 										) )
 								) {
 									metricData.preloadedByOD = true;
@@ -455,14 +462,14 @@ async function analyze(
 							}
 						}
 
-						if ( entry.element ) {
+						if ( lcpEntry.element ) {
 							metricData.element = {
-								tagName: entry.element.tagName,
+								tagName: lcpEntry.element.tagName,
 								attributes: {},
 								metaAttributes: {},
 							};
 							const metaAttrPrefix = 'data-od-';
-							for ( const attribute of entry.element
+							for ( const attribute of lcpEntry.element
 								.attributes ) {
 								if (
 									attribute.name.startsWith( metaAttrPrefix )
