@@ -107,28 +107,28 @@ function handleErrorCase( dirPath, url ) {
 	errorManifest.totalErroredUrlCount++;
 
 	const errors = fs
-		.readFileSync(path.join(dirPath, 'errors.txt'), 'utf8')
+		.readFileSync( path.join( dirPath, 'errors.txt' ), 'utf8' )
 		.trim()
-		.split('\n');
+		.split( '\n' );
 
-	errors.forEach((error) => {
+	errors.forEach( ( error ) => {
 		// Trim the error message to remove leading/trailing whitespace
 		let trimmedError = error.trim();
-		if (trimmedError) {
+		if ( trimmedError ) {
 			// Apply some normalization.
 			trimmedError = trimmedError.replace(
 				/ (for|on) (mobile|desktop)/,
 				''
 			);
-			trimmedError = trimmedError.replace(/ at http.+/, '');
+			trimmedError = trimmedError.replace( / at http.+/, '' );
 
 			// Only process non-empty errors
-			if (!errorManifest.errorUrlMap[trimmedError]) {
-				errorManifest.errorUrlMap[trimmedError] = [];
+			if ( ! errorManifest.errorUrlMap[ trimmedError ] ) {
+				errorManifest.errorUrlMap[ trimmedError ] = [];
 			}
-			errorManifest.errorUrlMap[trimmedError].push(url);
+			errorManifest.errorUrlMap[ trimmedError ].push( url );
 		}
-	});
+	} );
 }
 
 /**
@@ -136,7 +136,6 @@ function handleErrorCase( dirPath, url ) {
  * @param {string} url
  */
 function handleSuccessCase( dirPath, url ) {
-
 	const data = {
 		mobile: {
 			optimized: {},
@@ -145,7 +144,7 @@ function handleSuccessCase( dirPath, url ) {
 		desktop: {
 			optimized: {},
 			original: {},
-		}
+		},
 	};
 
 	for ( const device of [ 'mobile', 'desktop' ] ) {
@@ -155,7 +154,7 @@ function handleSuccessCase( dirPath, url ) {
 					path.join( dirPath, device, status, 'results.json' ),
 					'utf8'
 				)
-			)
+			);
 		}
 
 		// Obtain metrics.
@@ -165,26 +164,43 @@ function handleSuccessCase( dirPath, url ) {
 				data[ device ].original.metrics[ key ].value;
 			aggregateDiffs[ key ].diffTime.push( diffTime );
 			aggregateDiffs[ key ].diffPercent.push(
-				( diffTime / data[ device ].original.metrics[ key ].value ) * 100
+				( diffTime / data[ device ].original.metrics[ key ].value ) *
+					100
 			);
 		}
 
 		for ( const status of [ 'original', 'optimized' ] ) {
 			// Check for accuracy of lazy-loading.
 			if ( data[ device ][ status ].images.imgCount !== 0 ) {
-				if ( data[ device ][ status ].images.lazyImgInsideViewportCount === 0 ) {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport.pass++;
+				if (
+					data[ device ][ status ].images
+						.lazyImgInsideViewportCount === 0
+				) {
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport
+						.pass++;
 				} else {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport.fail++;
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport
+						.fail++;
 				}
 			}
 
 			// Check for accuracy of having fetchpriority=high only in the viewport.
-			if ( data[ device ][ status ].images.fetchpriorityHighAttrImages.outsideViewportCount + data[ device ][ status ].images.fetchpriorityHighAttrImages.insideViewportCount > 0 ) {
-				if ( data[ device ][ status ].images.fetchpriorityHighAttrImages.outsideViewportCount === 0 ) {
-					optimizationAccuracy[ status ].imgWithFetchpriorityHighAttrInViewport.pass++;
+			if (
+				data[ device ][ status ].images.fetchpriorityHighAttrImages
+					.outsideViewportCount +
+					data[ device ][ status ].images.fetchpriorityHighAttrImages
+						.insideViewportCount >
+				0
+			) {
+				if (
+					data[ device ][ status ].images.fetchpriorityHighAttrImages
+						.outsideViewportCount === 0
+				) {
+					optimizationAccuracy[ status ]
+						.imgWithFetchpriorityHighAttrInViewport.pass++;
 				} else {
-					optimizationAccuracy[ status ].imgWithFetchpriorityHighAttrInViewport.fail++;
+					optimizationAccuracy[ status ]
+						.imgWithFetchpriorityHighAttrInViewport.fail++;
 				}
 			}
 
@@ -194,14 +210,13 @@ function handleSuccessCase( dirPath, url ) {
 				let passed;
 				if ( status === 'original' ) {
 					// If there is an LCP image: passing means it is an IMG element which has fetchpriority=high (where if the LCP element is non-IMG then this is a fail).
-					passed = (
+					passed =
 						lcpData.element?.tagName === 'IMG' &&
-						lcpData.element?.attributes?.fetchpriority === 'high'
-					);
+						lcpData.element?.attributes?.fetchpriority === 'high';
 				} else {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 					// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
-					passed = ( lcpData.preloadedByOD === true );
+					passed = lcpData.preloadedByOD === true;
 
 					if ( ! passed ) {
 						urlsWithODImagePrioritizationFailures.push( url );
@@ -219,21 +234,21 @@ function handleSuccessCase( dirPath, url ) {
 
 /**
  *
- * @param {Object} opt
- * @param {string} opt.outputDir
+ * @param {Object}      opt
+ * @param {string}      opt.outputDir
  * @param {string|null} opt.limit
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
-	const outputDir = getAbsoluteOutputDir(opt.outputDir);
-	if (!fs.existsSync(outputDir)) {
-		throw new Error(`Directory does not exist: ${outputDir}`);
+	const outputDir = getAbsoluteOutputDir( opt.outputDir );
+	if ( ! fs.existsSync( outputDir ) ) {
+		throw new Error( `Directory does not exist: ${ outputDir }` );
 	}
 
 	// TODO: Use the coerce functionality of commander to handle this.
 	let limit = null;
-	if (opt.limit) {
-		limit = parseInt(opt.limit, 10);
+	if ( opt.limit ) {
+		limit = parseInt( opt.limit, 10 );
 	}
 
 	let i = 0;
@@ -244,143 +259,145 @@ export async function handler( opt ) {
 	 *
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
-	function walkSync(dirPath) {
-		const files = fs.readdirSync(dirPath);
+	function walkSync( dirPath ) {
+		const files = fs.readdirSync( dirPath );
 
-		if (files.includes('url.txt') &&
-			(files.includes('errors.txt') ||
-				files.includes('version.txt'))
+		if (
+			files.includes( 'url.txt' ) &&
+			( files.includes( 'errors.txt' ) ||
+				files.includes( 'version.txt' ) )
 		) {
-			const url = fs.readFileSync(path.join(dirPath, 'url.txt'), 'utf8').trim();
+			const url = fs
+				.readFileSync( path.join( dirPath, 'url.txt' ), 'utf8' )
+				.trim();
 
 			errorManifest.totalUrlCount++;
 
-			if (files.includes('errors.txt')) {
+			if ( files.includes( 'errors.txt' ) ) {
 				handleErrorCase( dirPath, url );
-			} else if (files.includes('version.txt')) {
+			} else if ( files.includes( 'version.txt' ) ) {
 				handleSuccessCase( dirPath, url );
 
 				// Stop when we reached the limit.
-				if (limit !== null && ++i === limit) {
-					throw new Error('limit_reached');
+				if ( limit !== null && ++i === limit ) {
+					throw new Error( 'limit_reached' );
 				}
 			}
 		} else {
 			// Check for subdirectories
-			for (const file of files) {
-				const filePath = path.join(dirPath, file);
-				const stats = fs.statSync(filePath);
-				if (stats.isDirectory()) {
-					walkSync(filePath); // Recurse into subdirectories
+			for ( const file of files ) {
+				const filePath = path.join( dirPath, file );
+				const stats = fs.statSync( filePath );
+				if ( stats.isDirectory() ) {
+					walkSync( filePath ); // Recurse into subdirectories
 				}
 			}
 		}
 	}
 
 	try {
-		walkSync(outputDir);
-	} catch (err) {
-		if (err.message !== 'limit_reached') {
+		walkSync( outputDir );
+	} catch ( err ) {
+		if ( err.message !== 'limit_reached' ) {
 			throw err;
 		}
 	}
 
-
-	log('# Error Info');
+	log( '# Error Info' );
 
 	const successCount =
 		errorManifest.totalUrlCount - errorManifest.totalErroredUrlCount;
 	log(
-		`Success rate for being able to analyze a URL: ${(
-			(successCount / errorManifest.totalUrlCount) *
+		`Success rate for being able to analyze a URL: ${ (
+			( successCount / errorManifest.totalUrlCount ) *
 			100
-		).toFixed(1)}% (${successCount} of ${errorManifest.totalUrlCount}).`
+		).toFixed( 1 ) }% (${ successCount } of ${
+			errorManifest.totalUrlCount
+		}).`
 	);
-	log('');
+	log( '' );
 
-	log('Error Message | URL Count');
-	log('-- | --:');
+	log( 'Error Message | URL Count' );
+	log( '-- | --:' );
 
-	const errorCounts = Object.entries( errorManifest.errorUrlMap ).map(
-		( [ errorMessage, urls ] ) => {
-		return [ errorMessage, urls.length ];
-	} ).sort( ( a, b ) => {
-		// @ts-ignore
-		return b[1] - a[1];
-	} );
-	for (const [errorMessage, errorCount] of errorCounts) {
-		log(`${errorMessage} | ${errorCount}`);
+	const errorCounts = Object.entries( errorManifest.errorUrlMap )
+		.map( ( [ errorMessage, urls ] ) => {
+			return [ errorMessage, urls.length ];
+		} )
+		.sort( ( a, b ) => {
+			// @ts-ignore
+			return b[ 1 ] - a[ 1 ];
+		} );
+	for ( const [ errorMessage, errorCount ] of errorCounts ) {
+		log( `${ errorMessage } | ${ errorCount }` );
 	}
-	log('');
+	log( '' );
 
-	log('--------------------------------------');
-	log('');
-	log('# Metrics');
-	console.log(aggregateDiffs);
+	log( '--------------------------------------' );
+	log( '' );
+	log( '# Metrics' );
 
-	for (const key of Object.keys(aggregateDiffs)) {
-		log(`## ${key}`);
+	for ( const key of Object.keys( aggregateDiffs ) ) {
+		log( `## ${ key }` );
 		log(
-			`* Average diff time: ${formatNumber(
-				computeAverage(aggregateDiffs[key].diffTime)
-			)}ms (${formatNumber(
-				computeAverage(aggregateDiffs[key].diffPercent)
-			)}%)`
+			`* Average diff time: ${ formatNumber(
+				computeAverage( aggregateDiffs[ key ].diffTime )
+			) }ms (${ formatNumber(
+				computeAverage( aggregateDiffs[ key ].diffPercent )
+			) }%)`
 		);
 		log(
-			`* Median diff time: ${formatNumber(
-				computeMedian(aggregateDiffs[key].diffTime)
-			)}ms (${formatNumber(
-				computeMedian(aggregateDiffs[key].diffPercent)
-			)}%)`
+			`* Median diff time: ${ formatNumber(
+				computeMedian( aggregateDiffs[ key ].diffTime )
+			) }ms (${ formatNumber(
+				computeMedian( aggregateDiffs[ key ].diffPercent )
+			) }%)`
 		);
-		log('');
+		log( '' );
 	}
 
-	log('--------------------------------------------------------');
-	log('');
-	log('# Optimization Accuracy Stats');
+	log( '--------------------------------------------------------' );
+	log( '' );
+	log( '# Optimization Accuracy Stats' );
 
+	log( optimizationAccuracy );
 
-	console.log(optimizationAccuracy)
-
-	/**
-	 * @param {object} args
-	 * @param {number} pass
-	 * @param {number} fail
-	 * @returns {string}
-	 */
-	const computePassRate = ( { pass, fail } ) => {
-		const totalCount = pass + fail;
-		if ( totalCount === 0 ) {
-			return 'n/a';
-		}
-		const passRate = pass / totalCount;
-		return ( passRate * 100 ).toFixed(1) + '%';
-	};
-
-	log(`Optimization | Original | Optimized`);
-	log(`-- | --: | --:`);
+	log( `Optimization | Original | Optimized` );
+	log( `-- | --: | --:` );
 	log(
 		[
 			'LCP image prioritized',
-			computePassRate( optimizationAccuracy.original.lcpImagePrioritized ),
-			computePassRate( optimizationAccuracy.optimized.lcpImagePrioritized ),
-		].join(' | ')
+			computePassRate(
+				optimizationAccuracy.original.lcpImagePrioritized
+			),
+			computePassRate(
+				optimizationAccuracy.optimized.lcpImagePrioritized
+			),
+		].join( ' | ' )
 	);
 	log(
 		[
 			'Lazy loaded `IMG` not in viewport',
-			computePassRate( optimizationAccuracy.original.lazyLoadedImgNotInViewport ),
-			computePassRate( optimizationAccuracy.optimized.lazyLoadedImgNotInViewport ),
-		].join(' | ')
+			computePassRate(
+				optimizationAccuracy.original.lazyLoadedImgNotInViewport
+			),
+			computePassRate(
+				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport
+			),
+		].join( ' | ' )
 	);
 	log(
 		[
 			'`IMG` with `fetchpriority=high` only in viewport',
-			computePassRate( optimizationAccuracy.original.imgWithFetchpriorityHighAttrInViewport ),
-			computePassRate( optimizationAccuracy.optimized.imgWithFetchpriorityHighAttrInViewport ),
-		].join(' | ')
+			computePassRate(
+				optimizationAccuracy.original
+					.imgWithFetchpriorityHighAttrInViewport
+			),
+			computePassRate(
+				optimizationAccuracy.optimized
+					.imgWithFetchpriorityHighAttrInViewport
+			),
+		].join( ' | ' )
 	);
 }
 
@@ -389,9 +406,9 @@ export async function handler( opt ) {
  * @param {number} num
  * @return {string} Formatted number.
  */
-function formatNumber( num ){
+function formatNumber( num ) {
 	return ( num > 0 ? '+' : '' ) + num.toFixed( 1 );
-};
+}
 
 /**
  * @param {number[]} numbers
@@ -433,6 +450,21 @@ function computeMedian( numbers ) {
 	}
 	// Odd number of elements: median is the middle element.
 	return sortedNumbers[ middleIndex ];
+}
+
+/**
+ * @param {Object} args
+ * @param {number} args.pass
+ * @param {number} args.fail
+ * @return {string} Pass rate.
+ */
+function computePassRate( { pass, fail } ) {
+	const totalCount = pass + fail;
+	if ( totalCount === 0 ) {
+		return 'n/a';
+	}
+	const passRate = pass / totalCount;
+	return ( passRate * 100 ).toFixed( 1 ) + '%';
 }
 
 /**
