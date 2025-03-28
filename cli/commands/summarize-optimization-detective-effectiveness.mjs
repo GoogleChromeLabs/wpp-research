@@ -48,51 +48,49 @@ const errorManifest = {
 
 /**
  *
- * @type {{LCP: {diffTime: number[], diffPercent: number[]}, TTFB: {diffTime: number[], diffPercent: number[]}, "LCP-TTFB": {diffTime: number[], diffPercent: number[]}}}
+ * @type {{diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}}
+ */
+const defaultAggregateDiffValue = {
+	diffTime: {
+		mobile: [],
+		desktop: [],
+	},
+	diffPercent: {
+		mobile: [],
+		desktop: [],
+	}
+};
+
+/**
+ * @type {{LCP: {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}, TTFB: {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}, "LCP-TTFB": {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}}}
  */
 const aggregateDiffs = {
-	LCP: {
-		diffTime: [],
-		diffPercent: [],
+	LCP: structuredClone( defaultAggregateDiffValue ),
+	TTFB: structuredClone( defaultAggregateDiffValue ),
+	'LCP-TTFB': structuredClone( defaultAggregateDiffValue ),
+};
+
+const defaultMobileDesktopPassFailValue = {
+	mobile: {
+		pass: 0,
+		fail: 0,
 	},
-	TTFB: {
-		diffTime: [],
-		diffPercent: [],
-	},
-	'LCP-TTFB': {
-		diffTime: [],
-		diffPercent: [],
+	desktop: {
+		pass: 0,
+		fail: 0,
 	},
 };
 
 const optimizationAccuracy = {
 	original: {
-		lcpImagePrioritized: {
-			pass: 0,
-			fail: 0,
-		},
-		lazyLoadedImgNotInViewport: {
-			pass: 0,
-			fail: 0,
-		},
-		imgWithFetchpriorityHighAttrInViewport: {
-			pass: 0,
-			fail: 0,
-		},
+		lcpImagePrioritized: structuredClone( defaultMobileDesktopPassFailValue ),
+		lazyLoadedImgNotInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
+		imgWithFetchpriorityHighAttrInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
 	},
 	optimized: {
-		lcpImagePrioritized: {
-			pass: 0,
-			fail: 0,
-		},
-		lazyLoadedImgNotInViewport: {
-			pass: 0,
-			fail: 0,
-		},
-		imgWithFetchpriorityHighAttrInViewport: {
-			pass: 0,
-			fail: 0,
-		},
+		lcpImagePrioritized: structuredClone( defaultMobileDesktopPassFailValue ),
+		lazyLoadedImgNotInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
+		imgWithFetchpriorityHighAttrInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
 	},
 };
 
@@ -162,8 +160,8 @@ function handleSuccessCase( dirPath, url ) {
 			const diffTime =
 				data[ device ].optimized.metrics[ key ].value -
 				data[ device ].original.metrics[ key ].value;
-			aggregateDiffs[ key ].diffTime.push( diffTime );
-			aggregateDiffs[ key ].diffPercent.push(
+			aggregateDiffs[ key ].diffTime[ device ].push( diffTime );
+			aggregateDiffs[ key ].diffPercent[ device ].push(
 				( diffTime / data[ device ].original.metrics[ key ].value ) *
 					100
 			);
@@ -176,10 +174,10 @@ function handleSuccessCase( dirPath, url ) {
 					data[ device ][ status ].images
 						.lazyImgInsideViewportCount === 0
 				) {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[device]
 						.pass++;
 				} else {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[device]
 						.fail++;
 				}
 			}
@@ -197,10 +195,10 @@ function handleSuccessCase( dirPath, url ) {
 						.outsideViewportCount === 0
 				) {
 					optimizationAccuracy[ status ]
-						.imgWithFetchpriorityHighAttrInViewport.pass++;
+						.imgWithFetchpriorityHighAttrInViewport[device].pass++;
 				} else {
 					optimizationAccuracy[ status ]
-						.imgWithFetchpriorityHighAttrInViewport.fail++;
+						.imgWithFetchpriorityHighAttrInViewport[device].fail++;
 				}
 			}
 
@@ -223,9 +221,9 @@ function handleSuccessCase( dirPath, url ) {
 					}
 				}
 				if ( passed ) {
-					optimizationAccuracy[ status ].lcpImagePrioritized.pass++;
+					optimizationAccuracy[ status ].lcpImagePrioritized[device].pass++;
 				} else {
-					optimizationAccuracy[ status ].lcpImagePrioritized.fail++;
+					optimizationAccuracy[ status ].lcpImagePrioritized[device].fail++;
 				}
 			}
 		}
@@ -339,20 +337,22 @@ export async function handler( opt ) {
 
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		log( `## ${ key }` );
-		log(
-			`* Average diff time: ${ formatNumber(
-				computeAverage( aggregateDiffs[ key ].diffTime )
-			) }ms (${ formatNumber(
-				computeAverage( aggregateDiffs[ key ].diffPercent )
-			) }%)`
-		);
-		log(
-			`* Median diff time: ${ formatNumber(
-				computeMedian( aggregateDiffs[ key ].diffTime )
-			) }ms (${ formatNumber(
-				computeMedian( aggregateDiffs[ key ].diffPercent )
-			) }%)`
-		);
+		for ( const device of [ 'mobile', 'desktop' ] ) {
+			log(
+				`* Average diff time for ${ device }: ${ formatNumber(
+					computeAverage( aggregateDiffs[ key ].diffTime[ device ] )
+				) }ms (${ formatNumber(
+					computeAverage( aggregateDiffs[ key ].diffPercent[ device ] )
+				) }%)`
+			);
+			log(
+				`* Median diff time for ${ device }: ${ formatNumber(
+					computeMedian( aggregateDiffs[ key ].diffTime[ device ] )
+				) }ms (${ formatNumber(
+					computeMedian( aggregateDiffs[ key ].diffPercent[ device ] )
+				) }%)`
+			);
+		}
 		log( '' );
 	}
 
@@ -360,18 +360,22 @@ export async function handler( opt ) {
 	log( '' );
 	log( '# Optimization Accuracy Stats' );
 
-	log( optimizationAccuracy );
-
-	log( `Optimization | Original | Optimized` );
-	log( `-- | --: | --:` );
+	log( `Optimization | Original Mobile | Optimized Mobile | Original Desktop | Optimized Desktop` );
+	log( `-- | --: | --: | --: | --:` );
 	log(
 		[
 			'LCP image prioritized',
 			computePassRate(
-				optimizationAccuracy.original.lcpImagePrioritized
+				optimizationAccuracy.original.lcpImagePrioritized.mobile
 			),
 			computePassRate(
-				optimizationAccuracy.optimized.lcpImagePrioritized
+				optimizationAccuracy.optimized.lcpImagePrioritized.mobile
+			),
+			computePassRate(
+				optimizationAccuracy.original.lcpImagePrioritized.desktop
+			),
+			computePassRate(
+				optimizationAccuracy.optimized.lcpImagePrioritized.desktop
 			),
 		].join( ' | ' )
 	);
@@ -379,10 +383,16 @@ export async function handler( opt ) {
 		[
 			'Lazy loaded `IMG` not in viewport',
 			computePassRate(
-				optimizationAccuracy.original.lazyLoadedImgNotInViewport
+				optimizationAccuracy.original.lazyLoadedImgNotInViewport.mobile
 			),
 			computePassRate(
-				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport
+				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport.mobile
+			),
+			computePassRate(
+				optimizationAccuracy.original.lazyLoadedImgNotInViewport.desktop
+			),
+			computePassRate(
+				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport.desktop
 			),
 		].join( ' | ' )
 	);
@@ -391,11 +401,19 @@ export async function handler( opt ) {
 			'`IMG` with `fetchpriority=high` only in viewport',
 			computePassRate(
 				optimizationAccuracy.original
-					.imgWithFetchpriorityHighAttrInViewport
+					.imgWithFetchpriorityHighAttrInViewport.mobile
 			),
 			computePassRate(
 				optimizationAccuracy.optimized
-					.imgWithFetchpriorityHighAttrInViewport
+					.imgWithFetchpriorityHighAttrInViewport.mobile
+			),
+			computePassRate(
+				optimizationAccuracy.original
+					.imgWithFetchpriorityHighAttrInViewport.desktop
+			),
+			computePassRate(
+				optimizationAccuracy.optimized
+					.imgWithFetchpriorityHighAttrInViewport.desktop
 			),
 		].join( ' | ' )
 	);
