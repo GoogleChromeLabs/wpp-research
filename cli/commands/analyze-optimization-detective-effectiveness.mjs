@@ -158,6 +158,22 @@ export async function handler( opt ) {
 				);
 			};
 
+			// First hit the site as the device to prime the pipes.
+			const urlObj = new URL( opt.url );
+			urlObj.searchParams.set( 'optimization_detective_priming', '1' );
+			browser = await launchBrowser();
+			const page = await browser.newPage();
+			await page.emulate( isMobile ? mobileDevice : desktopDevice );
+			const response = await page.goto( urlObj.toString(), {
+				waitUntil: 'networkidle0',
+			} );
+			await browser.close();
+			if ( response.status() !== 200 ) {
+				throw new Error(
+					`Error: Bad response code ${ response.status() }.`
+				);
+			}
+
 			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
 			// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
 			const resultGetterFunctions = [
@@ -168,10 +184,7 @@ export async function handler( opt ) {
 				resultGetterFunctions.reverse();
 			}
 			for ( const getResults of resultGetterFunctions ) {
-				browser = await puppeteer.launch( {
-					headless: true,
-					args: [ '--disable-cache' ],
-				} );
+				browser = await launchBrowser();
 				await getResults();
 				await browser.close();
 			}
@@ -201,6 +214,16 @@ export async function handler( opt ) {
 	}
 
 	process.exit( caughtError ? 1 : 0 );
+}
+
+/**
+ * @return {Promise<Browser>} Browser.
+ */
+async function launchBrowser() {
+	return await puppeteer.launch( {
+		headless: true,
+		args: [ '--disable-cache' ],
+	} );
 }
 
 /**
