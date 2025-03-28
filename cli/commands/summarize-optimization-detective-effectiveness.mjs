@@ -96,6 +96,9 @@ const optimizationAccuracy = {
 	},
 };
 
+/** @type {string[]} */
+const urlsWithODImagePrioritizationFailures = [];
+
 /**
  * @param {string} dirPath
  * @param {string} url
@@ -201,7 +204,7 @@ function handleSuccessCase( dirPath, url ) {
 					passed = ( lcpData.preloadedByOD === true );
 
 					if ( ! passed ) {
-						console.log( device, url );
+						urlsWithODImagePrioritizationFailures.push( url );
 					}
 				}
 				if ( passed ) {
