@@ -428,6 +428,7 @@ async function analyze(
 						);
 					}
 
+					// TODO: Capture the entire thing, not just the value.
 					const metricData = {
 						value: metric.value,
 					};

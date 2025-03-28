@@ -43,7 +43,7 @@ export const options = [
  * Gets the absolute output directory.
  *
  * @param {string} outputDir
- * @return {string} Abosolute dir.
+ * @return {string} Absolute dir.
  */
 function getAbsoluteOutputDir( outputDir ) {
 	if ( outputDir.startsWith( '/' ) ) {
@@ -56,7 +56,7 @@ function getAbsoluteOutputDir( outputDir ) {
  *
  * @param {Object} opt
  * @param {string} opt.outputDir
- * @param {number} opt.limit
+ * @param {string|null} opt.limit
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
@@ -78,9 +78,9 @@ export async function handler( opt ) {
 		errorManifest.totalUrlCount - errorManifest.totalErroredUrlCount;
 	log(
 		`Success rate for being able to analyze a URL: ${ (
-			( successCount / errorManifest.urlCount ) *
+			( successCount / errorManifest.totalUrlCount ) *
 			100
-		).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.urlCount }).`
+		).toFixed( 1 ) }% (${ successCount } of ${ errorManifest.totalUrlCount }).`
 	);
 	log( '' );
 
@@ -200,6 +200,7 @@ function obtainAggregateDiffMetrics( resultDir, limit ) {
 	function walkSync( dirPath ) {
 		const files = fs.readdirSync( dirPath );
 
+		// TODO: Get basename of dirPath to segment by mobile vs desktop.
 		if ( files.includes( 'original' ) && files.includes( 'optimized' ) ) {
 			// Abort if the analysis was not completed yet (where version.txt is written after the analysis of a URL is complete) or if there was an error.
 			if (
@@ -312,7 +313,7 @@ function computeMedian( numbers ) {
  *
  * @param {string} outputDir
  * @param {number|null} limit
- * @return {{totalUrlCount: number, errorUrlCount: number, errorUrlMap: {}, errorCounts: Object<string, number>}} Error mainfest.
+ * @return {{totalUrlCount: number, totalErroredUrlCount: number, errorUrlMap: {}, errorCounts: Object<string, number>}} Error manifest.
  */
 function obtainErrorManifest( outputDir, limit ) {
 	let i = 0;
@@ -401,7 +402,8 @@ function obtainErrorManifest( outputDir, limit ) {
 		}
 	}
 
-	const errorCounts = /** @type {Object<string, number>} */ {};
+	/** @type {Object<string, number>} */
+	const errorCounts = {};
 	for ( const [ errorMessage, urls ] of Object.entries( errorUrlMap ) ) {
 		if ( ! ( errorMessage in errorCounts ) ) {
 			errorCounts[ errorMessage ] = urls.length;
