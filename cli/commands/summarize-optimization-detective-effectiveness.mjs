@@ -58,7 +58,7 @@ const defaultAggregateDiffValue = {
 	diffPercent: {
 		mobile: [],
 		desktop: [],
-	}
+	},
 };
 
 /**
@@ -83,14 +83,26 @@ const defaultMobileDesktopPassFailValue = {
 
 const optimizationAccuracy = {
 	original: {
-		lcpImagePrioritized: structuredClone( defaultMobileDesktopPassFailValue ),
-		lazyLoadedImgNotInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
-		imgWithFetchpriorityHighAttrInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
+		lcpImagePrioritized: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
+		lazyLoadedImgNotInViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
+		imgWithFetchpriorityHighAttrInViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
 	},
 	optimized: {
-		lcpImagePrioritized: structuredClone( defaultMobileDesktopPassFailValue ),
-		lazyLoadedImgNotInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
-		imgWithFetchpriorityHighAttrInViewport: structuredClone( defaultMobileDesktopPassFailValue ),
+		lcpImagePrioritized: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
+		lazyLoadedImgNotInViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
+		imgWithFetchpriorityHighAttrInViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
 	},
 };
 
@@ -174,11 +186,13 @@ function handleSuccessCase( dirPath, url ) {
 					data[ device ][ status ].images
 						.lazyImgInsideViewportCount === 0
 				) {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[device]
-						.pass++;
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[
+						device
+					].pass++;
 				} else {
-					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[device]
-						.fail++;
+					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[
+						device
+					].fail++;
 				}
 			}
 
@@ -195,10 +209,12 @@ function handleSuccessCase( dirPath, url ) {
 						.outsideViewportCount === 0
 				) {
 					optimizationAccuracy[ status ]
-						.imgWithFetchpriorityHighAttrInViewport[device].pass++;
+						.imgWithFetchpriorityHighAttrInViewport[ device ]
+						.pass++;
 				} else {
 					optimizationAccuracy[ status ]
-						.imgWithFetchpriorityHighAttrInViewport[device].fail++;
+						.imgWithFetchpriorityHighAttrInViewport[ device ]
+						.fail++;
 				}
 			}
 
@@ -217,13 +233,18 @@ function handleSuccessCase( dirPath, url ) {
 					passed = lcpData.preloadedByOD === true;
 
 					if ( ! passed ) {
-						urlsWithODImagePrioritizationFailures.push( { device, url } );
+						urlsWithODImagePrioritizationFailures.push( {
+							device,
+							url,
+						} );
 					}
 				}
 				if ( passed ) {
-					optimizationAccuracy[ status ].lcpImagePrioritized[device].pass++;
+					optimizationAccuracy[ status ].lcpImagePrioritized[ device ]
+						.pass++;
 				} else {
-					optimizationAccuracy[ status ].lcpImagePrioritized[device].fail++;
+					optimizationAccuracy[ status ].lcpImagePrioritized[ device ]
+						.fail++;
 				}
 			}
 		}
@@ -342,7 +363,9 @@ export async function handler( opt ) {
 				`* Average diff time for ${ device }: ${ formatNumber(
 					computeAverage( aggregateDiffs[ key ].diffTime[ device ] )
 				) }ms (${ formatNumber(
-					computeAverage( aggregateDiffs[ key ].diffPercent[ device ] )
+					computeAverage(
+						aggregateDiffs[ key ].diffPercent[ device ]
+					)
 				) }%)`
 			);
 			log(
@@ -360,7 +383,9 @@ export async function handler( opt ) {
 	log( '' );
 	log( '# Optimization Accuracy Stats' );
 
-	log( `Optimization | Original Mobile | Optimized Mobile | Original Desktop | Optimized Desktop` );
+	log(
+		`Optimization | Original Mobile | Optimized Mobile | Original Desktop | Optimized Desktop`
+	);
 	log( `-- | --: | --: | --: | --:` );
 	log(
 		[
@@ -392,7 +417,8 @@ export async function handler( opt ) {
 				optimizationAccuracy.original.lazyLoadedImgNotInViewport.desktop
 			),
 			computePassRate(
-				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport.desktop
+				optimizationAccuracy.optimized.lazyLoadedImgNotInViewport
+					.desktop
 			),
 		].join( ' | ' )
 	);

@@ -21,12 +21,17 @@ const version = 1;
 /**
  * External dependencies
  */
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 
+/* eslint-disable jsdoc/no-undefined-types */
+
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("web-vitals").Metric} Metric */
+/** @typedef {import("puppeteer").HTTPResponse} HTTPResponse */
+/** @typedef {import("puppeteer").Page} Page */
+/** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
 
 /* eslint-enable jsdoc/valid-types */
@@ -117,9 +122,7 @@ export async function handler( opt ) {
 		}
 	}
 
-	const browser = await puppeteer.launch( {
-		headless: true,
-	} );
+	let browser;
 
 	let caughtError = null;
 	try {
@@ -157,12 +160,20 @@ export async function handler( opt ) {
 
 			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
 			// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
-			if ( deviceIterationIndex === 0 ) {
-				await getOptimizedResult();
-				await getOriginalResult();
-			} else {
-				await getOriginalResult();
-				await getOptimizedResult();
+			const resultGetterFunctions = [
+				getOptimizedResult,
+				getOriginalResult,
+			];
+			if ( deviceIterationIndex !== 0 ) {
+				resultGetterFunctions.reverse();
+			}
+			for ( const getResults of resultGetterFunctions ) {
+				browser = await puppeteer.launch( {
+					headless: true,
+					args: [ '--disable-cache' ],
+				} );
+				await getResults();
+				await browser.close();
 			}
 
 			deviceIterationIndex++;
@@ -222,10 +233,6 @@ async function analyze(
 	isMobile,
 	optimizationDetectiveEnabled
 ) {
-	const globalVariablePrefix = '__wppResearchWebVitals';
-
-	const emulateDevice = isMobile ? mobileDevice : desktopDevice;
-
 	const urlObj = new URL( url );
 	urlObj.searchParams.set(
 		optimizationDetectiveEnabled
@@ -234,6 +241,7 @@ async function analyze(
 		'1'
 	);
 
+	const globalVariablePrefix = '__wppResearchWebVitals';
 	const scriptTag = /** lang=JS */ `
 		import { onLCP, onTTFB } from "https://unpkg.com/web-vitals@4/dist/web-vitals.js";
 		onLCP( ( metric ) => { window.${ globalVariablePrefix }LCP = metric; } );
@@ -242,16 +250,8 @@ async function analyze(
 
 	const page = await browser.newPage();
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
+	const emulateDevice = isMobile ? mobileDevice : desktopDevice;
 	await page.emulate( emulateDevice );
-
-	// Make sure any username and password in the URL is passed along for authentication.
-	if ( urlObj.username && urlObj.password ) {
-		await page.authenticate( {
-			username: urlObj.username,
-			password: urlObj.password,
-		} );
-	}
-
 	const response = await page.goto( urlObj.toString(), {
 		waitUntil: 'networkidle0',
 	} );
@@ -433,17 +433,27 @@ async function analyze(
 						const ttfbEntry = /** @type {PerformanceEntry} */ entry;
 
 						// For some reason the PerformanceServerTiming objects aren't included when doing toJSON().
-						if ( 'serverTiming' in ttfbEntry && ttfbEntry.serverTiming.length > 0 ) {
-							metricData.serverTiming = ttfbEntry.serverTiming.map( ( /** @type {PerformanceServerTiming} */ serverTiming ) => {
-								return {
-									name: serverTiming.name,
-									description: serverTiming.description,
-									duration: serverTiming.duration,
-								};
-							} );
+						if (
+							'serverTiming' in ttfbEntry &&
+							ttfbEntry.serverTiming.length > 0
+						) {
+							metricData.serverTiming =
+								ttfbEntry.serverTiming.map(
+									(
+										/** @type {PerformanceServerTiming} */ serverTiming
+									) => {
+										return {
+											name: serverTiming.name,
+											description:
+												serverTiming.description,
+											duration: serverTiming.duration,
+										};
+									}
+								);
 						}
 					} else if ( 'LCP' === metric.name ) {
-						const lcpEntry = /** @type {LargestContentfulPaint} */ entry;
+						const lcpEntry =
+							/** @type {LargestContentfulPaint} */ entry;
 
 						if ( lcpEntry.url ) {
 							for ( /** @type {HTMLLinkElement} */ const odPreloadLink of document.querySelectorAll(
