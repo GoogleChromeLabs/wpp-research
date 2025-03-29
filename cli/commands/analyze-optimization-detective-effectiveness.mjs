@@ -242,7 +242,7 @@ export async function handler( opt ) {
 					logPartial( `Priming web server with initial request on ${ isMobile ? 'mobile' : 'desktop' }... ` );
 				}
 				const urlObj = new URL( opt.url );
-				urlObj.searchParams.set( 'optimization_detective_priming', '1' ); // TODO: Random number.
+				urlObj.searchParams.set( 'optimization_detective_priming', Date.now().toString() );
 				browser = await launchBrowser();
 				const page = await browser.newPage();
 				await page.emulate( isMobile ? mobileDevice : desktopDevice );
@@ -344,7 +344,7 @@ async function analyze(
 		optimizationDetectiveEnabled
 			? 'optimization_detective_enabled' // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
 			: 'optimization_detective_disabled',
-		'1' // TODO: random integer or timestamp goes here.
+		Date.now().toString()
 	);
 
 	if ( verbose ) {
