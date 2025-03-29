@@ -31,17 +31,48 @@ import path from 'path';
 /** @typedef {import("web-vitals").Metric} Metric */
 /** @typedef {import("puppeteer").HTTPResponse} HTTPResponse */
 /** @typedef {import("puppeteer").Page} Page */
+/** @typedef {import("puppeteer").Device} Device */
 /** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
 
 /* eslint-enable jsdoc/valid-types */
 // TODO: deviceScaleFactor, isMobile, isLandscape, hasTouch.
 /** @typedef {{width: number, height: number}} ViewportDimensions */
+/**
+ * @typedef {Object} AnalysisResult
+ * @property {Device} device
+ * @property {{
+ *         TTFB: {
+ *             value: number
+ *         },
+ *         LCP: {
+ *             value: number,
+ *             url: string|null,
+ *             element: object|null,
+ *             initiatorType: string|null,
+ *             preloadedByOD: boolean,
+ *         },
+ *         'LCP-TTFB': {
+ *             value: number
+ *         }
+ *     }} metrics
+ * @property {Object<string, string>} pluginVersions
+ * @property {Array<Object<string, string>>} odPreloadLinks
+ * @property {number} odTagsWithXpathAttrs
+ * @property {Object} images
+ * @property {number} images.imgCount
+ * @property {number} images.lazyImgCount
+ * @property {number} images.lazyImgInsideViewportCount
+ * @property {number} images.jsLazyLoadedImgCount
+ * @property {Object} images.fetchpriorityHighAttrImages
+ * @property {number} images.fetchpriorityHighAttrImages.insideViewportCount
+ * @property {number} images.fetchpriorityHighAttrImages.outsideViewportCount
+ */
 
 /**
  * Internal dependencies
  */
-import { log } from '../lib/cli/logger.mjs';
+import { log, logPartial } from '../lib/cli/logger.mjs';
 
 export const options = [
 	{
@@ -58,6 +89,34 @@ export const options = [
 		argname: '--force',
 		description:
 			'Force re-analyzing a URL which has already been analyzed.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--prime-web-server',
+		description:
+			'Whether to hit the web server for mobile or desktop first before obtaining results.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--request-optimized-first',
+		description:
+			'Whether to request the optimized version first before requesting the original (non-optimized) version.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--request-desktop-first',
+		description:
+			'Whether to request the desktop version first before requesting the mobile version.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '-v, --verbose',
+		description:
+			'Log out which requests are being made.',
 		required: false,
 		default: false,
 	},
@@ -98,6 +157,10 @@ const desktopDevice = {
  * @param {string}  opt.url
  * @param {string}  opt.outputDir
  * @param {boolean} opt.force
+ * @param {boolean} opt.requestOptimizedFirst
+ * @param {boolean} opt.requestDesktopFirst
+ * @param {boolean} opt.primeWebServer
+ * @param {boolean} opt.verbose
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
@@ -126,61 +189,84 @@ export async function handler( opt ) {
 
 	let caughtError = null;
 	try {
-		let deviceIterationIndex = 0;
-		for ( const isMobile of [ true, false ] ) {
+		const isMobileValues = [ true, false ];
+		if ( opt.requestDesktopFirst ) {
+			isMobileValues.reverse();
+		}
+		for ( const isMobile of isMobileValues ) {
 			const deviceDir = path.join(
 				opt.outputDir,
 				isMobile ? 'mobile' : 'desktop'
 			);
 			fs.mkdirSync( deviceDir, { recursive: true } );
 
+			/**
+			 * @type {AnalysisResult}
+			 */
+			let originalResult;
+
+			/**
+			 * @type {AnalysisResult}
+			 */
+			let optimizedResult;
+
 			const getOriginalResult = async () => {
 				const originalDir = path.join( deviceDir, 'original' );
 				fs.mkdirSync( originalDir, { recursive: true } );
-				return await analyze(
+				originalResult = await analyze(
 					originalDir,
 					opt.url,
 					browser,
 					isMobile,
-					false
+					false,
+					opt.verbose
 				);
 			};
 
 			const getOptimizedResult = async () => {
 				const optimizedDir = path.join( deviceDir, 'optimized' );
 				fs.mkdirSync( optimizedDir, { recursive: true } );
-				return await analyze(
+				optimizedResult = await analyze(
 					optimizedDir,
 					opt.url,
 					browser,
 					isMobile,
-					true
+					true,
+					opt.verbose
 				);
 			};
 
 			// First hit the site as the device to prime the pipes.
-			const urlObj = new URL( opt.url );
-			urlObj.searchParams.set( 'optimization_detective_priming', '1' );
-			browser = await launchBrowser();
-			const page = await browser.newPage();
-			await page.emulate( isMobile ? mobileDevice : desktopDevice );
-			const response = await page.goto( urlObj.toString(), {
-				waitUntil: 'networkidle0',
-			} );
-			await browser.close();
-			if ( response.status() !== 200 ) {
-				throw new Error(
-					`Error: Bad response code ${ response.status() }.`
-				);
+			if ( opt.primeWebServer ) {
+				if ( opt.verbose ) {
+					logPartial( `Priming web server with initial request on ${ isMobile ? 'mobile' : 'desktop' }... ` );
+				}
+				const urlObj = new URL( opt.url );
+				urlObj.searchParams.set( 'optimization_detective_priming', '1' ); // TODO: Random number.
+				browser = await launchBrowser();
+				const page = await browser.newPage();
+				await page.emulate( isMobile ? mobileDevice : desktopDevice );
+				const response = await page.goto( urlObj.toString(), {
+					waitUntil: 'networkidle0',
+				} );
+				await browser.close();
+				if ( response.status() !== 200 ) {
+					throw new Error(
+						`Error: Bad response code ${ response.status() }.`
+					);
+				}
+				if ( opt.verbose ) {
+					log( 'done' );
+				}
 			}
 
 			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
 			// But then for the next device (desktop), start with the original version so we don't always start with one or the other.
 			const resultGetterFunctions = [
-				getOptimizedResult,
 				getOriginalResult,
+				getOptimizedResult,
 			];
-			if ( deviceIterationIndex !== 0 ) {
+			if ( opt.requestOptimizedFirst ) {
 				resultGetterFunctions.reverse();
 			}
 			for ( const getResults of resultGetterFunctions ) {
@@ -189,7 +275,17 @@ export async function handler( opt ) {
 				await browser.close();
 			}
 
-			deviceIterationIndex++;
+			if ( opt.verbose ) {
+				const optimizedLcpTtfb = optimizedResult.metrics['LCP-TTFB'].value;
+				const originalLcpTtfb = originalResult.metrics['LCP-TTFB'].value;
+
+				const diffAbs = Math.abs( originalLcpTtfb - optimizedLcpTtfb );
+				if ( optimizedLcpTtfb > originalLcpTtfb ) {
+					log( `FAIL: Optimized is ${ diffAbs.toFixed( 1 ) } ms (${ ( diffAbs / originalLcpTtfb * 100 ).toFixed( 1 ) }%) slower than original for LCP-TTFB.` );
+				} else {
+					log( `PASS: Optimized is ${ diffAbs.toFixed( 1 ) } ms (${ ( diffAbs / originalLcpTtfb * 100 ).toFixed( 1 ) }%) faster than original for LCP-TTFB.` );
+				}
+			}
 		}
 	} catch ( err ) {
 		log( `Error: ${ err.message } for ${ opt.url }` );
@@ -232,37 +328,28 @@ async function launchBrowser() {
  * @param {Browser} browser
  * @param {boolean} isMobile
  * @param {boolean} optimizationDetectiveEnabled
- * @return {Promise<{
- *     device: Object,
- *     metrics: {
- *         TTFB: {
- *             value: number
- *         },
- *         LCP: {
- *             value: number|null,
- *             url: string|null,
- *             element: object|null,
- *             initiatorType: string|null,
- *             preloadedByOD: boolean,
- *         },
- *         'LCP-TTFB': number|null,
- *     }
- * }>} Results
+ * @param {boolean} verbose
+ * @return {Promise<AnalysisResult>} Results
  */
 async function analyze(
 	outputDir,
 	url,
 	browser,
 	isMobile,
-	optimizationDetectiveEnabled
+	optimizationDetectiveEnabled,
+	verbose
 ) {
 	const urlObj = new URL( url );
 	urlObj.searchParams.set(
 		optimizationDetectiveEnabled
 			? 'optimization_detective_enabled' // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
 			: 'optimization_detective_disabled',
-		'1'
+		'1' // TODO: random integer or timestamp goes here.
 	);
+
+	if ( verbose ) {
+		logPartial( `Requesting ${ optimizationDetectiveEnabled ? 'optimized' : 'original' } version on ${ isMobile ? 'mobile' : 'desktop' }... ` );
+	}
 
 	const globalVariablePrefix = '__wppResearchWebVitals';
 	const scriptTag = /** lang=JS */ `
@@ -297,6 +384,9 @@ async function analyze(
 	}
 	await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
+	/**
+	 * @type {AnalysisResult}
+	 */
 	const data = {
 		device: emulateDevice,
 		metrics: {
@@ -304,17 +394,35 @@ async function analyze(
 				value: -1,
 			},
 			LCP: {
-				value: null,
+				value: -1,
 				url: null,
 				element: null,
 				initiatorType: null,
 				preloadedByOD: false,
 			},
-			'LCP-TTFB': null,
+			'LCP-TTFB': {
+				value: -1
+			},
 		},
+		pluginVersions: {},
+		odPreloadLinks: [],
+		odTagsWithXpathAttrs: -1,
+		images: {
+			imgCount: -1,
+			lazyImgCount: -1,
+			lazyImgInsideViewportCount: -1,
+			jsLazyLoadedImgCount: -1,
+			fetchpriorityHighAttrImages: {
+				insideViewportCount: -1,
+				outsideViewportCount: -1,
+			}
+		}
 	};
 
 	data.pluginVersions = await page.evaluate( () => {
+		/**
+		 * @type {Object<string, string>}
+		 */
 		const pluginVersions = {};
 		const pluginSlugs = [ 'optimization-detective', 'image-prioritizer' ];
 		for ( const pluginSlug of pluginSlugs ) {
@@ -358,13 +466,13 @@ async function analyze(
 	 * with delayed loading:
 	 *
 	 * <script type="rocketlazyloadscript" data-rocket-type="module">
-	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742358407046.32,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"170f4e7f67","currentUrl":"https:\/\/example.com\/article\/photographer-greg-girard-unveils-kowloon-walled-citys-hidden-past","urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"10e711535e","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
+	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742358407046.32,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"170f4e7f67","currentUrl":"https:\/\/example.com\/article\/foo,"urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"10e711535e","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
 	 * </script>
 	 *
 	 * When WP Rocket delay-loads the script, it then looks like this:
 	 *
-	 * <script type="module" src="data:text/javascript;base64,CmltcG9ydCBkZXRlY3QgZnJvbSAiaHR0cHM6XC9cL2V4YW1wbGUuY29tXC93cC1jb250ZW50XC9wbHVnaW5zXC9vcHRpbWl6YXRpb24tZGV0ZWN0aXZlXC9kZXRlY3QuanM/dmVyPTAuNC4xIjsgZGV0ZWN0KCB7InNlcnZlVGltZSI6MTc0MjQ5ODA2NzEyNC4yODYsImRldGVjdGlvblRpbWVXaW5kb3ciOjUwMDAsImlzRGVidWciOmZhbHNlLCJyZXN0QXBpRW5kcG9pbnQiOiJodHRwczpcL1wvcmFkaWkuY29cL3dwLWpzb25cL29wdGltaXphdGlvbi1kZXRlY3RpdmVcL3YxXC91cmwtbWV0cmljczpzdG9yZSIsInJlc3RBcGlOb25jZSI6Ijc1MjU3NmFmOGEiLCJjdXJyZW50VXJsIjoiaHR0cHM6XC9cL3JhZGlpLmNvXC9hcnRpY2xlXC9waG90b2dyYXBoZXItZ3JlZy1naXJhcmQtdW52ZWlscy1rb3dsb29uLXdhbGxlZC1jaXR5cy1oaWRkZW4tcGFzdCIsInVybE1ldHJpY3NTbHVnIjoiZjA4N2I4ODQ3MmYxNWE0NzJjM2I5OWM1MGE5OTJiZDkiLCJ1cmxNZXRyaWNzTm9uY2UiOiIxY2Q2OGQyMmI2IiwidXJsTWV0cmljc0dyb3VwU3RhdHVzZXMiOlt7Im1pbmltdW1WaWV3cG9ydFdpZHRoIjowLCJjb21wbGV0ZSI6ZmFsc2V9LHsibWluaW11bVZpZXdwb3J0V2lkdGgiOjQ4MSwiY29tcGxldGUiOmZhbHNlfSx7Im1pbmltdW1WaWV3cG9ydFdpZHRoIjo2MDEsImNvbXBsZXRlIjpmYWxzZX0seyJtaW5pbXVtVmlld3BvcnRXaWR0aCI6NzgzLCJjb21wbGV0ZSI6ZmFsc2V9XSwic3RvcmFnZUxvY2tUVEwiOjYwLCJ3ZWJWaXRhbHNMaWJyYXJ5U3JjIjoiaHR0cHM6XC9cL3JhZGlpLmNvXC93cC1jb250ZW50XC9wbHVnaW5zXC9vcHRpbWl6YXRpb24tZGV0ZWN0aXZlXC9idWlsZFwvd2ViLXZpdGFscy5qcz92ZXI9NC4yLjEifSApOwo=" data-rocket-status="executed">
-	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742498067124.286,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"752576af8a","currentUrl":"https:\/\/example.com\/article\/photographer-greg-girard-unveils-kowloon-walled-citys-hidden-past","urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"1cd68d22b6","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
+	 * <script type="module" src="data:text/javascript;base64,..." data-rocket-status="executed">
+	 * import detect from "https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/detect.js?ver=0.4.1"; detect( {"serveTime":1742498067124.286,"detectionTimeWindow":5000,"isDebug":false,"restApiEndpoint":"https:\/\/example.com\/wp-json\/optimization-detective\/v1\/url-metrics:store","restApiNonce":"752576af8a","currentUrl":"https:\/\/example.com\/article\/foo,"urlMetricsSlug":"f087b88472f15a472c3b99c50a992bd9","urlMetricsNonce":"1cd68d22b6","urlMetricsGroupStatuses":[{"minimumViewportWidth":0,"complete":false},{"minimumViewportWidth":481,"complete":false},{"minimumViewportWidth":601,"complete":false},{"minimumViewportWidth":783,"complete":false}],"storageLockTTL":60,"webVitalsLibrarySrc":"https:\/\/example.com\/wp-content\/plugins\/optimization-detective\/build\/web-vitals.js?ver=4.2.1"} );
 	 * </script>
 	 *
 	 * If no detection script is on the page in the first place, then it's likely they already have URL Metrics collected.
@@ -555,10 +663,16 @@ async function analyze(
 	}
 
 	data.odPreloadLinks = await page.evaluate( () => {
+		/**
+		 * @type {Array<Object<string, string>>}
+		 */
 		const preloadLinks = [];
 		for ( const link of document.querySelectorAll(
 			'link[ data-od-added-tag ]'
 		) ) {
+			/**
+			 * @type {Object<string, string>}
+			 */
 			const linkAttributes = {};
 			for ( const attribute of link.attributes ) {
 				linkAttributes[ attribute.name ] = attribute.value;
@@ -623,6 +737,10 @@ async function analyze(
 		path.join( outputDir, 'results.json' ),
 		JSON.stringify( data, null, 2 )
 	);
+
+	if ( verbose ) {
+		log( 'done' );
+	}
 
 	return data;
 }
