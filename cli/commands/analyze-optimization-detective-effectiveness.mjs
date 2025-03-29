@@ -26,6 +26,8 @@ import fs from 'fs';
 import path from 'path';
 
 /* eslint-disable jsdoc/no-undefined-types */
+/* eslint-disable jsdoc/check-line-alignment */
+/* eslint-disable jsdoc/require-property-description */
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("web-vitals").Metric} Metric */
@@ -115,8 +117,7 @@ export const options = [
 	},
 	{
 		argname: '-v, --verbose',
-		description:
-			'Log out which requests are being made.',
+		description: 'Log out which requests are being made.',
 		required: false,
 		default: false,
 	},
@@ -239,10 +240,17 @@ export async function handler( opt ) {
 			// First hit the site as the device to prime the pipes.
 			if ( opt.primeWebServer ) {
 				if ( opt.verbose ) {
-					logPartial( `Priming web server with initial request on ${ isMobile ? 'mobile' : 'desktop' }... ` );
+					logPartial(
+						`Priming web server with initial request on ${
+							isMobile ? 'mobile' : 'desktop'
+						}... `
+					);
 				}
 				const urlObj = new URL( opt.url );
-				urlObj.searchParams.set( 'optimization_detective_priming', Date.now().toString() );
+				urlObj.searchParams.set(
+					'optimization_detective_priming',
+					Date.now().toString()
+				);
 				browser = await launchBrowser();
 				const page = await browser.newPage();
 				await page.emulate( isMobile ? mobileDevice : desktopDevice );
@@ -276,15 +284,28 @@ export async function handler( opt ) {
 			}
 
 			if ( opt.verbose ) {
-				const optimizedLcpTtfb = optimizedResult.metrics['LCP-TTFB'].value;
-				const originalLcpTtfb = originalResult.metrics['LCP-TTFB'].value;
+				const optimizedLcpTtfb =
+					optimizedResult.metrics[ 'LCP-TTFB' ].value;
+				const originalLcpTtfb =
+					originalResult.metrics[ 'LCP-TTFB' ].value;
 
-				const diffAbs = Math.abs( originalLcpTtfb - optimizedLcpTtfb );
-				if ( optimizedLcpTtfb > originalLcpTtfb ) {
-					log( `FAIL: Optimized is ${ diffAbs.toFixed( 1 ) } ms (${ ( diffAbs / originalLcpTtfb * 100 ).toFixed( 1 ) }%) slower than original for LCP-TTFB.` );
-				} else {
-					log( `PASS: Optimized is ${ diffAbs.toFixed( 1 ) } ms (${ ( diffAbs / originalLcpTtfb * 100 ).toFixed( 1 ) }%) faster than original for LCP-TTFB.` );
-				}
+				const diffAbsMs = Math.abs(
+					originalLcpTtfb - optimizedLcpTtfb
+				);
+				const diffAbsPercent =
+					Math.abs(
+						( originalLcpTtfb - optimizedLcpTtfb ) / originalLcpTtfb
+					) * 100;
+				const pass = optimizedLcpTtfb <= originalLcpTtfb;
+				log(
+					`${
+						pass ? 'PASS' : 'FAIL'
+					}: Optimized is ${ diffAbsMs.toFixed(
+						1
+					) } ms (${ diffAbsPercent.toFixed( 1 ) }%) ${
+						pass ? 'faster' : 'slower'
+					} than original for LCP-TTFB.`
+				);
 			}
 		}
 	} catch ( err ) {
@@ -348,7 +369,11 @@ async function analyze(
 	);
 
 	if ( verbose ) {
-		logPartial( `Requesting ${ optimizationDetectiveEnabled ? 'optimized' : 'original' } version on ${ isMobile ? 'mobile' : 'desktop' }... ` );
+		logPartial(
+			`Requesting ${
+				optimizationDetectiveEnabled ? 'optimized' : 'original'
+			} version on ${ isMobile ? 'mobile' : 'desktop' }... `
+		);
 	}
 
 	const globalVariablePrefix = '__wppResearchWebVitals';
@@ -401,7 +426,7 @@ async function analyze(
 				preloadedByOD: false,
 			},
 			'LCP-TTFB': {
-				value: -1
+				value: -1,
 			},
 		},
 		pluginVersions: {},
@@ -415,8 +440,8 @@ async function analyze(
 			fetchpriorityHighAttrImages: {
 				insideViewportCount: -1,
 				outsideViewportCount: -1,
-			}
-		}
+			},
+		},
 	};
 
 	data.pluginVersions = await page.evaluate( () => {

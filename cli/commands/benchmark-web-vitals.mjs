@@ -20,7 +20,6 @@
  * External dependencies
  */
 import puppeteer, {
-	Browser,
 	PredefinedNetworkConditions,
 	KnownDevices,
 } from 'puppeteer';
@@ -415,7 +414,6 @@ export async function handler( opt ) {
 
 /**
  * @param {string}                                 url
- * @param {Browser}                                browser
  * @param {Object<string, MetricsDefinitionEntry>} metricsDefinition
  * @param {Params}                                 params
  * @param {boolean}                                logProgress
