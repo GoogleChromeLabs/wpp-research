@@ -171,20 +171,13 @@ function handleSuccessCase( dirPath, url ) {
 					path.join( dirPath, device, status, 'results.json' ),
 					'utf8'
 				)
-			);
+			)
 		}
+	}
 
-		// Obtain metrics.
-		for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
-			const diffTime =
-				data[ device ].optimized.metrics[ key ].value -
-				data[ device ].original.metrics[ key ].value;
-			aggregateDiffs[ key ].diffTime[ device ].push( diffTime );
-			aggregateDiffs[ key ].diffPercent[ device ].push(
-				( diffTime / data[ device ].original.metrics[ key ].value ) *
-					100
-			);
-		}
+	for ( const device of [ 'mobile', 'desktop' ] ) {
+		let odPrioritizedImage = null;
+		let corePrioritizedImage = null;
 
 		for ( const status of [ 'original', 'optimized' ] ) {
 			// Check for accuracy of lazy-loading.
@@ -234,6 +227,8 @@ function handleSuccessCase( dirPath, url ) {
 					passed =
 						lcpData.element?.tagName === 'IMG' &&
 						lcpData.element?.attributes?.fetchpriority === 'high';
+
+					corePrioritizedImage = passed;
 				} else {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 					// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
@@ -245,6 +240,8 @@ function handleSuccessCase( dirPath, url ) {
 							url,
 						} );
 					}
+
+					odPrioritizedImage = passed;
 				}
 				if ( passed ) {
 					optimizationAccuracy[ status ].lcpImagePrioritized[ device ]
@@ -255,6 +252,18 @@ function handleSuccessCase( dirPath, url ) {
 				}
 			}
 		}
+
+		// Obtain metrics.
+		// if ( odPrioritizedImage === true && corePrioritizedImage === false ) {
+			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
+				const diffTime =
+					data[ device ].optimized.metrics[ key ].value -
+					data[ device ].original.metrics[ key ].value;
+				const diffPercent = ( diffTime / data[ device ].original.metrics[ key ].value ) * 100;
+				aggregateDiffs[ key ].diffTime[ device ].push( diffTime );
+				aggregateDiffs[ key ].diffPercent[ device ].push( diffPercent );
+			}
+		// }
 	}
 }
 
