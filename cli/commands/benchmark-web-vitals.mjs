@@ -114,6 +114,11 @@ export const options = [
 		description:
 			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700" if no specific device is being emulated',
 	},
+	{
+		argname: '--pause-duration <milliseconds>',
+		description: 'Time to wait between requests.',
+		required: false,
+	},
 ];
 
 /**
@@ -129,6 +134,7 @@ export const options = [
  * @property {?NetworkConditions}  networkConditions - See above.
  * @property {?Device}             emulateDevice     - See above.
  * @property {?ViewportDimensions} windowViewport    - See above.
+ * @property {?number}             pauseDuration     - See above.
  */
 
 /**
@@ -154,6 +160,7 @@ export const options = [
  * @param {?string}       opt.networkConditions
  * @param {?string}       opt.emulateDevice
  * @param {?string}       opt.windowViewport
+ * @param {?string}       opt.pauseDuration
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -175,6 +182,7 @@ function getParamsFromOptions( opt ) {
 		cpuThrottleFactor: null,
 		networkConditions: null,
 		emulateDevice: null,
+		pauseDuration: null,
 		windowViewport: ! opt.emulateDevice
 			? { width: 960, height: 700 }
 			: null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
@@ -251,6 +259,14 @@ function getParamsFromOptions( opt ) {
 				height: parseInt( matches[ 2 ] ),
 			};
 		}
+	}
+
+	if ( opt.pauseDuration ) {
+		const pauseDuration = parseInt( opt.pauseDuration, 10 );
+		if ( isNaN( pauseDuration ) || pauseDuration < 0 ) {
+			throw new Error( `The --pause-duration argument must be provided a positive integer. Provided: ${ opt.pauseDuration }.` );
+		}
+		params.pauseDuration = pauseDuration;
 	}
 
 	return params;
@@ -385,7 +401,8 @@ export async function handler( opt ) {
 				url,
 				metricsDefinition,
 				params,
-				logIterationsProgress
+				logIterationsProgress,
+				params.pauseDuration
 			);
 			results.push( [ url, completeRequests, metrics ] );
 			if ( logURLProgress ) {
@@ -417,14 +434,10 @@ export async function handler( opt ) {
  * @param {Object<string, MetricsDefinitionEntry>} metricsDefinition
  * @param {Params}                                 params
  * @param {boolean}                                logProgress
+ * @param {?number}                                pauseDuration
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
-	const browser = await puppeteer.launch( {
-		headless: true,
-		args: [ '--disable-cache' ],
-	} );
-
+async function benchmarkURL( url, metricsDefinition, params, logProgress, pauseDuration ) {
 	// Group the required metrics by type.
 	const groupedMetrics = {};
 	Object.keys( metricsDefinition ).forEach( ( metric ) => {
@@ -453,6 +466,10 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
+		const browser = await puppeteer.launch( {
+			headless: true,
+			args: [ '--disable-cache' ],
+		} );
 		if ( logProgress ) {
 			logPartial(
 				`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
@@ -566,8 +583,16 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			} );
 		}
 
+		await browser.close();
+
 		if ( logProgress ) {
 			log( formats.success( 'Success.' ) );
+		}
+
+		if ( pauseDuration ) {
+			await new Promise( ( resolve ) => {
+				setTimeout( resolve, pauseDuration );
+			} );
 		}
 	}
 
@@ -636,8 +661,6 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			}
 		);
 	}
-
-	await browser.close();
 
 	/*
 	 * Include only all the metrics which were requested by the command parameter.
