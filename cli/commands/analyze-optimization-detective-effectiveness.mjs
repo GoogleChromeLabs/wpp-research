@@ -121,6 +121,11 @@ export const options = [
 		required: false,
 		default: false,
 	},
+	{
+		argname: '--pause-duration <milliseconds>',
+		description: 'Time to wait between requests.',
+		required: false,
+	},
 ];
 
 const mobileDevice = {
@@ -161,6 +166,7 @@ const desktopDevice = {
  * @param {boolean} opt.requestOptimizedFirst
  * @param {boolean} opt.requestDesktopFirst
  * @param {boolean} opt.primeWebServer
+ * @param {string|null} opt.pauseDuration
  * @param {boolean} opt.verbose
  * @return {Promise<void>}
  */
@@ -187,6 +193,22 @@ export async function handler( opt ) {
 	}
 
 	let browser;
+
+	let pauseDuration = 0;
+	if ( opt.pauseDuration ) {
+		pauseDuration = parseInt( opt.pauseDuration, 10 );
+	}
+
+	async function pauseIfRequested() {
+		if ( pauseDuration > 0 ) {
+			await new Promise( ( resolve ) => {
+				if ( opt.verbose ) {
+					log( `Pausing for ${ pauseDuration } ms.` );
+				}
+				setTimeout( resolve, pauseDuration );
+			} );
+		}
+	}
 
 	let caughtError = null;
 	try {
@@ -240,7 +262,7 @@ export async function handler( opt ) {
 			// First hit the site as the device to prime the pipes.
 			if ( opt.primeWebServer ) {
 				if ( opt.verbose ) {
-					logPartial(
+					log(
 						`Priming web server with initial request on ${
 							isMobile ? 'mobile' : 'desktop'
 						}... `
@@ -263,9 +285,7 @@ export async function handler( opt ) {
 						`Error: Bad response code ${ response.status() }.`
 					);
 				}
-				if ( opt.verbose ) {
-					log( 'done' );
-				}
+				await pauseIfRequested();
 			}
 
 			// Always lead with checking the optimized version so we can fast-fail if there is a detection problem on the site.
@@ -281,6 +301,7 @@ export async function handler( opt ) {
 				browser = await launchBrowser();
 				await getResults();
 				await browser.close();
+				await pauseIfRequested();
 			}
 
 			if ( opt.verbose ) {
@@ -304,7 +325,7 @@ export async function handler( opt ) {
 						1
 					) } ms (${ diffAbsPercent.toFixed( 1 ) }%) ${
 						pass ? 'faster' : 'slower'
-					} than original for LCP-TTFB.`
+					} than original for LCP-TTFB (${optimizedLcpTtfb.toFixed( 1 )} ms vs ${ originalLcpTtfb.toFixed( 1 ) } ms).`
 				);
 			}
 		}
@@ -369,7 +390,7 @@ async function analyze(
 	);
 
 	if ( verbose ) {
-		logPartial(
+		log(
 			`Requesting ${
 				optimizationDetectiveEnabled ? 'optimized' : 'original'
 			} version on ${ isMobile ? 'mobile' : 'desktop' }... `
@@ -762,10 +783,6 @@ async function analyze(
 		path.join( outputDir, 'results.json' ),
 		JSON.stringify( data, null, 2 )
 	);
-
-	if ( verbose ) {
-		log( 'done' );
-	}
 
 	return data;
 }

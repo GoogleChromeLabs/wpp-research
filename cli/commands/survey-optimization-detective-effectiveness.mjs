@@ -49,6 +49,38 @@ export const options = [
 		description: 'Force re-analyzing URLs that have already been analyzed.',
 		defaults: false,
 	},
+	{
+		argname: '--prime-web-server',
+		description:
+			'Whether to hit the web server for mobile or desktop first before obtaining results.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--request-optimized-first',
+		description:
+			'Whether to request the optimized version first before requesting the original (non-optimized) version.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--request-desktop-first',
+		description:
+			'Whether to request the desktop version first before requesting the mobile version.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '-v, --verbose',
+		description: 'Log out which requests are being made.',
+		required: false,
+		default: false,
+	},
+	{
+		argname: '--pause-duration <milliseconds>',
+		description: 'Time to wait between requests.',
+		required: false,
+	},
 ];
 
 /**
@@ -71,6 +103,11 @@ function getAbsoluteOutputDir( outputDir ) {
  * @param {string}  opt.outputDir
  * @param {number}  opt.parallel
  * @param {boolean} opt.force
+ * @param {boolean} opt.requestOptimizedFirst
+ * @param {boolean} opt.requestDesktopFirst
+ * @param {boolean} opt.primeWebServer
+ * @param {string|null} opt.pauseDuration
+ * @param {boolean} opt.verbose
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
@@ -148,6 +185,22 @@ export async function handler( opt ) {
 		];
 		if ( opt.force ) {
 			args.push( '--force' );
+		}
+		if ( opt.primeWebServer ) {
+			args.push( '--prime-web-server' );
+		}
+		if ( opt.requestDesktopFirst ) {
+			args.push( '--request-desktop-first' );
+		}
+		if ( opt.requestOptimizedFirst ) {
+			args.push( '--request-optimized-first' );
+		}
+		if ( opt.verbose ) {
+			args.push( '--verbose' );
+		}
+		if ( opt.pauseDuration ) {
+			args.push( '--pause-duration' );
+			args.push( opt.pauseDuration );
 		}
 
 		const childProcess = spawn( 'npm', args, { stdio: 'inherit' } );
