@@ -276,9 +276,7 @@ export async function handler( opt ) {
 				browser = await launchBrowser();
 				const page = await browser.newPage();
 				await page.emulate( isMobile ? mobileDevice : desktopDevice );
-				const response = await page.goto( urlObj.toString(), {
-					waitUntil: 'networkidle0',
-				} );
+				const response = await page.goto( urlObj.toString() );
 				await browser.close();
 				if ( response.status() !== 200 ) {
 					throw new Error(
