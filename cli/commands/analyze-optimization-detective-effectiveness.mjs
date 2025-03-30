@@ -426,6 +426,30 @@ async function analyze(
 	if ( response.status() !== 200 ) {
 		throw new Error( `Error: Bad response code ${ response.status() }.` );
 	}
+
+	const odDetected = await page.evaluate( () => {
+		return (
+			!! document.querySelector(
+				[
+					'[data-od-removed-fetchpriority]',
+					'[data-od-added-fetchpriority]',
+					'[data-od-replaced-fetchpriority]',
+					'[data-od-fetchpriority-already-added]',
+					'[data-od-added-sizes]',
+					'[data-od-replaced-sizes]',
+					'[data-od-removed-loading]',
+					'[data-od-added-loading]',
+					'[data-od-replaced-loading]',
+					'link[ data-od-added-tag ]',
+					'img[ data-od-unknown-tag ]',
+				].join( ',' )
+			)
+		);
+	} );
+	if ( ! optimizationDetectiveEnabled && odDetected ) {
+		throw new Error( 'The ?optimization_detective_disabled=1 query parameter was ignored.' );
+	}
+
 	await page.addScriptTag( { content: scriptTag, type: 'module' } );
 
 	/**
