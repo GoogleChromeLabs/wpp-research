@@ -263,8 +263,13 @@ function handleSuccessCase( dirPath, url ) {
 			}
 		}
 
+		// TODO: Add a pass rate for whether OD only prioritizes an image which is in the initial viewport. (But we don't have this information curently collected, so the results will need to include the URLs of the images which are in the viewport.)
+
+		const hasLcpImage = ( data[ device ].original?.metrics?.LCP?.url && data[ device ].optimized?.metrics?.LCP?.url );
+
+		// TODO: Add aggregations separately for the various conditions.
 		// Obtain metrics.
-		// if ( odPrioritizedImage === true && corePrioritizedImage === false ) {
+		if ( hasLcpImage && odPrioritizedImage === true /*&& corePrioritizedImage === false*/ ) {
 			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
 				const diffTime =
 					data[ device ].optimized.metrics[ key ].value -
@@ -273,7 +278,7 @@ function handleSuccessCase( dirPath, url ) {
 				aggregateDiffs[ key ].diffTime[ device ].push( diffTime );
 				aggregateDiffs[ key ].diffPercent[ device ].push( diffPercent );
 			}
-		// }
+		}
 	}
 }
 
@@ -380,7 +385,7 @@ export async function handler( opt ) {
 
 	log( '--------------------------------------' );
 	log( '' );
-	log( '# Metrics' );
+	log( `# Metrics (${ aggregateDiffs.LCP.diffTime.mobile.length } URLs)` );
 
 	for ( const key of Object.keys( aggregateDiffs ) ) {
 		log( `## ${ key }` );
