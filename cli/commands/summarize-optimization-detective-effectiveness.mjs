@@ -175,6 +175,16 @@ function handleSuccessCase( dirPath, url ) {
 		}
 	}
 
+	// TODO: This could rather be done at crawl time.
+	if ( data.mobile.optimized.pluginVersions['optimization-detective'] !== 'optimization-detective 1.0.0-beta3' ) {
+		// console.log( 'Skipping', data.mobile.optimized.pluginVersions['optimization-detective'] );
+		return;
+	}
+	if ( data.mobile.optimized.pluginVersions['image-prioritizer'] !== 'image-prioritizer 1.0.0-beta2' ) {
+		// console.log( 'Skipping', data.mobile.optimized.pluginVersions['image-prioritizer'] );
+		return;
+	}
+
 	for ( const device of [ 'mobile', 'desktop' ] ) {
 		let odPrioritizedImage = null;
 		let corePrioritizedImage = null;
