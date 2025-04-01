@@ -161,7 +161,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--output` (`-o`): The output format: Either "table" or "csv".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
-* `--network-conditions` (`-c`): Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G").
+* `--network-conditions` (`-c`): Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G".
 * `--emulate-device` (`-e`): Emulate a specific device, like "Moto G4" or "iPad". See list of [known devices](https://pptr.dev/api/puppeteer.knowndevices). 
 * `--window-viewport` (`-w`): Specify the viewport window size, like "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"). Defaults to "960x700" if no device is being emulated.
 * `--pause-duration`: Specify the number of milliseconds to pause between making requests in order to give the server a chance to catch its breath. This is to prevent CPU from getting increasingly taxed which would progressively reflect poorly on TTFB. It's also provided as an option to be a good netizen when benchmarking a site in the field since the `rnd` query parameter will usually bust page caches.

@@ -103,7 +103,7 @@ export const options = [
 	{
 		argname: '-c, --network-conditions <predefined>',
 		description:
-			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
+			'Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G".',
 	},
 	{
 		argname: '-e, --emulate-device <device>',
@@ -818,7 +818,7 @@ function outputResults( opt, results ) {
 /**
  * Launches headless browser with cache disabled.
  *
- * @returns {Promise<Browser>}
+ * @return {Promise<Browser>} Browser.
  */
 async function launchBrowser() {
 	return puppeteer.launch( {
