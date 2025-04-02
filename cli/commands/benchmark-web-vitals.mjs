@@ -27,6 +27,7 @@ import round from 'lodash-es/round.js';
 
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
+/** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
 /** @typedef {import("puppeteer").Device} Device */
 /** @typedef {keyof typeof KnownDevices} KnownDeviceName */
@@ -102,7 +103,7 @@ export const options = [
 	{
 		argname: '-c, --network-conditions <predefined>',
 		description:
-			'Enable emulation of network conditions (may be either "Slow 3G" or "Fast 3G")',
+			'Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G".',
 	},
 	{
 		argname: '-e, --emulate-device <device>',
@@ -119,22 +120,28 @@ export const options = [
 		description: 'Time to wait between requests.',
 		required: false,
 	},
+	{
+		argname: '--skip-network-priming',
+		description:
+			'Whether to skip making an initial network-priming request to the URL before the requests to collect metrics.',
+	},
 ];
 
 /**
  * @typedef {Object} Params
- * @property {?string}             url               - See above.
- * @property {number}              amount            - See above.
- * @property {?string}             file              - See above.
- * @property {?string[]}           metrics           - See above.
- * @property {string}              output            - See above.
- * @property {boolean}             showPercentiles   - See above.
- * @property {boolean}             showVariance      - See above.
- * @property {?number}             cpuThrottleFactor - See above.
- * @property {?NetworkConditions}  networkConditions - See above.
- * @property {?Device}             emulateDevice     - See above.
- * @property {?ViewportDimensions} windowViewport    - See above.
- * @property {?number}             pauseDuration     - See above.
+ * @property {?string}             url                - See above.
+ * @property {number}              amount             - See above.
+ * @property {?string}             file               - See above.
+ * @property {?string[]}           metrics            - See above.
+ * @property {string}              output             - See above.
+ * @property {boolean}             showPercentiles    - See above.
+ * @property {boolean}             showVariance       - See above.
+ * @property {?number}             cpuThrottleFactor  - See above.
+ * @property {?NetworkConditions}  networkConditions  - See above.
+ * @property {?Device}             emulateDevice      - See above.
+ * @property {?ViewportDimensions} windowViewport     - See above.
+ * @property {?number}             pauseDuration      - See above.
+ * @property {boolean}             skipNetworkPriming - See above.
  */
 
 /**
@@ -161,6 +168,7 @@ export const options = [
  * @param {?string}       opt.emulateDevice
  * @param {?string}       opt.windowViewport
  * @param {?string}       opt.pauseDuration
+ * @param {boolean}       opt.skipNetworkPriming
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -183,6 +191,7 @@ function getParamsFromOptions( opt ) {
 		networkConditions: null,
 		emulateDevice: null,
 		pauseDuration: null,
+		skipNetworkPriming: Boolean( opt.skipNetworkPriming ),
 		windowViewport: ! opt.emulateDevice
 			? { width: 960, height: 700 }
 			: null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
@@ -264,7 +273,9 @@ function getParamsFromOptions( opt ) {
 	if ( opt.pauseDuration ) {
 		const pauseDuration = parseInt( opt.pauseDuration, 10 );
 		if ( isNaN( pauseDuration ) || pauseDuration < 0 ) {
-			throw new Error( `The --pause-duration argument must be provided a positive integer. Provided: ${ opt.pauseDuration }.` );
+			throw new Error(
+				`The --pause-duration argument must be provided a positive integer. Provided: ${ opt.pauseDuration }.`
+			);
 		}
 		params.pauseDuration = pauseDuration;
 	}
@@ -434,10 +445,9 @@ export async function handler( opt ) {
  * @param {Object<string, MetricsDefinitionEntry>} metricsDefinition
  * @param {Params}                                 params
  * @param {boolean}                                logProgress
- * @param {?number}                                pauseDuration
  * @return {Promise<{completeRequests: number, metrics: {}}>} Results
  */
-async function benchmarkURL( url, metricsDefinition, params, logProgress, pauseDuration ) {
+async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 	// Group the required metrics by type.
 	const groupedMetrics = {};
 	Object.keys( metricsDefinition ).forEach( ( metric ) => {
@@ -465,11 +475,31 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress, pauseD
 		} );
 	}
 
-	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
-		const browser = await puppeteer.launch( {
-			headless: true,
-			args: [ '--disable-cache' ],
+	// Prime the network connections so that the initial DNS lookup in the operating system does not negatively impact the initial TTFB metric.
+	if ( ! params.skipNetworkPriming ) {
+		const browser = await launchBrowser();
+		if ( logProgress ) {
+			log( `Priming network...` );
+		}
+		const page = await browser.newPage();
+		if ( params.emulateDevice ) {
+			await page.emulate( params.emulateDevice );
+		}
+		const urlObj = new URL( url );
+		urlObj.searchParams.append( 'rnd', String( Math.random() ) );
+		await page.goto( urlObj.toString(), {
+			waitUntil: 'domcontentloaded',
 		} );
+		await browser.close();
+		if ( params.pauseDuration ) {
+			await new Promise( ( resolve ) => {
+				setTimeout( resolve, params.pauseDuration );
+			} );
+		}
+	}
+
+	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
+		const browser = await launchBrowser();
 		if ( logProgress ) {
 			logPartial(
 				`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
@@ -589,9 +619,12 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress, pauseD
 			log( formats.success( 'Success.' ) );
 		}
 
-		if ( pauseDuration ) {
+		// Add a pause before the next request to give the server a chance to breathe. This is to prevent CPU from getting
+		// increasingly taxed which would progressively reflect poorly on TTFB. It's also provided as an option to be a
+		// good netizen when benchmarking a site in the field.
+		if ( params.pauseDuration ) {
 			await new Promise( ( resolve ) => {
-				setTimeout( resolve, pauseDuration );
+				setTimeout( resolve, params.pauseDuration );
 			} );
 		}
 	}
@@ -781,4 +814,16 @@ function outputResults( opt, results ) {
 	}
 
 	output( table( headings, tableData, opt.output, true ) );
+}
+
+/**
+ * Launches headless browser with cache disabled.
+ *
+ * @return {Promise<Browser>} Browser.
+ */
+async function launchBrowser() {
+	return puppeteer.launch( {
+		headless: true,
+		args: [ '--disable-cache' ],
+	} );
 }
