@@ -60,6 +60,7 @@ import { compare as versionCompare } from 'semver';
  *         }
  *     }} metrics
  * @property {Object<string, string>} pluginVersions
+ * @property {string[]} metaGenerators
  * @property {Array<Object<string, string>>} odPreloadLinks
  * @property {number} odTagsWithXpathAttrs
  * @property {Object} images
@@ -486,6 +487,7 @@ async function analyze(
 			},
 		},
 		pluginVersions: {},
+		metaGenerators: [],
 		odPreloadLinks: [],
 		odTagsWithXpathAttrs: -1,
 		images: {
@@ -515,6 +517,17 @@ async function analyze(
 			}
 		}
 		return pluginVersions;
+	} );
+
+	data.metaGenerators = await page.evaluate( () => {
+		/**
+		 * @type {string[]}
+		 */
+		const metaGenerators = [];
+		for ( const meta of document.querySelectorAll( `meta[name="generator"][content]` ) ) {
+			metaGenerators.push( meta.getAttribute( 'content' ) );
+		}
+		return metaGenerators;
 	} );
 
 	const requiredPluginVersions = {
