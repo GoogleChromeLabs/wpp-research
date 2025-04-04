@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-const version = 1;
+const version = 2;
 
 /**
  * External dependencies
@@ -24,6 +24,7 @@ const version = 1;
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
+import { compare as versionCompare } from 'semver';
 
 /* eslint-disable jsdoc/no-undefined-types */
 /* eslint-disable jsdoc/check-line-alignment */
@@ -72,9 +73,23 @@ import path from 'path';
  */
 
 /**
+ * @typedef {Object} AnalyzeOptions
+ * @property {string}      url
+ * @property {string}      outputDir
+ * @property {boolean}     force
+ * @property {boolean}     requestOptimizedFirst
+ * @property {boolean}     requestDesktopFirst
+ * @property {boolean}     skipNetworkPriming
+ * @property {string|null} pauseDuration
+ * @property {boolean}     verbose
+ * @property {string}      oldestOptimizationDetectiveVersion
+ * @property {string}      oldestImagePrioritizerVersion
+ */
+
+/**
  * Internal dependencies
  */
-import { log, logPartial } from '../lib/cli/logger.mjs';
+import { log } from '../lib/cli/logger.mjs';
 
 export const options = [
 	{
@@ -92,39 +107,49 @@ export const options = [
 		description:
 			'Force re-analyzing a URL which has already been analyzed.',
 		required: false,
-		default: false,
+		defaults: false,
 	},
 	{
 		argname: '--skip-network-priming',
 		description:
-			'Whether to hit the web server for mobile or desktop first before obtaining results.',
-		required: false,
-		default: false,
+			'Whether to skip making an initial network-priming request to the URL before the requests to collect metrics.',
 	},
 	{
 		argname: '--request-optimized-first',
 		description:
 			'Whether to request the optimized version first before requesting the original (non-optimized) version.',
 		required: false,
-		default: false,
+		defaults: false,
 	},
 	{
 		argname: '--request-desktop-first',
 		description:
 			'Whether to request the desktop version first before requesting the mobile version.',
 		required: false,
-		default: false,
+		defaults: false,
 	},
 	{
 		argname: '-v, --verbose',
 		description: 'Log out which requests are being made.',
 		required: false,
-		default: false,
+		defaults: false,
 	},
 	{
 		argname: '--pause-duration <milliseconds>',
 		description: 'Time to wait between requests.',
 		required: false,
+	},
+	{
+		argname: '--oldest-optimization-detective-version <version>',
+		description: 'The oldest version of Optimization Detective that will be considered.',
+		required: false,
+		defaults: '1.0.0-beta3',
+	},
+	{
+		argname: '--oldest-image-prioritizer-version <version>',
+		description: 'The oldest version of Image Prioritizer that will be considered.',
+		required: false,
+		defaults: '1.0.0-beta2',
 	},
 ];
 
@@ -159,15 +184,7 @@ const desktopDevice = {
 };
 
 /**
- * @param {Object}  opt
- * @param {string}  opt.url
- * @param {string}  opt.outputDir
- * @param {boolean} opt.force
- * @param {boolean} opt.requestOptimizedFirst
- * @param {boolean} opt.requestDesktopFirst
- * @param {boolean} opt.primeWebServer
- * @param {string|null} opt.pauseDuration
- * @param {boolean} opt.verbose
+ * @param {AnalyzeOptions} opt
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
@@ -238,11 +255,10 @@ export async function handler( opt ) {
 				fs.mkdirSync( originalDir, { recursive: true } );
 				originalResult = await analyze(
 					originalDir,
-					opt.url,
+					opt,
 					browser,
 					isMobile,
-					false,
-					opt.verbose
+					false
 				);
 			};
 
@@ -251,11 +267,10 @@ export async function handler( opt ) {
 				fs.mkdirSync( optimizedDir, { recursive: true } );
 				optimizedResult = await analyze(
 					optimizedDir,
-					opt.url,
+					opt,
 					browser,
 					isMobile,
 					true,
-					opt.verbose
 				);
 			};
 
@@ -363,23 +378,21 @@ async function launchBrowser() {
 }
 
 /**
- * @param {string}  outputDir
- * @param {string}  url
- * @param {Browser} browser
- * @param {boolean} isMobile
- * @param {boolean} optimizationDetectiveEnabled
- * @param {boolean} verbose
+ * @param {string}         outputDir
+ * @param {AnalyzeOptions} opt
+ * @param {Browser}        browser
+ * @param {boolean}        isMobile
+ * @param {boolean}        optimizationDetectiveEnabled
  * @return {Promise<AnalysisResult>} Results
  */
 async function analyze(
 	outputDir,
-	url,
+	opt,
 	browser,
 	isMobile,
-	optimizationDetectiveEnabled,
-	verbose
+	optimizationDetectiveEnabled
 ) {
-	const urlObj = new URL( url );
+	const urlObj = new URL( opt.url );
 	urlObj.searchParams.set(
 		optimizationDetectiveEnabled
 			? 'optimization_detective_enabled' // Note: This doesn't do anything, but it ensures we're playing fair with possible cache busting.
@@ -387,7 +400,7 @@ async function analyze(
 		Date.now().toString()
 	);
 
-	if ( verbose ) {
+	if ( opt.verbose ) {
 		log(
 			`Requesting ${
 				optimizationDetectiveEnabled ? 'optimized' : 'original'
@@ -498,18 +511,33 @@ async function analyze(
 				`meta[name="generator"][content^="${ pluginSlug } "]`
 			);
 			if ( meta ) {
-				pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' );
+				pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( /\s+/, 2 )[1].replace( /;.*$/, '' );
 			}
 		}
 		return pluginVersions;
 	} );
-	if ( ! ( 'optimization-detective' in data.pluginVersions ) ) {
-		throw new Error(
-			`Meta generator tag for optimization-detective is absent for ${
-				isMobile ? 'mobile' : 'desktop'
-			}`
-		);
+
+	const requiredPluginVersions = {
+		'optimization-detective': opt.oldestOptimizationDetectiveVersion,
+		'image-prioritizer': opt.oldestImagePrioritizerVersion,
+	};
+	for ( const [ slug, oldestVersionAllowed ] of Object.entries( requiredPluginVersions ) ) {
+		if ( ! ( slug in data.pluginVersions ) ) {
+			throw new Error(
+				`Meta generator tag for ${ slug } is absent for ${
+					isMobile ? 'mobile' : 'desktop'
+				}`
+			);
+		}
+		if ( versionCompare( data.pluginVersions[ slug ], oldestVersionAllowed ) < 0 ) {
+			throw new Error(
+				`Meta generator version for ${ slug } is too old for ${
+					isMobile ? 'mobile' : 'desktop'
+				}`
+			);
+		}
 	}
+
 	if (
 		data.pluginVersions[ 'optimization-detective' ].includes(
 			'rest_api_unavailable'
@@ -517,13 +545,6 @@ async function analyze(
 	) {
 		throw new Error(
 			`REST API for optimization-detective is not available for ${
-				isMobile ? 'mobile' : 'desktop'
-			}`
-		);
-	}
-	if ( ! ( 'image-prioritizer' in data.pluginVersions ) ) {
-		throw new Error(
-			`Meta generator tag for image-prioritizer is absent for ${
 				isMobile ? 'mobile' : 'desktop'
 			}`
 		);
