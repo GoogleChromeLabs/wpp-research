@@ -95,7 +95,7 @@ export const options = [
 		default: false,
 	},
 	{
-		argname: '--prime-web-server',
+		argname: '--skip-network-priming',
 		description:
 			'Whether to hit the web server for mobile or desktop first before obtaining results.',
 		required: false,
@@ -260,7 +260,7 @@ export async function handler( opt ) {
 			};
 
 			// First hit the site as the device to prime the pipes.
-			if ( opt.primeWebServer ) {
+			if ( ! opt.skipNetworkPriming ) {
 				if ( opt.verbose ) {
 					log(
 						`Priming web server with initial request on ${

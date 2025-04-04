@@ -50,13 +50,6 @@ export const options = [
 		defaults: false,
 	},
 	{
-		argname: '--prime-web-server',
-		description:
-			'Whether to hit the web server for mobile or desktop first before obtaining results.',
-		required: false,
-		default: false,
-	},
-	{
 		argname: '--request-optimized-first',
 		description:
 			'Whether to request the optimized version first before requesting the original (non-optimized) version.',
@@ -80,6 +73,11 @@ export const options = [
 		argname: '--pause-duration <milliseconds>',
 		description: 'Time to wait between requests.',
 		required: false,
+	},
+	{
+		argname: '--skip-network-priming',
+		description:
+			'Whether to skip making an initial network-priming request to the URL before the requests to collect metrics.',
 	},
 ];
 
@@ -105,7 +103,7 @@ function getAbsoluteOutputDir( outputDir ) {
  * @param {boolean} opt.force
  * @param {boolean} opt.requestOptimizedFirst
  * @param {boolean} opt.requestDesktopFirst
- * @param {boolean} opt.primeWebServer
+ * @param {boolean} opt.skipNetworkPriming
  * @param {string|null} opt.pauseDuration
  * @param {boolean} opt.verbose
  * @return {Promise<void>}
@@ -186,8 +184,8 @@ export async function handler( opt ) {
 		if ( opt.force ) {
 			args.push( '--force' );
 		}
-		if ( opt.primeWebServer ) {
-			args.push( '--prime-web-server' );
+		if ( opt.skipNetworkPriming ) {
+			args.push( '--skip-network-priming' );
 		}
 		if ( opt.requestDesktopFirst ) {
 			args.push( '--request-desktop-first' );
