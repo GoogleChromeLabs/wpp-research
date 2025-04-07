@@ -39,6 +39,14 @@ import { compare as versionCompare } from 'semver';
 /** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
 
+/**
+ * @typedef {{width: number, height: number, x: number, y: number, top: number, right: number, bottom: number, left: number}} DOMRect
+ */
+
+/**
+ * @typedef {{isLCP: boolean, isLCPCandidate: boolean, breadcrumbs: string[], xpath: string, tagName: string, attributes: Object<string, string>, intersectionRatio: number, intersectionRect: DOMRect, boundingClientRect: DOMRect }} VisitedElement
+ */
+
 /* eslint-enable jsdoc/valid-types */
 // TODO: deviceScaleFactor, isMobile, isLandscape, hasTouch.
 /** @typedef {{width: number, height: number}} ViewportDimensions */
@@ -65,6 +73,8 @@ import { compare as versionCompare } from 'semver';
  * @property {string[]} metaGenerators
  * @property {Array<Object<string, string>>} odPreloadLinks
  * @property {number} odTagsWithXpathAttrs
+ * @property {Array<VisitedElement>} elements
+ *
  * @property {Object} images
  * @property {number} images.imgCount
  * @property {number} images.lazyImgCount
@@ -387,7 +397,7 @@ export async function handler( opt ) {
 						pass ? 'faster' : 'slower'
 					} than original for LCP-TTFB (${ formatNumber(
 						optimizedLcpTtfb
-					) } ms vs ${ formatNumber( originalLcpTtfb ) } ms).`
+					) } ms vs ${ formatNumber( originalLcpTtfb ) } ms) for ${ opt.url }.`
 				);
 			}
 		}
@@ -459,9 +469,16 @@ async function analyze(
 
 	const globalVariablePrefix = '__wppResearchWebVitals';
 	const scriptTag = /** lang=JS */ `
+		window.${ globalVariablePrefix }LCPCandidates = [];
 		import { onLCP, onTTFB } from "https://unpkg.com/web-vitals@4/dist/web-vitals.js";
 		onLCP( ( metric ) => { window.${ globalVariablePrefix }LCP = metric; } );
 		onTTFB( ( metric ) => { window.${ globalVariablePrefix }TTFB = metric; } );
+		onLCP(
+			( metric ) => {
+				window.${ globalVariablePrefix }LCPCandidates.push( metric );
+			},
+			{ reportAllChanges: true }
+		);
 	`;
 
 	const page = await browser.newPage();
@@ -542,6 +559,7 @@ async function analyze(
 		pluginVersions: {},
 		metaGenerators: [],
 		odPreloadLinks: [],
+		elements: [],
 		odTagsWithXpathAttrs: -1,
 		images: {
 			imgCount: -1,
@@ -849,10 +867,91 @@ async function analyze(
 		return preloadLinks;
 	} );
 
+	data.elements = await page.evaluate( async ( globalVariablePrefix ) => {
+		/** @type {VisitedElement[]} */
+		const elements = [];
+
+		/**
+		 * @type {LCPMetric[]}
+		 */
+		const lcpMetricCandidates = window[ globalVariablePrefix + 'LCPCandidates' ];
+
+		/**
+		 * @type {Map<Element, IntersectionObserverEntry>}
+		 */
+		const elementIntersections = new Map();
+
+		// Query for all elements which are visited by Image Prioritizer as well as anything else being tracked by the site.
+		const visitedElements = document.querySelectorAll( 'img, *[style*="background"][style*="url("], picture, video, *[data-od-xpath]' );
+		await new Promise( ( resolve ) => {
+			const intersectionObserver = new IntersectionObserver( ( entries ) => {
+					for ( const entry of entries ) {
+						elementIntersections.set( entry.target, entry );
+					}
+					resolve();
+				},
+				{
+					root: null, // To watch for intersection relative to the device's viewport.
+					threshold: 0.0, // As soon as even one pixel is visible.
+				} );
+			for ( const visitedElement of visitedElements ) {
+				intersectionObserver.observe( visitedElement );
+			}
+		} );
+
+		for ( const [ visitedElement, intersectionObserverEntry ] of elementIntersections.entries() ) {
+			const ancestors = [];
+			let currentElement = visitedElement;
+			while ( currentElement ) {
+				ancestors.unshift( currentElement );
+				currentElement = currentElement.parentElement;
+			}
+			let xpath = '';
+			for ( let i = 0; i < ancestors.length; i++ ) {
+				/** @type {Element} */
+				const ancestorElement = ancestors[i];
+				if ( i < 2 ) {
+					xpath += '/' + ancestorElement.tagName;
+				} else if ( 2 === i && '/HTML/BODY' === xpath ) {
+					xpath += '/' + ancestorElement.tagName;
+					for ( const attrName of [ 'id', 'role', 'class' ] ) {
+						if ( ancestorElement.hasAttribute( attrName ) ) {
+							const attrValue = ancestorElement.getAttribute( attrName );
+							if ( /^[a-zA-Z0-9_.\s:-]*$/.test( attrValue ) ) {
+								xpath += `[@${ attrName }='${ attrValue }']`;
+								break;
+							}
+						}
+					}
+				} else {
+					const siblingIndex = Array.from( ancestorElement.parentElement.children ).indexOf( ancestorElement );
+					xpath += `/*[${ siblingIndex + 1 }][self::${ ancestorElement.tagName }]`;
+				}
+			}
+			elements.push( {
+				tagName: visitedElement.tagName,
+				breadcrumbs: ancestors.map( ( element ) => element.tagName ),
+				xpath, // Note: This may vary not be exactly the same as the data-od-xpath attribute since this is computed after JS may have mutated the DOM tree.
+				attributes: Object.fromEntries( Array.from( visitedElement.attributes ).map( ( attribute ) => [ attribute.name, attribute.value ] ) ),
+				isLCP: visitedElement === lcpMetricCandidates.at( -1 ).entries[ 0 ]?.element,
+				isLCPCandidate: !! lcpMetricCandidates.find(
+					( lcpMetricCandidate ) => {
+						return lcpMetricCandidate.entries[ 0 ]?.element === visitedElement;
+					}
+				),
+				intersectionRatio: intersectionObserverEntry.intersectionRatio,
+				boundingClientRect: intersectionObserverEntry.boundingClientRect.toJSON(),
+				intersectionRect: intersectionObserverEntry.intersectionRect.toJSON(),
+			} );
+		}
+		return elements;
+	}, globalVariablePrefix );
+
 	data.odTagsWithXpathAttrs = await page.evaluate( () => {
 		return document.querySelectorAll( '[ data-od-xpath ]' ).length;
 	} );
 
+	// TODO: Obsolete.
 	data.images = await page.evaluate( async () => {
 		const imgElements = document.body.querySelectorAll( 'img' );
 
