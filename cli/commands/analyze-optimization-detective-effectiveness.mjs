@@ -21,7 +21,7 @@ const version = 2;
 /**
  * External dependencies
  */
-import puppeteer from 'puppeteer';
+import puppeteer, { PredefinedNetworkConditions } from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { compare as versionCompare } from 'semver';
@@ -35,6 +35,7 @@ import { compare as versionCompare } from 'semver';
 /** @typedef {import("puppeteer").HTTPResponse} HTTPResponse */
 /** @typedef {import("puppeteer").Page} Page */
 /** @typedef {import("puppeteer").Device} Device */
+/** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {import("web-vitals").LCPMetric} LCPMetric */
 
@@ -44,6 +45,7 @@ import { compare as versionCompare } from 'semver';
 /**
  * @typedef {Object} AnalysisResult
  * @property {Device} device
+ * @property {NetworkConditions} network
  * @property {{
  *         TTFB: {
  *             value: number
@@ -154,11 +156,14 @@ export const options = [
 	},
 ];
 
+/**
+ * @see https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L42C7-L42C23
+ * @see https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L11-L22
+ * @type {Device}
+ */
 const mobileDevice = {
-	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L42C7-L42C23>.
 	userAgent:
 		'Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36',
-	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L11-L22>.
 	viewport: {
 		isMobile: true,
 		width: 412,
@@ -169,11 +174,14 @@ const mobileDevice = {
 	},
 };
 
+/**
+ * @see https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L43
+ * @see https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L24-L34
+ * @type {Device}
+ */
 const desktopDevice = {
-	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L43>.
 	userAgent:
 		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-	// See <https://github.com/GoogleChrome/lighthouse/blob/36cac182a6c637b1671c57326d7c0241633d0076/core/config/constants.js#L24-L34>.
 	viewport: {
 		isMobile: false,
 		width: 1350,
@@ -182,6 +190,32 @@ const desktopDevice = {
 		deviceScaleFactor: 1,
 		hasTouch: false,
 	},
+};
+
+/**
+ * Network conditions used for mobile in Lighthouse/PSI.
+ *
+ * Note that "Slow 4G" is an alias for "Fast 3G".
+ * ~1.6 Mbps down, ~0.75 Mbps up, 150ms RTT (with slowdown factors).
+ *
+ * @see https://github.com/puppeteer/puppeteer/blob/60c72280ad9eee447e6ddeeaf3d7c2606dfb4f10/packages/puppeteer-core/src/cdp/PredefinedNetworkConditions.ts#L62-L71
+ * @type {NetworkConditions}
+ */
+const mobileNetworkConditions = PredefinedNetworkConditions["Slow 4G"];
+
+/**
+ * Network conditions used for desktop in Lighthouse/PSI.
+ *
+ * 10,240 kb/s throughput with 40 ms TCP RTT.
+ *
+ * @see https://github.com/paulirish/lighthouse/blob/f0855904aaffaecf3089169449646960782d7e92/core/config/constants.js#L40-L49
+ * @see https://docs.google.com/document/d/1-p4HSp42REEA5-jCBVB6PqQcVhI1nQIblBCNKhPJUXg/edit?tab=t.0#heading=h.jsap7yf4phk6
+ * @type {NetworkConditions}
+ */
+const desktopNetworkConditions = {
+	download: (10240 * 1000) / 8,
+	upload: (10240 * 1000) / 8,
+	latency: 40,
 };
 
 /**
@@ -419,7 +453,9 @@ async function analyze(
 	const page = await browser.newPage();
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 	const emulateDevice = isMobile ? mobileDevice : desktopDevice;
+	const emulateNetwork = isMobile ? mobileNetworkConditions : desktopNetworkConditions;
 	await page.emulate( emulateDevice );
+	await page.emulateNetworkConditions( emulateNetwork );
 	const response = await page.goto( urlObj.toString(), {
 		waitUntil: 'networkidle0',
 	} );
@@ -471,6 +507,7 @@ async function analyze(
 	 */
 	const data = {
 		device: emulateDevice,
+		network: emulateNetwork,
 		metrics: {
 			TTFB: {
 				value: -1,
