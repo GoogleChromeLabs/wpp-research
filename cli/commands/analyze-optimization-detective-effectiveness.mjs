@@ -94,6 +94,11 @@ import { compare as versionCompare } from 'semver';
  */
 import { log } from '../lib/cli/logger.mjs';
 
+/**
+ * Options.
+ *
+ * @type {Array<{argname: string, description: string, required?: boolean, defaults?: *}>}
+ */
 export const options = [
 	{
 		argname: '-u, --url <url>',
@@ -144,13 +149,15 @@ export const options = [
 	},
 	{
 		argname: '--oldest-optimization-detective-version <version>',
-		description: 'The oldest version of Optimization Detective that will be considered.',
+		description:
+			'The oldest version of Optimization Detective that will be considered.',
 		required: false,
 		defaults: '1.0.0-beta3',
 	},
 	{
 		argname: '--oldest-image-prioritizer-version <version>',
-		description: 'The oldest version of Image Prioritizer that will be considered.',
+		description:
+			'The oldest version of Image Prioritizer that will be considered.',
 		required: false,
 		defaults: '1.0.0-beta2',
 	},
@@ -201,7 +208,7 @@ const desktopDevice = {
  * @see https://github.com/puppeteer/puppeteer/blob/60c72280ad9eee447e6ddeeaf3d7c2606dfb4f10/packages/puppeteer-core/src/cdp/PredefinedNetworkConditions.ts#L62-L71
  * @type {NetworkConditions}
  */
-const mobileNetworkConditions = PredefinedNetworkConditions["Slow 4G"];
+const mobileNetworkConditions = PredefinedNetworkConditions[ 'Slow 4G' ];
 
 /**
  * Network conditions used for desktop in Lighthouse/PSI.
@@ -213,8 +220,8 @@ const mobileNetworkConditions = PredefinedNetworkConditions["Slow 4G"];
  * @type {NetworkConditions}
  */
 const desktopNetworkConditions = {
-	download: (10240 * 1000) / 8,
-	upload: (10240 * 1000) / 8,
+	download: ( 10240 * 1000 ) / 8,
+	upload: ( 10240 * 1000 ) / 8,
 	latency: 40,
 };
 
@@ -305,7 +312,7 @@ export async function handler( opt ) {
 					opt,
 					browser,
 					isMobile,
-					true,
+					true
 				);
 			};
 
@@ -366,14 +373,21 @@ export async function handler( opt ) {
 						( originalLcpTtfb - optimizedLcpTtfb ) / originalLcpTtfb
 					) * 100;
 				const pass = optimizedLcpTtfb <= originalLcpTtfb;
+				/**
+				 * Formats number.
+				 *
+				 * @param {number} num - Number.
+				 * @returns {string} Formatted number.
+				 */
+				const formatNumber = ( num ) => num.toFixed( 1 );
 				log(
-					`${
-						pass ? 'PASS' : 'FAIL'
-					}: Optimized is ${ diffAbsMs.toFixed(
-						1
-					) } ms (${ diffAbsPercent.toFixed( 1 ) }%) ${
+					`${ pass ? 'PASS' : 'FAIL' }: Optimized is ${ formatNumber(
+						diffAbsMs
+					) } ms (${ formatNumber( diffAbsPercent ) }%) ${
 						pass ? 'faster' : 'slower'
-					} than original for LCP-TTFB (${optimizedLcpTtfb.toFixed( 1 )} ms vs ${ originalLcpTtfb.toFixed( 1 ) } ms).`
+					} than original for LCP-TTFB (${ formatNumber(
+						optimizedLcpTtfb
+					) } ms vs ${ formatNumber( originalLcpTtfb ) } ms).`
 				);
 			}
 		}
@@ -453,7 +467,9 @@ async function analyze(
 	const page = await browser.newPage();
 	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 	const emulateDevice = isMobile ? mobileDevice : desktopDevice;
-	const emulateNetwork = isMobile ? mobileNetworkConditions : desktopNetworkConditions;
+	const emulateNetwork = isMobile
+		? mobileNetworkConditions
+		: desktopNetworkConditions;
 	await page.emulate( emulateDevice );
 	await page.emulateNetworkConditions( emulateNetwork );
 	const response = await page.goto( urlObj.toString(), {
@@ -478,26 +494,26 @@ async function analyze(
 	}
 
 	const odDetected = await page.evaluate( () => {
-		return (
-			!! document.querySelector(
-				[
-					'[data-od-removed-fetchpriority]',
-					'[data-od-added-fetchpriority]',
-					'[data-od-replaced-fetchpriority]',
-					'[data-od-fetchpriority-already-added]',
-					'[data-od-added-sizes]',
-					'[data-od-replaced-sizes]',
-					'[data-od-removed-loading]',
-					'[data-od-added-loading]',
-					'[data-od-replaced-loading]',
-					'link[ data-od-added-tag ]',
-					'img[ data-od-unknown-tag ]',
-				].join( ',' )
-			)
+		return !! document.querySelector(
+			[
+				'[data-od-removed-fetchpriority]',
+				'[data-od-added-fetchpriority]',
+				'[data-od-replaced-fetchpriority]',
+				'[data-od-fetchpriority-already-added]',
+				'[data-od-added-sizes]',
+				'[data-od-replaced-sizes]',
+				'[data-od-removed-loading]',
+				'[data-od-added-loading]',
+				'[data-od-replaced-loading]',
+				'link[ data-od-added-tag ]',
+				'img[ data-od-unknown-tag ]',
+			].join( ',' )
 		);
 	} );
 	if ( ! optimizationDetectiveEnabled && odDetected ) {
-		throw new Error( 'The ?optimization_detective_disabled=1 query parameter was ignored.' );
+		throw new Error(
+			'The ?optimization_detective_disabled=1 query parameter was ignored.'
+		);
 	}
 
 	await page.addScriptTag( { content: scriptTag, type: 'module' } );
@@ -550,7 +566,10 @@ async function analyze(
 				`meta[name="generator"][content^="${ pluginSlug } "]`
 			);
 			if ( meta ) {
-				pluginVersions[ pluginSlug ] = meta.getAttribute( 'content' ).split( /\s+/, 2 )[1].replace( /;.*$/, '' );
+				pluginVersions[ pluginSlug ] = meta
+					.getAttribute( 'content' )
+					.split( /\s+/, 2 )[ 1 ]
+					.replace( /;.*$/, '' );
 			}
 		}
 		return pluginVersions;
@@ -561,7 +580,9 @@ async function analyze(
 		 * @type {string[]}
 		 */
 		const metaGenerators = [];
-		for ( const meta of document.querySelectorAll( `meta[name="generator"][content]` ) ) {
+		for ( const meta of document.querySelectorAll(
+			`meta[name="generator"][content]`
+		) ) {
 			metaGenerators.push( meta.getAttribute( 'content' ) );
 		}
 		return metaGenerators;
@@ -571,7 +592,9 @@ async function analyze(
 		'optimization-detective': opt.oldestOptimizationDetectiveVersion,
 		'image-prioritizer': opt.oldestImagePrioritizerVersion,
 	};
-	for ( const [ slug, oldestVersionAllowed ] of Object.entries( requiredPluginVersions ) ) {
+	for ( const [ slug, oldestVersionAllowed ] of Object.entries(
+		requiredPluginVersions
+	) ) {
 		if ( ! ( slug in data.pluginVersions ) ) {
 			throw new Error(
 				`Meta generator tag for ${ slug } is absent for ${
@@ -579,7 +602,12 @@ async function analyze(
 				}`
 			);
 		}
-		if ( versionCompare( data.pluginVersions[ slug ], oldestVersionAllowed ) < 0 ) {
+		if (
+			versionCompare(
+				data.pluginVersions[ slug ],
+				oldestVersionAllowed
+			) < 0
+		) {
 			throw new Error(
 				`Meta generator version for ${ slug } is too old for ${
 					isMobile ? 'mobile' : 'desktop'
