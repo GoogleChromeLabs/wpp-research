@@ -771,24 +771,12 @@ async function analyze(
 							metricData.element = {
 								tagName: lcpEntry.element.tagName,
 								attributes: {},
-								metaAttributes: {},
 							};
-							const metaAttrPrefix = 'data-od-';
 							for ( const attribute of lcpEntry.element
 								.attributes ) {
-								if (
-									attribute.name.startsWith( metaAttrPrefix )
-								) {
-									metricData.element.metaAttributes[
-										attribute.name.substring(
-											metaAttrPrefix.length
-										)
-									] = attribute.value;
-								} else {
-									metricData.element.attributes[
-										attribute.name
-									] = attribute.value;
-								}
+								metricData.element.attributes[
+									attribute.name
+								] = attribute.value;
 							}
 						} else {
 							metricData.element = null;
