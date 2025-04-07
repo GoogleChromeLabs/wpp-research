@@ -25,6 +25,8 @@ import fs from 'fs';
 import path from 'path';
 import { log } from '../lib/cli/logger.mjs';
 
+/** @typedef {import("./analyze-optimization-detective-effectiveness.mjs").VisitedElement} VisitedElement */
+
 export const options = [
 	{
 		argname: '-o, --output-dir <output_dir>',
@@ -142,6 +144,74 @@ function handleErrorCase( dirPath, url ) {
 }
 
 /**
+ * @param {VisitedElement[]} visitedElements - Visited elements.
+ */
+function countImages( visitedElements ) {
+	let count = 0;
+	for ( const visitedElement of visitedElements ) {
+		if ( 'IMG' === visitedElement.tagName ) {
+			count++;
+		}
+	}
+	return count;
+}
+
+/**
+ * @param {VisitedElement[]} visitedElements - Visited elements.
+ */
+function countImagesWithFetchPriorityHigh( visitedElements ) {
+	let count = 0;
+	for ( const visitedElement of visitedElements ) {
+		if (
+			'IMG' === visitedElement.tagName
+			&&
+			visitedElement.attributes?.fetchpriority === 'high'
+		) {
+			count++;
+		}
+	}
+	return count;
+}
+
+/**
+ * @param {VisitedElement[]} visitedElements - Visited elements.
+ */
+function countImagesWithFetchPriorityHighOutsideViewport( visitedElements ) {
+	let count = 0;
+	for ( const visitedElement of visitedElements ) {
+		if (
+			'IMG' === visitedElement.tagName
+			&&
+			visitedElement.attributes?.fetchpriority === 'high'
+			&&
+			! ( visitedElement.intersectionRatio > Number.EPSILON )
+		) {
+			count++;
+		}
+	}
+	return count;
+}
+
+/**
+ * @param {VisitedElement[]} visitedElements - Visited elements.
+ */
+function countLazyImgInsideViewport( visitedElements ) {
+	let count = 0;
+	for ( const visitedElement of visitedElements ) {
+		if (
+			'IMG' === visitedElement.tagName
+			&&
+			visitedElement.intersectionRatio > Number.EPSILON
+			&&
+			visitedElement.attributes?.loading === 'lazy'
+		) {
+			count++;
+		}
+	}
+	return count;
+}
+
+/**
  * @param {string} dirPath
  * @param {string} url
  */
@@ -191,11 +261,8 @@ function handleSuccessCase( dirPath, url ) {
 
 		for ( const status of [ 'original', 'optimized' ] ) {
 			// Check for accuracy of lazy-loading.
-			if ( data[ device ][ status ].images.imgCount !== 0 ) {
-				if (
-					data[ device ][ status ].images
-						.lazyImgInsideViewportCount === 0
-				) {
+			if ( countImages( data[ device ][ status ].elements ) > 0 ) {
+				if ( countLazyImgInsideViewport( data[ device ][ status ].elements ) === 0 ) {
 					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[
 						device
 					].pass++;
@@ -207,17 +274,8 @@ function handleSuccessCase( dirPath, url ) {
 			}
 
 			// Check for accuracy of having fetchpriority=high only in the viewport.
-			if (
-				data[ device ][ status ].images.fetchpriorityHighAttrImages
-					.outsideViewportCount +
-					data[ device ][ status ].images.fetchpriorityHighAttrImages
-						.insideViewportCount >
-				0
-			) {
-				if (
-					data[ device ][ status ].images.fetchpriorityHighAttrImages
-						.outsideViewportCount === 0
-				) {
+			if ( countImagesWithFetchPriorityHigh( data[ device ][ status ].elements ) > 0 ) {
+				if ( countImagesWithFetchPriorityHighOutsideViewport( data[ device ][ status ].elements ) === 0 ) {
 					optimizationAccuracy[ status ]
 						.imgWithFetchpriorityHighAttrInViewport[ device ]
 						.pass++;

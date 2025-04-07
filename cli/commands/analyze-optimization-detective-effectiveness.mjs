@@ -72,17 +72,7 @@ import { compare as versionCompare } from 'semver';
  * @property {Object<string, string>} pluginVersions
  * @property {string[]} metaGenerators
  * @property {Array<Object<string, string>>} odPreloadLinks
- * @property {number} odTagsWithXpathAttrs
  * @property {Array<VisitedElement>} elements
- *
- * @property {Object} images
- * @property {number} images.imgCount
- * @property {number} images.lazyImgCount
- * @property {number} images.lazyImgInsideViewportCount
- * @property {number} images.jsLazyLoadedImgCount
- * @property {Object} images.fetchpriorityHighAttrImages
- * @property {number} images.fetchpriorityHighAttrImages.insideViewportCount
- * @property {number} images.fetchpriorityHighAttrImages.outsideViewportCount
  */
 
 /**
@@ -560,17 +550,6 @@ async function analyze(
 		metaGenerators: [],
 		odPreloadLinks: [],
 		elements: [],
-		odTagsWithXpathAttrs: -1,
-		images: {
-			imgCount: -1,
-			lazyImgCount: -1,
-			lazyImgInsideViewportCount: -1,
-			jsLazyLoadedImgCount: -1,
-			fetchpriorityHighAttrImages: {
-				insideViewportCount: -1,
-				outsideViewportCount: -1,
-			},
-		},
 	};
 
 	data.pluginVersions = await page.evaluate( () => {
@@ -946,58 +925,6 @@ async function analyze(
 		}
 		return elements;
 	}, globalVariablePrefix );
-
-	data.odTagsWithXpathAttrs = await page.evaluate( () => {
-		return document.querySelectorAll( '[ data-od-xpath ]' ).length;
-	} );
-
-	// TODO: Obsolete.
-	data.images = await page.evaluate( async () => {
-		const imgElements = document.body.querySelectorAll( 'img' );
-
-		const imageData = {
-			imgCount: document.querySelectorAll( 'img' ).length,
-			lazyImgCount: imgElements.length,
-			lazyImgInsideViewportCount: 0,
-			jsLazyLoadedImgCount: document.querySelectorAll(
-				'img.lazyload, img.lazyloaded, img[data-src], img[data-srcset]'
-			).length,
-			fetchpriorityHighAttrImages: {
-				insideViewportCount: 0,
-				outsideViewportCount: 0,
-			},
-		};
-
-		if ( imgElements.length > 0 ) {
-			await new Promise( ( resolve ) => {
-				// eslint-disable-next-line no-undef
-				const observer = new IntersectionObserver( ( entries ) => {
-					for ( const entry of entries ) {
-						const element =
-							/** @type {HTMLImageElement} */ entry.target;
-						if ( entry.isIntersecting ) {
-							if ( element.loading === 'lazy' ) {
-								imageData.lazyImgInsideViewportCount++;
-							}
-							if ( element.fetchPriority === 'high' ) {
-								imageData.fetchpriorityHighAttrImages
-									.insideViewportCount++;
-							}
-						} else if ( element.fetchPriority === 'high' ) {
-							imageData.fetchpriorityHighAttrImages
-								.outsideViewportCount++;
-						}
-					}
-					resolve();
-				} );
-				for ( const img of imgElements ) {
-					observer.observe( img );
-				}
-			} );
-		}
-
-		return imageData;
-	} );
 
 	fs.writeFileSync(
 		path.join( outputDir, 'results.json' ),
