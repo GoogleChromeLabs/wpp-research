@@ -369,8 +369,32 @@ function handleSuccessCase( dirPath, url ) {
 			}
 		}
 
-		// If there are preload links in the page added by OD, check success rate for the URL actually being for something inside the viewport.
-		const odPreloadLinks = data[ device ].optimized.odLinks.filter( ( /** @type {Object} */ odLink ) => odLink.rel === 'preload' );
+		// If there are preload links in the page added by OD for this device's width, check success rate for the URL actually being for something inside the viewport.
+		const odPreloadLinks = data[ device ].optimized.odLinks
+			.filter( ( /** @type {Object} */ odLink ) => {
+				if ( odLink.rel !== 'preload' ) {
+					return false;
+				}
+				if ( ! odLink.media ) {
+					return true;
+				}
+				const deviceWidth = data[ device ].optimized.device.viewport.width;
+				let matches = odLink.media.match( /width <= (\d+)px/ );
+				if ( matches ) {
+					const maxWidthInclusive = parseInt( matches[1] );
+					if ( deviceWidth > maxWidthInclusive ) {
+						return false;
+					}
+				}
+				matches = odLink.media.match( /(\d+)px < width/ );
+				if ( matches ) {
+					const minWidthExclusive = parseInt( matches[1] );
+					if ( deviceWidth <= minWidthExclusive ) {
+						return false;
+					}
+				}
+				return true;
+			} );
 		if ( odPreloadLinks.length > 0 ) {
 			if ( isPreloadedImageInsideViewport( odPreloadLinks, data[ device ].optimized.elements ) ) {
 				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[ device ]
