@@ -224,6 +224,9 @@ function countLazyImgInsideViewport( visitedElements ) {
 function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 	for ( const odPreloadLink of odPreloadLinks ) {
 		for ( const visitedElement of visitedElements ) {
+			if ( visitedElement.intersectionRatio < Number.EPSILON ) {
+				continue;
+			}
 			if ( 'IMG' === visitedElement.tagName ) {
 				if (
 					visitedElement.attributes.src === odPreloadLink.href
