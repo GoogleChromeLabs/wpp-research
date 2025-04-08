@@ -592,17 +592,18 @@ export async function handler( opt ) {
 	log( '--------------------------------------' );
 	log( '' );
 
-	log( `# Metrics` );
+	log( `## Web Vitals Metrics` );
 	for ( const facetedAggregateDiff of Object.values(
 		facetedAggregateDiffs
 	) ) {
+		log( `### ${ facetedAggregateDiff.label }` );
 		log(
-			`## ${ facetedAggregateDiff.label } (${ facetedAggregateDiff.aggregateDiffs.LCP.diffTime.mobile.length } URLs)`
+			`URL count: ${ facetedAggregateDiff.aggregateDiffs.LCP.diffTime.mobile.length.toLocaleString() }`
 		);
 		for ( const [ key, aggregateDiffs ] of Object.entries(
 			facetedAggregateDiff.aggregateDiffs
 		) ) {
-			log( `### ${ key }` );
+			log( `#### ${ key }` );
 
 			for ( const device of [ 'mobile', 'desktop' ] ) {
 				log(
@@ -613,20 +614,20 @@ export async function handler( opt ) {
 					) }%)`
 				);
 				log(
-					`* Median diff time for ${ device }: ${ formatNumber(
+					`* ${
+						key === 'LCP-TTFB' ? '**' : ''
+					}Median diff time for ${ device }: ${ formatNumber(
 						computeMedian( aggregateDiffs.diffTime[ device ] )
 					) }ms (${ formatNumber(
 						computeMedian( aggregateDiffs.diffPercent[ device ] )
-					) }%)`
+					) }%)${ key === 'LCP-TTFB' ? '**' : '' }`
 				);
 			}
 		}
 		log( '' );
 	}
 
-	log( '--------------------------------------------------------' );
-	log( '' );
-	log( '# Optimization Accuracy Stats' );
+	log( '## Optimization Accuracy Stats' );
 
 	log(
 		`Optimization | Original Mobile | Optimized Mobile | Original Desktop | Optimized Desktop`
