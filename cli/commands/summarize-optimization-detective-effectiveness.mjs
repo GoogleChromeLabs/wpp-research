@@ -286,13 +286,6 @@ function handleSuccessCase( dirPath, url ) {
 		},
 	};
 
-	// // Skip non-Elementor pages.
-	// const contentPath = path.join( dirPath, 'mobile', 'original', 'content.html' );
-	// const content = fs.readFileSync( contentPath, 'utf8' );
-	// if ( ! content.includes( 'Elementor' ) ) {
-	// 	return;
-	// }
-
 	for ( const device of [ 'mobile', 'desktop' ] ) {
 		for ( const status of [ 'original', 'optimized' ] ) {
 			data[ device ][ status ] = JSON.parse(
