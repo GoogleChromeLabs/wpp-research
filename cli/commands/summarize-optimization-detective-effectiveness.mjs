@@ -94,6 +94,9 @@ const optimizationAccuracy = {
 		imgWithFetchpriorityHighAttrInViewport: structuredClone(
 			defaultMobileDesktopPassFailValue
 		),
+		odPreloadedImageInsideViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
 	},
 	optimized: {
 		lcpImagePrioritized: structuredClone(
@@ -103,6 +106,9 @@ const optimizationAccuracy = {
 			defaultMobileDesktopPassFailValue
 		),
 		imgWithFetchpriorityHighAttrInViewport: structuredClone(
+			defaultMobileDesktopPassFailValue
+		),
+		odPreloadedImageInsideViewport: structuredClone(
 			defaultMobileDesktopPassFailValue
 		),
 	},
@@ -212,6 +218,40 @@ function countLazyImgInsideViewport( visitedElements ) {
 }
 
 /**
+ * @param {Array<Object<string, string>>}  odPreloadLinks  - Preload links.
+ * @param {VisitedElement[]}               visitedElements - Visited elements.
+ */
+function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
+	for ( const odPreloadLink of odPreloadLinks ) {
+		for ( const visitedElement of visitedElements ) {
+			// TODO: Add support for PICTURE.
+			if ( 'IMG' === visitedElement.tagName ) {
+				if (
+					visitedElement.attributes.src === odPreloadLink.href
+					||
+					visitedElement.attributes.srcset === odPreloadLink.imagesrcset
+				) {
+					return true;
+				}
+			} else if (
+				visitedElement.attributes.style
+				&&
+				visitedElement.attributes.style.includes( 'url(' )
+				&&
+				visitedElement.attributes.style.includes( odPreloadLink.href )
+			) {
+				return true;
+			} else if ( 'VIDEO' === visitedElement.tagName ) {
+				if ( visitedElement.attributes.poster === odPreloadLink.href ) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+/**
  * @param {string} dirPath
  * @param {string} url
  */
@@ -286,10 +326,9 @@ function handleSuccessCase( dirPath, url ) {
 						lcpData.element?.tagName === 'IMG' &&
 						lcpData.element?.attributes?.fetchpriority === 'high';
 
-					corePrioritizedImage = passed;
+					corePrioritizedImage = passed; // TODO: Temp.
 				} else {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
-					// TODO: What if there are odPreload links which caused a preload but which isn't the LCP?
 					passed = lcpData.preloadedByOD === true;
 
 					if ( ! passed ) {
@@ -299,7 +338,7 @@ function handleSuccessCase( dirPath, url ) {
 						} );
 					}
 
-					odPrioritizedImage = passed;
+					odPrioritizedImage = passed; // TODO: Temp.
 				}
 				if ( passed ) {
 					optimizationAccuracy[ status ].lcpImagePrioritized[ device ]
@@ -311,7 +350,17 @@ function handleSuccessCase( dirPath, url ) {
 			}
 		}
 
-		// TODO: Add a pass rate for whether OD only prioritizes an image which is in the initial viewport. (But we don't have this information curently collected, so the results will need to include the URLs of the images which are in the viewport.)
+		// If there are preload links in the page added by OD, check success rate for the URL actually being for something inside the viewport.
+		const odPreloadLinks = data[ device ].optimized.odLinks.filter( ( /** @type {Object} */ odLink ) => odLink.rel === 'preload' );
+		if ( odPreloadLinks.length > 0 ) {
+			if ( isPreloadedImageInsideViewport( odPreloadLinks, data[ device ].optimized.elements ) ) {
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[ device ]
+					.pass++;
+			} else {
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[ device ]
+					.fail++;
+			}
+		}
 
 		const hasLcpImage = ( data[ device ].original?.metrics?.LCP?.url && data[ device ].optimized?.metrics?.LCP?.url );
 
@@ -519,6 +568,27 @@ export async function handler( opt ) {
 			computePassRate(
 				optimizationAccuracy.optimized
 					.imgWithFetchpriorityHighAttrInViewport.desktop
+			),
+		].join( ' | ' )
+	);
+	log(
+		[
+			'OD prioritized image in viewport',
+			computePassRate(
+				optimizationAccuracy.original
+					.odPreloadedImageInsideViewport.mobile
+			),
+			computePassRate(
+				optimizationAccuracy.optimized
+					.odPreloadedImageInsideViewport.mobile
+			),
+			computePassRate(
+				optimizationAccuracy.original
+					.odPreloadedImageInsideViewport.desktop
+			),
+			computePassRate(
+				optimizationAccuracy.optimized
+					.odPreloadedImageInsideViewport.desktop
 			),
 		].join( ' | ' )
 	);

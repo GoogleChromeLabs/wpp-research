@@ -71,7 +71,7 @@ import { compare as versionCompare } from 'semver';
  *     }} metrics
  * @property {Object<string, string>} pluginVersions
  * @property {string[]} metaGenerators
- * @property {Array<Object<string, string>>} odPreloadLinks
+ * @property {Array<Object<string, string>>} odLinks
  * @property {Array<VisitedElement>} elements
  */
 
@@ -548,7 +548,7 @@ async function analyze(
 		},
 		pluginVersions: {},
 		metaGenerators: [],
-		odPreloadLinks: [],
+		odLinks: [],
 		elements: [],
 	};
 
@@ -751,6 +751,7 @@ async function analyze(
 							/** @type {LargestContentfulPaint} */ entry;
 
 						if ( lcpEntry.url ) {
+							// TODO: This needn't be computed here.
 							for ( /** @type {HTMLLinkElement} */ const odPreloadLink of document.querySelectorAll(
 								'link[data-od-added-tag][rel="preload"]'
 							) ) {
@@ -814,11 +815,11 @@ async function analyze(
 		);
 	}
 
-	data.odPreloadLinks = await page.evaluate( () => {
+	data.odLinks = await page.evaluate( () => {
 		/**
 		 * @type {Array<Object<string, string>>}
 		 */
-		const preloadLinks = [];
+		const odLinks = [];
 		for ( const link of document.querySelectorAll(
 			'link[ data-od-added-tag ]'
 		) ) {
@@ -829,9 +830,9 @@ async function analyze(
 			for ( const attribute of link.attributes ) {
 				linkAttributes[ attribute.name ] = attribute.value;
 			}
-			preloadLinks.push( linkAttributes );
+			odLinks.push( linkAttributes );
 		}
-		return preloadLinks;
+		return odLinks;
 	} );
 
 	data.elements = await page.evaluate( async ( globalVariablePrefix ) => {
@@ -895,6 +896,8 @@ async function analyze(
 					xpath += `/*[${ siblingIndex + 1 }][self::${ ancestorElement.tagName }]`;
 				}
 			}
+
+			// TODO: Obtain SOURCE children for PICTURE and VIDEO tags.
 			elements.push( {
 				tagName: visitedElement.tagName,
 				breadcrumbs: ancestors.map( ( element ) => element.tagName ),
