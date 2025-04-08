@@ -103,7 +103,7 @@ export const options = [
 	{
 		argname: '-c, --network-conditions <predefined>',
 		description:
-			'Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G".',
+			'Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G", "broadband".',
 	},
 	{
 		argname: '-e, --emulate-device <device>',
@@ -225,13 +225,29 @@ function getParamsFromOptions( opt ) {
 	}
 
 	if ( opt.networkConditions ) {
-		if ( ! ( opt.networkConditions in PredefinedNetworkConditions ) ) {
+		if ( 'broadband' === opt.networkConditions ) {
+			/**
+			 * Network conditions used for desktop in Lighthouse/PSI.
+			 *
+			 * 10,240 kb/s throughput with 40 ms TCP RTT.
+			 *
+			 * @see https://github.com/paulirish/lighthouse/blob/f0855904aaffaecf3089169449646960782d7e92/core/config/constants.js#L40-L49
+			 * @see https://docs.google.com/document/d/1-p4HSp42REEA5-jCBVB6PqQcVhI1nQIblBCNKhPJUXg/edit?tab=t.0#heading=h.jsap7yf4phk6
+			 * @type {NetworkConditions}
+			 */
+			params.networkConditions = {
+				download: ( 10240 * 1000 ) / 8,
+				upload: ( 10240 * 1000 ) / 8,
+				latency: 40,
+			};
+		} else if ( opt.networkConditions in PredefinedNetworkConditions ) {
+			params.networkConditions =
+				PredefinedNetworkConditions[ opt.networkConditions ];
+		} else {
 			throw new Error(
 				`Unrecognized predefined network condition: ${ opt.networkConditions }`
 			);
 		}
-		params.networkConditions =
-			PredefinedNetworkConditions[ opt.networkConditions ];
 	}
 
 	if ( opt.emulateDevice ) {
