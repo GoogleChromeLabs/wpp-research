@@ -224,7 +224,17 @@ function countLazyImgInsideViewport( visitedElements ) {
 function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 	for ( const odPreloadLink of odPreloadLinks ) {
 		for ( const visitedElement of visitedElements ) {
-			if ( visitedElement.intersectionRatio < Number.EPSILON ) {
+			let intersectedElement = visitedElement;
+			if ( 'PICTURE' === visitedElement.tagName ) {
+				// The PICTURE itself is not intersected, but only the child IMG tag.
+				for ( const otherVisitedElement of visitedElements ) {
+					if ( otherVisitedElement.tagName === 'IMG' && otherVisitedElement.xpath.startsWith( visitedElement.xpath + '/' ) ) {
+						intersectedElement = otherVisitedElement;
+						break;
+					}
+				}
+			}
+			if ( intersectedElement.intersectionRatio < Number.EPSILON ) {
 				continue;
 			}
 			if ( 'IMG' === visitedElement.tagName ) {
@@ -237,11 +247,8 @@ function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 				}
 			} else if ( 'PICTURE' === visitedElement.tagName && visitedElement.sources ) {
 				for ( const source of visitedElement.sources ) {
-					if (
-						source.src === odPreloadLink.href
-						||
-						source.srcset === odPreloadLink.imagesrcset
-					) {
+					// TODO: The media isn't being accounted for, but really only the first SOURCE should be considered since it's the one we preload.
+					if ( source.srcset === odPreloadLink.imagesrcset ) {
 						return true;
 					}
 				}
