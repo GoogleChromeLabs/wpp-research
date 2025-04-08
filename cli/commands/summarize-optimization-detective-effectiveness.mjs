@@ -419,6 +419,12 @@ export async function handler( opt ) {
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
 	function walkSync( dirPath ) {
+
+		// Skip the latest alias.
+		if ( 'latest' === path.basename( dirPath ) ) {
+			return;
+		}
+
 		const files = fs.readdirSync( dirPath );
 
 		if (
