@@ -377,7 +377,7 @@ export async function handler( opt ) {
 				 * Formats number.
 				 *
 				 * @param {number} num - Number.
-				 * @returns {string} Formatted number.
+				 * @return {string} Formatted number.
 				 */
 				const formatNumber = ( num ) => num.toFixed( 1 );
 				log(
@@ -387,7 +387,9 @@ export async function handler( opt ) {
 						pass ? 'faster' : 'slower'
 					} than original for LCP-TTFB (${ formatNumber(
 						optimizedLcpTtfb
-					) } ms vs ${ formatNumber( originalLcpTtfb ) } ms) for ${ opt.url }.`
+					) } ms vs ${ formatNumber( originalLcpTtfb ) } ms) for ${
+						opt.url
+					}.`
 				);
 			}
 		}
@@ -772,7 +774,14 @@ async function analyze(
 						if ( lcpEntry.element ) {
 							metricData.element = {
 								tagName: lcpEntry.element.tagName,
-								attributes: Object.fromEntries( Array.from( lcpEntry.element.attributes ).map( ( attribute ) => [ attribute.name, attribute.value ] ) ),
+								attributes: Object.fromEntries(
+									Array.from(
+										lcpEntry.element.attributes
+									).map( ( attribute ) => [
+										attribute.name,
+										attribute.value,
+									] )
+								),
 							};
 						} else {
 							metricData.element = null;
@@ -830,16 +839,23 @@ async function analyze(
 		return odLinks;
 	} );
 
-	data.elements = await page.evaluate( async ( globalVariablePrefix ) => {
+	data.elements = await page.evaluate( async ( _globalVariablePrefix ) => {
 		/** @type {VisitedElement[]} */
 		const elements = [];
 
 		/**
 		 * @type {LCPMetric[]}
 		 */
-		const lcpMetricCandidates = window[ globalVariablePrefix + 'LCPCandidates' ];
+		const lcpMetricCandidates =
+			window[ _globalVariablePrefix + 'LCPCandidates' ];
 
-		const getAttributesFromElement = ( /** @type {Element} */ element ) => Object.fromEntries( Array.from( element.attributes ).map( ( attribute ) => [ attribute.name, /** @type {string} */ attribute.value ] ) );
+		const getAttributesFromElement = ( /** @type {Element} */ element ) =>
+			Object.fromEntries(
+				Array.from( element.attributes ).map( ( attribute ) => [
+					attribute.name,
+					/** @type {string} */ attribute.value,
+				] )
+			);
 
 		/**
 		 * @type {Map<Element, IntersectionObserverEntry>}
@@ -847,9 +863,12 @@ async function analyze(
 		const elementIntersections = new Map();
 
 		// Query for all elements which are visited by Image Prioritizer as well as anything else being tracked by the site.
-		const visitedElements = document.querySelectorAll( 'img, *[style*="background"][style*="url("], picture, video, *[data-od-xpath]' );
+		const visitedElements = document.querySelectorAll(
+			'img, *[style*="background"][style*="url("], picture, video, *[data-od-xpath]'
+		);
 		await new Promise( ( resolve ) => {
-			const intersectionObserver = new IntersectionObserver( ( entries ) => {
+			const intersectionObserver = new window.IntersectionObserver(
+				( entries ) => {
 					for ( const entry of entries ) {
 						elementIntersections.set( entry.target, entry );
 					}
@@ -858,13 +877,17 @@ async function analyze(
 				{
 					root: null, // To watch for intersection relative to the device's viewport.
 					threshold: 0.0, // As soon as even one pixel is visible.
-				} );
+				}
+			);
 			for ( const visitedElement of visitedElements ) {
 				intersectionObserver.observe( visitedElement );
 			}
 		} );
 
-		for ( const [ visitedElement, intersectionObserverEntry ] of elementIntersections.entries() ) {
+		for ( const [
+			visitedElement,
+			intersectionObserverEntry,
+		] of elementIntersections.entries() ) {
 			const ancestors = [];
 			let currentElement = visitedElement;
 			while ( currentElement ) {
@@ -874,14 +897,15 @@ async function analyze(
 			let xpath = '';
 			for ( let i = 0; i < ancestors.length; i++ ) {
 				/** @type {Element} */
-				const ancestorElement = ancestors[i];
+				const ancestorElement = ancestors[ i ];
 				if ( i < 2 ) {
 					xpath += '/' + ancestorElement.tagName;
 				} else if ( 2 === i && '/HTML/BODY' === xpath ) {
 					xpath += '/' + ancestorElement.tagName;
 					for ( const attrName of [ 'id', 'role', 'class' ] ) {
 						if ( ancestorElement.hasAttribute( attrName ) ) {
-							const attrValue = ancestorElement.getAttribute( attrName );
+							const attrValue =
+								ancestorElement.getAttribute( attrName );
 							if ( /^[a-zA-Z0-9_.\s:-]*$/.test( attrValue ) ) {
 								xpath += `[@${ attrName }='${ attrValue }']`;
 								break;
@@ -889,17 +913,26 @@ async function analyze(
 						}
 					}
 				} else {
-					const siblingIndex = Array.from( ancestorElement.parentElement.children ).indexOf( ancestorElement );
-					xpath += `/*[${ siblingIndex + 1 }][self::${ ancestorElement.tagName }]`;
+					const siblingIndex = Array.from(
+						ancestorElement.parentElement.children
+					).indexOf( ancestorElement );
+					xpath += `/*[${ siblingIndex + 1 }][self::${
+						ancestorElement.tagName
+					}]`;
 				}
 			}
 
 			/** @type {Array<Object<string, string>>|null} */
 			let sources = null;
-			if ( 'VIDEO' === visitedElement.tagName || 'PICTURE' === visitedElement.tagName ) {
+			if (
+				'VIDEO' === visitedElement.tagName ||
+				'PICTURE' === visitedElement.tagName
+			) {
 				sources = Array.from(
 					visitedElement.querySelectorAll( 'source, img' )
-				).map( ( sourceElement ) => getAttributesFromElement( sourceElement ) );
+				).map( ( sourceElement ) =>
+					getAttributesFromElement( sourceElement )
+				);
 			}
 
 			elements.push( {
@@ -908,15 +941,22 @@ async function analyze(
 				sources,
 				xpath, // Note: This may vary not be exactly the same as the data-od-xpath attribute since this is computed after JS may have mutated the DOM tree.
 				attributes: getAttributesFromElement( visitedElement ),
-				isLCP: visitedElement === lcpMetricCandidates.at( -1 ).entries[ 0 ]?.element,
+				isLCP:
+					visitedElement ===
+					lcpMetricCandidates.at( -1 ).entries[ 0 ]?.element,
 				isLCPCandidate: !! lcpMetricCandidates.find(
 					( lcpMetricCandidate ) => {
-						return lcpMetricCandidate.entries[ 0 ]?.element === visitedElement;
+						return (
+							lcpMetricCandidate.entries[ 0 ]?.element ===
+							visitedElement
+						);
 					}
 				),
 				intersectionRatio: intersectionObserverEntry.intersectionRatio,
-				boundingClientRect: intersectionObserverEntry.boundingClientRect.toJSON(),
-				intersectionRect: intersectionObserverEntry.intersectionRect.toJSON(),
+				boundingClientRect:
+					intersectionObserverEntry.boundingClientRect.toJSON(),
+				intersectionRect:
+					intersectionObserverEntry.intersectionRect.toJSON(),
 			} );
 		}
 		return elements;

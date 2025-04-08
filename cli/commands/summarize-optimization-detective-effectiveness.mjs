@@ -74,7 +74,7 @@ const defaultAggregateDiffValue = {
 /**
  * @type {AggregateMetrics}
  */
-const aggregateDiffs = {
+const aggregateDiffsTemplate = {
 	LCP: structuredClone( defaultAggregateDiffValue ),
 	TTFB: structuredClone( defaultAggregateDiffValue ),
 	'LCP-TTFB': structuredClone( defaultAggregateDiffValue ),
@@ -83,15 +83,15 @@ const aggregateDiffs = {
 const facetedAggregateDiffs = {
 	all: {
 		label: 'All',
-		aggregateDiffs: structuredClone( aggregateDiffs ),
+		aggregateDiffs: structuredClone( aggregateDiffsTemplate ),
 	},
 	hasLcpImage: {
 		label: 'LCP element has image',
-		aggregateDiffs: structuredClone( aggregateDiffs ),
+		aggregateDiffs: structuredClone( aggregateDiffsTemplate ),
 	},
 	hasLcpImageWithODPrioritization: {
 		label: 'LCP element has image prioritized by Optimization Detective',
-		aggregateDiffs: structuredClone( aggregateDiffs ),
+		aggregateDiffs: structuredClone( aggregateDiffsTemplate ),
 	},
 };
 
@@ -192,8 +192,7 @@ function countImagesWithFetchPriorityHigh( visitedElements ) {
 	let count = 0;
 	for ( const visitedElement of visitedElements ) {
 		if (
-			'IMG' === visitedElement.tagName
-			&&
+			'IMG' === visitedElement.tagName &&
 			visitedElement.attributes?.fetchpriority === 'high'
 		) {
 			count++;
@@ -209,10 +208,8 @@ function countImagesWithFetchPriorityHighOutsideViewport( visitedElements ) {
 	let count = 0;
 	for ( const visitedElement of visitedElements ) {
 		if (
-			'IMG' === visitedElement.tagName
-			&&
-			visitedElement.attributes?.fetchpriority === 'high'
-			&&
+			'IMG' === visitedElement.tagName &&
+			visitedElement.attributes?.fetchpriority === 'high' &&
 			! ( visitedElement.intersectionRatio > Number.EPSILON )
 		) {
 			count++;
@@ -228,10 +225,8 @@ function countLazyImgInsideViewport( visitedElements ) {
 	let count = 0;
 	for ( const visitedElement of visitedElements ) {
 		if (
-			'IMG' === visitedElement.tagName
-			&&
-			visitedElement.intersectionRatio > Number.EPSILON
-			&&
+			'IMG' === visitedElement.tagName &&
+			visitedElement.intersectionRatio > Number.EPSILON &&
 			visitedElement.attributes?.loading === 'lazy'
 		) {
 			count++;
@@ -241,8 +236,8 @@ function countLazyImgInsideViewport( visitedElements ) {
 }
 
 /**
- * @param {Array<Object<string, string>>}  odPreloadLinks  - Preload links.
- * @param {VisitedElement[]}               visitedElements - Visited elements.
+ * @param {Array<Object<string, string>>} odPreloadLinks  - Preload links.
+ * @param {VisitedElement[]}              visitedElements - Visited elements.
  */
 function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 	for ( const odPreloadLink of odPreloadLinks ) {
@@ -251,7 +246,12 @@ function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 			if ( 'PICTURE' === visitedElement.tagName ) {
 				// The PICTURE itself is not intersected, but only the child IMG tag.
 				for ( const otherVisitedElement of visitedElements ) {
-					if ( otherVisitedElement.tagName === 'IMG' && otherVisitedElement.xpath.startsWith( visitedElement.xpath + '/' ) ) {
+					if (
+						otherVisitedElement.tagName === 'IMG' &&
+						otherVisitedElement.xpath.startsWith(
+							visitedElement.xpath + '/'
+						)
+					) {
 						intersectedElement = otherVisitedElement;
 						break;
 					}
@@ -262,13 +262,16 @@ function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 			}
 			if ( 'IMG' === visitedElement.tagName ) {
 				if (
-					visitedElement.attributes.src === odPreloadLink.href
-					||
-					visitedElement.attributes.srcset === odPreloadLink.imagesrcset
+					visitedElement.attributes.src === odPreloadLink.href ||
+					visitedElement.attributes.srcset ===
+						odPreloadLink.imagesrcset
 				) {
 					return true;
 				}
-			} else if ( 'PICTURE' === visitedElement.tagName && visitedElement.sources ) {
+			} else if (
+				'PICTURE' === visitedElement.tagName &&
+				visitedElement.sources
+			) {
 				for ( const source of visitedElement.sources ) {
 					// TODO: The media isn't being accounted for, but really only the first SOURCE should be considered since it's the one we preload.
 					if ( source.srcset === odPreloadLink.imagesrcset ) {
@@ -276,10 +279,8 @@ function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 					}
 				}
 			} else if (
-				visitedElement.attributes.style
-				&&
-				visitedElement.attributes.style.includes( 'url(' )
-				&&
+				visitedElement.attributes.style &&
+				visitedElement.attributes.style.includes( 'url(' ) &&
 				visitedElement.attributes.style.includes( odPreloadLink.href )
 			) {
 				return true;
@@ -322,12 +323,16 @@ function handleSuccessCase( dirPath, url ) {
 
 	for ( const device of [ 'mobile', 'desktop' ] ) {
 		let odPrioritizedImage = null;
-		let corePrioritizedImage = null;
+		// TODO: let corePrioritizedImage = null;
 
 		for ( const status of [ 'original', 'optimized' ] ) {
 			// Check for accuracy of lazy-loading.
 			if ( countImages( data[ device ][ status ].elements ) > 0 ) {
-				if ( countLazyImgInsideViewport( data[ device ][ status ].elements ) === 0 ) {
+				if (
+					countLazyImgInsideViewport(
+						data[ device ][ status ].elements
+					) === 0
+				) {
 					optimizationAccuracy[ status ].lazyLoadedImgNotInViewport[
 						device
 					].pass++;
@@ -339,8 +344,16 @@ function handleSuccessCase( dirPath, url ) {
 			}
 
 			// Check for accuracy of having fetchpriority=high only in the viewport.
-			if ( countImagesWithFetchPriorityHigh( data[ device ][ status ].elements ) > 0 ) {
-				if ( countImagesWithFetchPriorityHighOutsideViewport( data[ device ][ status ].elements ) === 0 ) {
+			if (
+				countImagesWithFetchPriorityHigh(
+					data[ device ][ status ].elements
+				) > 0
+			) {
+				if (
+					countImagesWithFetchPriorityHighOutsideViewport(
+						data[ device ][ status ].elements
+					) === 0
+				) {
 					optimizationAccuracy[ status ]
 						.imgWithFetchpriorityHighAttrInViewport[ device ]
 						.pass++;
@@ -361,7 +374,7 @@ function handleSuccessCase( dirPath, url ) {
 						lcpData.element?.tagName === 'IMG' &&
 						lcpData.element?.attributes?.fetchpriority === 'high';
 
-					corePrioritizedImage = passed; // TODO: Temp.
+					// TODO: corePrioritizedImage = passed;
 				} else {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 					passed = lcpData.preloadedByOD === true;
@@ -373,7 +386,7 @@ function handleSuccessCase( dirPath, url ) {
 						} );
 					}
 
-					odPrioritizedImage = passed; // TODO: Temp.
+					odPrioritizedImage = passed;
 				}
 				if ( passed ) {
 					optimizationAccuracy[ status ].lcpImagePrioritized[ device ]
@@ -386,38 +399,47 @@ function handleSuccessCase( dirPath, url ) {
 		}
 
 		// If there are preload links in the page added by OD for this device's width, check success rate for the URL actually being for something inside the viewport.
-		const odPreloadLinks = data[ device ].optimized.odLinks
-			.filter( ( /** @type {Object} */ odLink ) => {
+		const odPreloadLinks = data[ device ].optimized.odLinks.filter(
+			( /** @type {Object} */ odLink ) => {
 				if ( odLink.rel !== 'preload' ) {
 					return false;
 				}
 				if ( ! odLink.media ) {
 					return true;
 				}
-				const deviceWidth = data[ device ].optimized.device.viewport.width;
+				const deviceWidth =
+					data[ device ].optimized.device.viewport.width;
 				let matches = odLink.media.match( /width <= (\d+)px/ );
 				if ( matches ) {
-					const maxWidthInclusive = parseInt( matches[1] );
+					const maxWidthInclusive = parseInt( matches[ 1 ] );
 					if ( deviceWidth > maxWidthInclusive ) {
 						return false;
 					}
 				}
 				matches = odLink.media.match( /(\d+)px < width/ );
 				if ( matches ) {
-					const minWidthExclusive = parseInt( matches[1] );
+					const minWidthExclusive = parseInt( matches[ 1 ] );
 					if ( deviceWidth <= minWidthExclusive ) {
 						return false;
 					}
 				}
 				return true;
-			} );
+			}
+		);
 		if ( odPreloadLinks.length > 0 ) {
-			if ( isPreloadedImageInsideViewport( odPreloadLinks, data[ device ].optimized.elements ) ) {
-				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[ device ]
-					.pass++;
+			if (
+				isPreloadedImageInsideViewport(
+					odPreloadLinks,
+					data[ device ].optimized.elements
+				)
+			) {
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[
+					device
+				].pass++;
 			} else {
-				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[ device ]
-					.fail++;
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport[
+					device
+				].fail++;
 			}
 		}
 
@@ -430,21 +452,31 @@ function handleSuccessCase( dirPath, url ) {
 				const diffTime =
 					data[ device ].optimized.metrics[ key ].value -
 					data[ device ].original.metrics[ key ].value;
-				const diffPercent = ( diffTime / data[ device ].original.metrics[ key ].value ) * 100;
+				const diffPercent =
+					( diffTime /
+						data[ device ].original.metrics[ key ].value ) *
+					100;
 				aggregateMetrics[ key ].diffTime[ device ].push( diffTime );
-				aggregateMetrics[ key ].diffPercent[ device ].push( diffPercent );
+				aggregateMetrics[ key ].diffPercent[ device ].push(
+					diffPercent
+				);
 			}
 		};
 
 		// Obtain metrics.
 		pushDiffs( facetedAggregateDiffs.all.aggregateDiffs );
 
-		const hasLcpImage = ( data[ device ].original?.metrics?.LCP?.url && data[ device ].optimized?.metrics?.LCP?.url );
+		const hasLcpImage =
+			data[ device ].original?.metrics?.LCP?.url &&
+			data[ device ].optimized?.metrics?.LCP?.url;
 		if ( hasLcpImage ) {
 			pushDiffs( facetedAggregateDiffs.hasLcpImage.aggregateDiffs );
 
 			if ( odPrioritizedImage === true ) {
-				pushDiffs( facetedAggregateDiffs.hasLcpImageWithODPrioritization.aggregateDiffs );
+				pushDiffs(
+					facetedAggregateDiffs.hasLcpImageWithODPrioritization
+						.aggregateDiffs
+				);
 				// TODO: && corePrioritizedImage === false??
 			}
 		}
@@ -479,7 +511,6 @@ export async function handler( opt ) {
 	 * @param {string} dirPath The path to the directory to traverse.
 	 */
 	function walkSync( dirPath ) {
-
 		// Skip the latest alias.
 		if ( 'latest' === path.basename( dirPath ) ) {
 			return;
@@ -562,9 +593,15 @@ export async function handler( opt ) {
 	log( '' );
 
 	log( `# Metrics` );
-	for ( const facetedAggregateDiff of Object.values( facetedAggregateDiffs ) ) {
-		log( `## ${ facetedAggregateDiff.label } (${ facetedAggregateDiff.aggregateDiffs.LCP.diffTime.mobile.length } URLs)` );
-		for ( const [ key, aggregateDiffs ] of Object.entries( facetedAggregateDiff.aggregateDiffs ) ) {
+	for ( const facetedAggregateDiff of Object.values(
+		facetedAggregateDiffs
+	) ) {
+		log(
+			`## ${ facetedAggregateDiff.label } (${ facetedAggregateDiff.aggregateDiffs.LCP.diffTime.mobile.length } URLs)`
+		);
+		for ( const [ key, aggregateDiffs ] of Object.entries(
+			facetedAggregateDiff.aggregateDiffs
+		) ) {
 			log( `### ${ key }` );
 
 			for ( const device of [ 'mobile', 'desktop' ] ) {
@@ -572,9 +609,7 @@ export async function handler( opt ) {
 					`* Average diff time for ${ device }: ${ formatNumber(
 						computeAverage( aggregateDiffs.diffTime[ device ] )
 					) }ms (${ formatNumber(
-						computeAverage(
-							aggregateDiffs.diffPercent[ device ]
-						)
+						computeAverage( aggregateDiffs.diffPercent[ device ] )
 					) }%)`
 				);
 				log(
@@ -657,20 +692,20 @@ export async function handler( opt ) {
 		[
 			'OD prioritized image in viewport',
 			computePassRate(
-				optimizationAccuracy.original
-					.odPreloadedImageInsideViewport.mobile
+				optimizationAccuracy.original.odPreloadedImageInsideViewport
+					.mobile
 			),
 			computePassRate(
-				optimizationAccuracy.optimized
-					.odPreloadedImageInsideViewport.mobile
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport
+					.mobile
 			),
 			computePassRate(
-				optimizationAccuracy.original
-					.odPreloadedImageInsideViewport.desktop
+				optimizationAccuracy.original.odPreloadedImageInsideViewport
+					.desktop
 			),
 			computePassRate(
-				optimizationAccuracy.optimized
-					.odPreloadedImageInsideViewport.desktop
+				optimizationAccuracy.optimized.odPreloadedImageInsideViewport
+					.desktop
 			),
 		].join( ' | ' )
 	);

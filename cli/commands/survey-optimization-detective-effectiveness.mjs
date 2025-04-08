@@ -96,16 +96,16 @@ function getAbsoluteOutputDir( outputDir ) {
 
 /**
  *
- * @param {Object}  opt
- * @param {string}  opt.urlsFile
- * @param {string}  opt.outputDir
- * @param {number}  opt.parallel
- * @param {boolean} opt.force
- * @param {boolean} opt.requestOptimizedFirst
- * @param {boolean} opt.requestDesktopFirst
- * @param {boolean} opt.skipNetworkPriming
+ * @param {Object}      opt
+ * @param {string}      opt.urlsFile
+ * @param {string}      opt.outputDir
+ * @param {number}      opt.parallel
+ * @param {boolean}     opt.force
+ * @param {boolean}     opt.requestOptimizedFirst
+ * @param {boolean}     opt.requestDesktopFirst
+ * @param {boolean}     opt.skipNetworkPriming
  * @param {string|null} opt.pauseDuration
- * @param {boolean} opt.verbose
+ * @param {boolean}     opt.verbose
  * @return {Promise<void>}
  */
 export async function handler( opt ) {
