@@ -480,7 +480,8 @@ async function analyze(
 	await page.emulate( emulateDevice );
 	await page.emulateNetworkConditions( emulateNetwork );
 	const response = await page.goto( urlObj.toString(), {
-		waitUntil: 'networkidle0',
+		timeout: ( isMobile ? 120 : 60 ) * 1000, // Wait 2 minutes on mobile and sixty seconds on desktop.
+		waitUntil: 'load',
 	} );
 
 	// Store the content for debugging.
