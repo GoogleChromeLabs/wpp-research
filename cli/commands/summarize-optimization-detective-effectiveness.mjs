@@ -49,8 +49,12 @@ const errorManifest = {
 };
 
 /**
+ * @typedef {{diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}} AggregateMetric
+ */
+
+/**
  *
- * @type {{diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}}
+ * @type {AggregateMetric}
  */
 const defaultAggregateDiffValue = {
 	diffTime: {
@@ -64,12 +68,31 @@ const defaultAggregateDiffValue = {
 };
 
 /**
- * @type {{LCP: {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}, TTFB: {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}, "LCP-TTFB": {diffTime: {mobile: number[], desktop: number[]}, diffPercent: {mobile: number[], desktop: number[]}}}}
+ * @typedef {{LCP: AggregateMetric, TTFB: AggregateMetric, "LCP-TTFB": AggregateMetric}} AggregateMetrics
+ */
+
+/**
+ * @type {AggregateMetrics}
  */
 const aggregateDiffs = {
 	LCP: structuredClone( defaultAggregateDiffValue ),
 	TTFB: structuredClone( defaultAggregateDiffValue ),
 	'LCP-TTFB': structuredClone( defaultAggregateDiffValue ),
+};
+
+const facetedAggregateDiffs = {
+	all: {
+		label: 'All',
+		aggregateDiffs: structuredClone( aggregateDiffs ),
+	},
+	hasLcpImage: {
+		label: 'LCP element has image',
+		aggregateDiffs: structuredClone( aggregateDiffs ),
+	},
+	hasLcpImageWithODPrioritization: {
+		label: 'LCP element has image prioritized by Optimization Detective',
+		aggregateDiffs: structuredClone( aggregateDiffs ),
+	},
 };
 
 const defaultMobileDesktopPassFailValue = {
@@ -398,18 +421,31 @@ function handleSuccessCase( dirPath, url ) {
 			}
 		}
 
-		const hasLcpImage = ( data[ device ].original?.metrics?.LCP?.url && data[ device ].optimized?.metrics?.LCP?.url );
-
-		// TODO: Add aggregations separately for the various conditions.
-		// Obtain metrics.
-		if ( hasLcpImage && odPrioritizedImage === true /*&& corePrioritizedImage === false*/ ) {
+		/**
+		 *
+		 * @param {AggregateMetrics} aggregateMetrics
+		 */
+		const pushDiffs = ( aggregateMetrics ) => {
 			for ( const key of [ 'TTFB', 'LCP', 'LCP-TTFB' ] ) {
 				const diffTime =
 					data[ device ].optimized.metrics[ key ].value -
 					data[ device ].original.metrics[ key ].value;
 				const diffPercent = ( diffTime / data[ device ].original.metrics[ key ].value ) * 100;
-				aggregateDiffs[ key ].diffTime[ device ].push( diffTime );
-				aggregateDiffs[ key ].diffPercent[ device ].push( diffPercent );
+				aggregateMetrics[ key ].diffTime[ device ].push( diffTime );
+				aggregateMetrics[ key ].diffPercent[ device ].push( diffPercent );
+			}
+		};
+
+		// Obtain metrics.
+		pushDiffs( facetedAggregateDiffs.all.aggregateDiffs );
+
+		const hasLcpImage = ( data[ device ].original?.metrics?.LCP?.url && data[ device ].optimized?.metrics?.LCP?.url );
+		if ( hasLcpImage ) {
+			pushDiffs( facetedAggregateDiffs.hasLcpImage.aggregateDiffs );
+
+			if ( odPrioritizedImage === true ) {
+				pushDiffs( facetedAggregateDiffs.hasLcpImageWithODPrioritization.aggregateDiffs );
+				// TODO: && corePrioritizedImage === false??
 			}
 		}
 	}
@@ -524,27 +560,31 @@ export async function handler( opt ) {
 
 	log( '--------------------------------------' );
 	log( '' );
-	log( `# Metrics (${ aggregateDiffs.LCP.diffTime.mobile.length } URLs)` );
 
-	for ( const key of Object.keys( aggregateDiffs ) ) {
-		log( `## ${ key }` );
-		for ( const device of [ 'mobile', 'desktop' ] ) {
-			log(
-				`* Average diff time for ${ device }: ${ formatNumber(
-					computeAverage( aggregateDiffs[ key ].diffTime[ device ] )
-				) }ms (${ formatNumber(
-					computeAverage(
-						aggregateDiffs[ key ].diffPercent[ device ]
-					)
-				) }%)`
-			);
-			log(
-				`* Median diff time for ${ device }: ${ formatNumber(
-					computeMedian( aggregateDiffs[ key ].diffTime[ device ] )
-				) }ms (${ formatNumber(
-					computeMedian( aggregateDiffs[ key ].diffPercent[ device ] )
-				) }%)`
-			);
+	log( `# Metrics` );
+	for ( const facetedAggregateDiff of Object.values( facetedAggregateDiffs ) ) {
+		log( `## ${ facetedAggregateDiff.label } (${ facetedAggregateDiff.aggregateDiffs.LCP.diffTime.mobile.length } URLs)` );
+		for ( const [ key, aggregateDiffs ] of Object.entries( facetedAggregateDiff.aggregateDiffs ) ) {
+			log( `### ${ key }` );
+
+			for ( const device of [ 'mobile', 'desktop' ] ) {
+				log(
+					`* Average diff time for ${ device }: ${ formatNumber(
+						computeAverage( aggregateDiffs.diffTime[ device ] )
+					) }ms (${ formatNumber(
+						computeAverage(
+							aggregateDiffs.diffPercent[ device ]
+						)
+					) }%)`
+				);
+				log(
+					`* Median diff time for ${ device }: ${ formatNumber(
+						computeMedian( aggregateDiffs.diffTime[ device ] )
+					) }ms (${ formatNumber(
+						computeMedian( aggregateDiffs.diffPercent[ device ] )
+					) }%)`
+				);
+			}
 		}
 		log( '' );
 	}
