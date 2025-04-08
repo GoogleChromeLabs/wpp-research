@@ -224,7 +224,6 @@ function countLazyImgInsideViewport( visitedElements ) {
 function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 	for ( const odPreloadLink of odPreloadLinks ) {
 		for ( const visitedElement of visitedElements ) {
-			// TODO: Add support for PICTURE.
 			if ( 'IMG' === visitedElement.tagName ) {
 				if (
 					visitedElement.attributes.src === odPreloadLink.href
@@ -232,6 +231,16 @@ function isPreloadedImageInsideViewport( odPreloadLinks, visitedElements ) {
 					visitedElement.attributes.srcset === odPreloadLink.imagesrcset
 				) {
 					return true;
+				}
+			} else if ( 'PICTURE' === visitedElement.tagName && visitedElement.sources ) {
+				for ( const source of visitedElement.sources ) {
+					if (
+						source.src === odPreloadLink.href
+						||
+						source.srcset === odPreloadLink.imagesrcset
+					) {
+						return true;
+					}
 				}
 			} else if (
 				visitedElement.attributes.style

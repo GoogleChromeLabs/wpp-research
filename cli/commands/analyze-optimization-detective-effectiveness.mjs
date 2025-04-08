@@ -44,7 +44,7 @@ import { compare as versionCompare } from 'semver';
  */
 
 /**
- * @typedef {{isLCP: boolean, isLCPCandidate: boolean, breadcrumbs: string[], xpath: string, tagName: string, attributes: Object<string, string>, intersectionRatio: number, intersectionRect: DOMRect, boundingClientRect: DOMRect }} VisitedElement
+ * @typedef {{isLCP: boolean, isLCPCandidate: boolean, breadcrumbs: string[], xpath: string, tagName: string, attributes: Object<string, string>, sources?: Array<Object<string, string>>, intersectionRatio: number, intersectionRect: DOMRect, boundingClientRect: DOMRect }} VisitedElement
  */
 
 /* eslint-enable jsdoc/valid-types */
@@ -771,14 +771,8 @@ async function analyze(
 						if ( lcpEntry.element ) {
 							metricData.element = {
 								tagName: lcpEntry.element.tagName,
-								attributes: {},
+								attributes: Object.fromEntries( Array.from( lcpEntry.element.attributes ).map( ( attribute ) => [ attribute.name, attribute.value ] ) ),
 							};
-							for ( const attribute of lcpEntry.element
-								.attributes ) {
-								metricData.element.attributes[
-									attribute.name
-								] = attribute.value;
-							}
 						} else {
 							metricData.element = null;
 						}
@@ -844,6 +838,8 @@ async function analyze(
 		 */
 		const lcpMetricCandidates = window[ globalVariablePrefix + 'LCPCandidates' ];
 
+		const getAttributesFromElement = ( /** @type {Element} */ element ) => Object.fromEntries( Array.from( element.attributes ).map( ( attribute ) => [ attribute.name, /** @type {string} */ attribute.value ] ) );
+
 		/**
 		 * @type {Map<Element, IntersectionObserverEntry>}
 		 */
@@ -897,12 +893,20 @@ async function analyze(
 				}
 			}
 
-			// TODO: Obtain SOURCE children for PICTURE and VIDEO tags.
+			/** @type {Array<Object<string, string>>|null} */
+			let sources = null;
+			if ( 'VIDEO' === visitedElement.tagName || 'PICTURE' === visitedElement.tagName ) {
+				sources = Array.from(
+					visitedElement.querySelectorAll( 'source, img' )
+				).map( ( sourceElement ) => getAttributesFromElement( sourceElement ) );
+			}
+
 			elements.push( {
 				tagName: visitedElement.tagName,
 				breadcrumbs: ancestors.map( ( element ) => element.tagName ),
+				sources,
 				xpath, // Note: This may vary not be exactly the same as the data-od-xpath attribute since this is computed after JS may have mutated the DOM tree.
-				attributes: Object.fromEntries( Array.from( visitedElement.attributes ).map( ( attribute ) => [ attribute.name, attribute.value ] ) ),
+				attributes: getAttributesFromElement( visitedElement ),
 				isLCP: visitedElement === lcpMetricCandidates.at( -1 ).entries[ 0 ]?.element,
 				isLCPCandidate: !! lcpMetricCandidates.find(
 					( lcpMetricCandidate ) => {
