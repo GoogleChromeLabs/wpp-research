@@ -137,8 +137,8 @@ const optimizationAccuracy = {
 	},
 };
 
-/** @type {Array<{device: string, url: string}>} */
-const urlsWithODImagePrioritizationFailures = [];
+/** @type {Object<string, {dirPath: string, badDevicePreloads: Object<string, Array>}}>} */
+const urlsWithODImagePrioritizationFailures = {};
 
 /**
  * @param {string} dirPath
@@ -246,7 +246,7 @@ function normalizeUrlForComparison( srcset ) {
 	try {
 		url = decodeURI( url );
 	} catch ( err ) {
-		console.log( err.message + ' ' + url );
+		console.warn( 'normalizeUrlForComparison: ' + err.message + ' ' + url );
 	}
 	return url;
 }
@@ -443,10 +443,10 @@ function handleSuccessCase( dirPath, url ) {
 					passed = preloadedByOD === true;
 
 					if ( ! passed ) {
-						urlsWithODImagePrioritizationFailures.push( {
-							device,
-							url,
-						} );
+						if ( ! ( url in urlsWithODImagePrioritizationFailures ) ) {
+							urlsWithODImagePrioritizationFailures[ url ] = { dirPath, badDevicePreloads: {} };
+						}
+						urlsWithODImagePrioritizationFailures[ url ].badDevicePreloads[ device ] = odPreloadLinks;
 					}
 
 					odPrioritizedImage = passed;
@@ -745,6 +745,11 @@ export async function handler( opt ) {
 			),
 		].join( ' | ' )
 	);
+
+	const failuresFilePath = path.join( outputDir, 'urls-with-od-image-prioritization-failures.json' );
+	fs.writeFileSync( failuresFilePath, JSON.stringify( urlsWithODImagePrioritizationFailures, null, 2 ) );
+	log( '' );
+	log( `For a list of the URLs that have LCP image prioritization failures, see: ${ failuresFilePath }` );
 }
 
 /**
