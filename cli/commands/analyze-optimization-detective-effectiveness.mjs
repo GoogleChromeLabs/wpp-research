@@ -63,7 +63,6 @@ import { compare as versionCompare } from 'semver';
  *             url: string|null,
  *             element: object|null,
  *             initiatorType: string|null,
- *             preloadedByOD: boolean,
  *         },
  *         'LCP-TTFB': {
  *             value: number
@@ -543,7 +542,6 @@ async function analyze(
 				url: null,
 				element: null,
 				initiatorType: null,
-				preloadedByOD: false,
 			},
 			'LCP-TTFB': {
 				value: -1,
@@ -752,24 +750,6 @@ async function analyze(
 					} else if ( 'LCP' === metric.name ) {
 						const lcpEntry =
 							/** @type {LargestContentfulPaint} */ entry;
-
-						if ( lcpEntry.url ) {
-							// TODO: This needn't be computed here.
-							for ( /** @type {HTMLLinkElement} */ const odPreloadLink of document.querySelectorAll(
-								'link[data-od-added-tag][rel="preload"]'
-							) ) {
-								if (
-									odPreloadLink.href === lcpEntry.url ||
-									( odPreloadLink.imageSrcset &&
-										odPreloadLink.imageSrcset.includes(
-											lcpEntry.url + ' '
-										) )
-								) {
-									metricData.preloadedByOD = true;
-									break;
-								}
-							}
-						}
 
 						if ( lcpEntry.element ) {
 							metricData.element = {

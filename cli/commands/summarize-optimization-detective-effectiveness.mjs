@@ -236,6 +236,16 @@ function countLazyImgInsideViewport( visitedElements ) {
 }
 
 /**
+ * Removes URL scheme from src or srcset.
+ *
+ * @param {string} srcset
+ * @return {string} Scheme removed.
+ */
+function removeUrlScheme( srcset ) {
+	return srcset.replace( /(^|\s)https?:(?=\/\/)/g, '$1' );
+}
+
+/**
  * @param {Array<Object<string, string>>} odPreloadLinks  - Preload links.
  * @param {VisitedElement[]}              visitedElements - Visited elements.
  */
@@ -325,6 +335,35 @@ function handleSuccessCase( dirPath, url ) {
 		let odPrioritizedImage = null;
 		// TODO: let corePrioritizedImage = null;
 
+		// If there are preload links in the page added by OD for this device's width, check success rate for the URL actually being for something inside the viewport.
+		const odPreloadLinks = data[ device ].optimized.odLinks.filter(
+			( /** @type {Object} */ odLink ) => {
+				if ( odLink.rel !== 'preload' ) {
+					return false;
+				}
+				if ( ! odLink.media ) {
+					return true;
+				}
+				const deviceWidth =
+					data[ device ].optimized.device.viewport.width;
+				let matches = odLink.media.match( /width <= (\d+)px/ );
+				if ( matches ) {
+					const maxWidthInclusive = parseInt( matches[ 1 ] );
+					if ( deviceWidth > maxWidthInclusive ) {
+						return false;
+					}
+				}
+				matches = odLink.media.match( /(\d+)px < width/ );
+				if ( matches ) {
+					const minWidthExclusive = parseInt( matches[ 1 ] );
+					if ( deviceWidth <= minWidthExclusive ) {
+						return false;
+					}
+				}
+				return true;
+			}
+		);
+
 		for ( const status of [ 'original', 'optimized' ] ) {
 			// Check for accuracy of lazy-loading.
 			if ( countImages( data[ device ][ status ].elements ) > 0 ) {
@@ -377,7 +416,25 @@ function handleSuccessCase( dirPath, url ) {
 					// TODO: corePrioritizedImage = passed;
 				} else {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
-					passed = lcpData.preloadedByOD === true;
+
+					let preloadedByOD = false;
+					const schemelessLcpUrl = removeUrlScheme( lcpData.url );
+					for ( const odPreloadLink of odPreloadLinks ) {
+						if (
+							( odPreloadLink.href &&
+								removeUrlScheme( odPreloadLink.href ) ===
+									schemelessLcpUrl ) ||
+							( odPreloadLink.imagesrcset &&
+								removeUrlScheme(
+									odPreloadLink.imagesrcset
+								).includes( schemelessLcpUrl + ' ' ) )
+						) {
+							preloadedByOD = true;
+							break;
+						}
+					}
+
+					passed = preloadedByOD === true;
 
 					if ( ! passed ) {
 						urlsWithODImagePrioritizationFailures.push( {
@@ -398,34 +455,6 @@ function handleSuccessCase( dirPath, url ) {
 			}
 		}
 
-		// If there are preload links in the page added by OD for this device's width, check success rate for the URL actually being for something inside the viewport.
-		const odPreloadLinks = data[ device ].optimized.odLinks.filter(
-			( /** @type {Object} */ odLink ) => {
-				if ( odLink.rel !== 'preload' ) {
-					return false;
-				}
-				if ( ! odLink.media ) {
-					return true;
-				}
-				const deviceWidth =
-					data[ device ].optimized.device.viewport.width;
-				let matches = odLink.media.match( /width <= (\d+)px/ );
-				if ( matches ) {
-					const maxWidthInclusive = parseInt( matches[ 1 ] );
-					if ( deviceWidth > maxWidthInclusive ) {
-						return false;
-					}
-				}
-				matches = odLink.media.match( /(\d+)px < width/ );
-				if ( matches ) {
-					const minWidthExclusive = parseInt( matches[ 1 ] );
-					if ( deviceWidth <= minWidthExclusive ) {
-						return false;
-					}
-				}
-				return true;
-			}
-		);
 		if ( odPreloadLinks.length > 0 ) {
 			if (
 				isPreloadedImageInsideViewport(
