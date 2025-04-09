@@ -236,13 +236,19 @@ function countLazyImgInsideViewport( visitedElements ) {
 }
 
 /**
- * Removes URL scheme from src or srcset.
+ * Normalized URL for comparison in src or srcset.
  *
  * @param {string} srcset
  * @return {string} Scheme removed.
  */
-function removeUrlScheme( srcset ) {
-	return srcset.replace( /(^|\s)https?:(?=\/\/)/g, '$1' );
+function normalizeUrlForComparison( srcset ) {
+	let url = srcset.replace( /(^|\s)https?:(?=\/\/)/g, '$1' );
+	try {
+		url = decodeURI( url );
+	} catch ( err ) {
+		console.log( err.message + ' ' + url );
+	}
+	return url;
 }
 
 /**
@@ -418,14 +424,14 @@ function handleSuccessCase( dirPath, url ) {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 
 					let preloadedByOD = false;
-					const schemelessLcpUrl = removeUrlScheme( lcpData.url );
+					const schemelessLcpUrl = normalizeUrlForComparison( lcpData.url );
 					for ( const odPreloadLink of odPreloadLinks ) {
 						if (
 							( odPreloadLink.href &&
-								removeUrlScheme( odPreloadLink.href ) ===
+								normalizeUrlForComparison( odPreloadLink.href ) ===
 									schemelessLcpUrl ) ||
 							( odPreloadLink.imagesrcset &&
-								removeUrlScheme(
+								normalizeUrlForComparison(
 									odPreloadLink.imagesrcset
 								).includes( schemelessLcpUrl + ' ' ) )
 						) {
