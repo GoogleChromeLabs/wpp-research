@@ -428,7 +428,8 @@ export async function handler( opt ) {
 				url,
 				metricsDefinition,
 				params,
-				logIterationsProgress
+				logIterationsProgress,
+				params.pauseDuration
 			);
 			results.push( [ url, completeRequests, metrics ] );
 			if ( logURLProgress ) {
