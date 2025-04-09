@@ -23,7 +23,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { log } from '../lib/cli/logger.mjs';
+import { log, warn } from '../lib/cli/logger.mjs';
 
 /** @typedef {import("./analyze-optimization-detective-effectiveness.mjs").VisitedElement} VisitedElement */
 
@@ -137,7 +137,7 @@ const optimizationAccuracy = {
 	},
 };
 
-/** @type {Object<string, {dirPath: string, badDevicePreloads: Object<string, Array>}}>} */
+/** @type {Object<string, {dirPath: string, badDevicePreloads: Object<string, Array>}>} */
 const urlsWithODImagePrioritizationFailures = {};
 
 /**
@@ -246,7 +246,7 @@ function normalizeUrlForComparison( srcset ) {
 	try {
 		url = decodeURI( url );
 	} catch ( err ) {
-		console.warn( 'normalizeUrlForComparison: ' + err.message + ' ' + url );
+		warn( `normalizeUrlForComparison: ${ err.message } for ${ url }` );
 	}
 	return url;
 }
@@ -424,12 +424,15 @@ function handleSuccessCase( dirPath, url ) {
 					// If there is an LCP image: passing means it was preloaded by Optimization Detective (whether an IMG tag or a background image).
 
 					let preloadedByOD = false;
-					const schemelessLcpUrl = normalizeUrlForComparison( lcpData.url );
+					const schemelessLcpUrl = normalizeUrlForComparison(
+						lcpData.url
+					);
 					for ( const odPreloadLink of odPreloadLinks ) {
 						if (
 							( odPreloadLink.href &&
-								normalizeUrlForComparison( odPreloadLink.href ) ===
-									schemelessLcpUrl ) ||
+								normalizeUrlForComparison(
+									odPreloadLink.href
+								) === schemelessLcpUrl ) ||
 							( odPreloadLink.imagesrcset &&
 								normalizeUrlForComparison(
 									odPreloadLink.imagesrcset
@@ -443,10 +446,17 @@ function handleSuccessCase( dirPath, url ) {
 					passed = preloadedByOD === true;
 
 					if ( ! passed ) {
-						if ( ! ( url in urlsWithODImagePrioritizationFailures ) ) {
-							urlsWithODImagePrioritizationFailures[ url ] = { dirPath, badDevicePreloads: {} };
+						if (
+							! ( url in urlsWithODImagePrioritizationFailures )
+						) {
+							urlsWithODImagePrioritizationFailures[ url ] = {
+								dirPath,
+								badDevicePreloads: {},
+							};
 						}
-						urlsWithODImagePrioritizationFailures[ url ].badDevicePreloads[ device ] = odPreloadLinks;
+						urlsWithODImagePrioritizationFailures[
+							url
+						].badDevicePreloads[ device ] = odPreloadLinks;
 					}
 
 					odPrioritizedImage = passed;
@@ -746,10 +756,18 @@ export async function handler( opt ) {
 		].join( ' | ' )
 	);
 
-	const failuresFilePath = path.join( outputDir, 'urls-with-od-image-prioritization-failures.json' );
-	fs.writeFileSync( failuresFilePath, JSON.stringify( urlsWithODImagePrioritizationFailures, null, 2 ) );
+	const failuresFilePath = path.join(
+		outputDir,
+		'urls-with-od-image-prioritization-failures.json'
+	);
+	fs.writeFileSync(
+		failuresFilePath,
+		JSON.stringify( urlsWithODImagePrioritizationFailures, null, 2 )
+	);
 	log( '' );
-	log( `For a list of the URLs that have LCP image prioritization failures, see: ${ failuresFilePath }` );
+	log(
+		`For a list of the URLs that have LCP image prioritization failures, see: ${ failuresFilePath }`
+	);
 }
 
 /**
