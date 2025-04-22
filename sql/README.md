@@ -20,6 +20,10 @@ For additional considerations for writing BigQuery queries against HTTP Archive,
 
 ## Query index
 
+### 2025/04
+
+* [% of WordPress sites using sliders/carousels](./2025/04/slider-usage.sql)
+
 ### 2024/12
 
 * [Image sizes attribute impact of using WordPress 6.7](./2024/12/auto-sizes-wp67-impact-before-after.sql)
