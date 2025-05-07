@@ -1,4 +1,4 @@
-# HTTP Archive query to get % WordPress sites using a block theme.
+# HTTP Archive query to get % WordPress sites using Featured Image in block themes.
 #
 # WPP Research, Copyright 2025 Google LLC
 #
