@@ -15,47 +15,59 @@
 # limitations under the License.
 
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/184
-SELECT
-  client,
-  COUNT(DISTINCT page) AS with_block_theme,
-  total_wp_sites,
-  COUNT(DISTINCT url) / total_wp_sites AS pct_total,
-  # For reference, include number of sites greater than or equal to WP 5.9, since only then block theme support was launched.
-  wp_gte_59
-FROM
-  `httparchive.crawl.pages`,
-  UNNEST(technologies) AS technology,
-  UNNEST(technology.info) AS version
-JOIN
-  `httparchive.crawl.requests`
-USING
-  (date, client, page, is_root_page)
-JOIN (
+
+DECLARE
+  DATE_TO_QUERY DATE DEFAULT '2025-03-01';
+
+CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, categories ARRAY<STRING>, info ARRAY<STRING>>>, cms STRING, version STRING) RETURNS BOOL AS (
+  EXISTS(
+    SELECT * FROM UNNEST(technologies) AS technology, UNNEST(technology.info) AS info
+    WHERE technology.technology = cms
+    AND (
+      version = ""
+      OR ENDS_WITH(version, ".x") AND (STARTS_WITH(info, RTRIM(version, "x")) OR info = RTRIM(version, ".x"))
+      OR info = version
+    )
+  )
+);
+
+WITH wordpress AS (
   SELECT
     client,
-    COUNT(DISTINCT IF (version = '' OR CAST(REGEXP_EXTRACT(version, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9, page, NULL)) AS wp_gte_59,
-    COUNT(DISTINCT page) AS total_wp_sites
+    page
   FROM
-    `httparchive.crawl.pages`,
-    UNNEST(technologies) AS technology,
-    UNNEST(technology.info) AS version
+    `httparchive.crawl.pages`
   WHERE
-    date = '2025-03-01'
-    AND is_root_page
-    AND technology.technology = "WordPress"
-  GROUP BY
-    client )
-USING
-  (client)
-WHERE
-  date = '2025-03-01'
-  AND is_root_page
-  AND technology.technology = "WordPress"
-  AND (version = '' OR CAST(REGEXP_EXTRACT(version, r'^(\d+\.\d+)') AS FLOAT64) >= 5.9)
-  AND response_body LIKE '%<figure class="wp-block-post-featured-image">%'
-GROUP BY
+    date = DATE_TO_QUERY
+    AND IS_CMS(technologies, 'WordPress', '5.9.0')
+    AND is_root_page = TRUE
+),
+
+featuredImageBlockDetection AS (
+  SELECT
+    client,
+    page,
+    REGEXP_CONTAINS(response_body, r'<figure class="wp-block-post-featured-image">') AS has_featured_image_block
+  FROM
+    `httparchive.crawl.requests`
+  WHERE
+    date = DATE_TO_QUERY
+    AND is_root_page = TRUE
+    AND is_main_document
+)
+
+SELECT
   client,
-  wp_gte_59,
-  total_wp_sites
+  COUNT(IF(has_featured_image_block, page, NULL)) AS urls,
+  COUNT(page) AS total,
+  COUNT(IF(has_featured_image_block, page, NULL)) / COUNT(page) AS pct_total
+FROM
+  wordpress
+JOIN
+  featuredImageBlockDetection
+USING
+  (client, page)
+GROUP BY
+  client
 ORDER BY
   client
