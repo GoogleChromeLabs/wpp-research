@@ -30,6 +30,18 @@ import {
 	options as analyzeLoadingOptimizationOptions,
 } from './commands/analyze-loading-optimization.mjs';
 import {
+	handler as analyzeOptimizationDetectiveEffectivenessHandler,
+	options as analyzeOptimizationDetectiveEffectivenessOptions,
+} from './commands/analyze-optimization-detective-effectiveness.mjs';
+import {
+	handler as surveyOptimizationDetectiveEffectivenessHandler,
+	options as surveyOptimizationDetectiveEffectivenessOptions,
+} from './commands/survey-optimization-detective-effectiveness.mjs';
+import {
+	handler as summarizeOptimizationDetectiveEffectivenessHandler,
+	options as summarizeOptimizationDetectiveEffectivenessOptions,
+} from './commands/summarize-optimization-detective-effectiveness.mjs';
+import {
 	handler as benchmarkServerTimingHandler,
 	options as benchmarkServerTimingOptions,
 } from './commands/benchmark-server-timing.mjs';
@@ -76,6 +88,36 @@ withOptions(
 )
 	.description( 'Analyzes issues with loading optimization' )
 	.action( catchException( analyzeLoadingOptimizationHandler ) );
+withOptions(
+	program.command( 'analyze-optimization-detective-effectiveness' ),
+	analyzeOptimizationDetectiveEffectivenessOptions
+)
+	.description(
+		'Analyzes Optimization Detective effectiveness for a single URL.'
+	)
+	.action(
+		catchException( analyzeOptimizationDetectiveEffectivenessHandler )
+	);
+withOptions(
+	program.command( 'survey-optimization-detective-effectiveness' ),
+	surveyOptimizationDetectiveEffectivenessOptions
+)
+	.description(
+		'Surveys Optimization Detective effectiveness across a set of URLs.'
+	)
+	.action(
+		catchException( surveyOptimizationDetectiveEffectivenessHandler )
+	);
+withOptions(
+	program.command( 'summarize-optimization-detective-effectiveness' ),
+	summarizeOptimizationDetectiveEffectivenessOptions
+)
+	.description(
+		'summarizes Optimization Detective effectiveness across a set of URLs.'
+	)
+	.action(
+		catchException( summarizeOptimizationDetectiveEffectivenessHandler )
+	);
 withOptions(
 	program.command( 'benchmark-server-timing' ),
 	benchmarkServerTimingOptions
