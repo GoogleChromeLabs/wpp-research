@@ -34,7 +34,8 @@ CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, ca
 WITH wordpress AS (
   SELECT
     client,
-    page
+    page,
+    BOOL(custom_metrics.cms.wordpress.block_theme) AS has_block_theme
   FROM
     `httparchive.crawl.pages`
   WHERE
@@ -60,7 +61,9 @@ featuredImageBlockDetection AS (
 SELECT
   client,
   COUNT(IF(has_featured_image_block, page, NULL)) AS urls,
+  COUNT(IF(has_block_theme, page, NULL)) AS block_theme,
   COUNT(page) AS total,
+  COUNT(IF(has_featured_image_block, page, NULL)) / COUNT(IF(has_block_theme, page, NULL)) AS pct_block_theme,
   COUNT(IF(has_featured_image_block, page, NULL)) / COUNT(page) AS pct_total
 FROM
   wordpress
