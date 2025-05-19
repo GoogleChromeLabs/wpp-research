@@ -48,14 +48,14 @@ featuredImageBlockDetection AS (
   SELECT
     client,
     page,
-    REGEXP_CONTAINS(response_body, r'<figure class="wp-block-post-featured-image">') AS has_featured_image_block
+    TRUE AS has_featured_image_block
   FROM
     `httparchive.crawl.requests`
   WHERE
     date = DATE_TO_QUERY
     AND is_root_page = TRUE
     AND is_main_document
-    AND response_body LIKE '%<div class="wp-site-blocks">%'
+    AND REGEXP_CONTAINS(response_body, r'<figure class="wp-block-post-featured-image">')
 )
 
 SELECT
@@ -67,7 +67,7 @@ SELECT
   COUNT(IF(has_featured_image_block, page, NULL)) / COUNT(page) AS pct_total
 FROM
   wordpress
-JOIN
+LEFT JOIN
   featuredImageBlockDetection
 USING
   (client, page)
