@@ -17,7 +17,7 @@
 # See query results here: https://github.com/GoogleChromeLabs/wpp-research/pull/184
 
 DECLARE
-  DATE_TO_QUERY DATE DEFAULT '2025-03-01';
+  DATE_TO_QUERY DATE DEFAULT '2025-04-01';
 
 CREATE TEMPORARY FUNCTION IS_CMS(technologies ARRAY<STRUCT<technology STRING, categories ARRAY<STRING>, info ARRAY<STRING>>>, cms STRING, version STRING) RETURNS BOOL AS (
   EXISTS(
@@ -39,7 +39,7 @@ WITH wordpress AS (
     `httparchive.crawl.pages`
   WHERE
     date = DATE_TO_QUERY
-    AND IS_CMS(technologies, 'WordPress', '5.9.0')
+    AND IS_CMS(technologies, 'WordPress', '')
     AND is_root_page = TRUE
 ),
 
@@ -54,6 +54,7 @@ featuredImageBlockDetection AS (
     date = DATE_TO_QUERY
     AND is_root_page = TRUE
     AND is_main_document
+    AND response_body LIKE '%<div class="wp-site-blocks">%'
 )
 
 SELECT
