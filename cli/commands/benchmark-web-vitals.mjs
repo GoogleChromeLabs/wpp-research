@@ -84,7 +84,7 @@ export const options = [
 	},
 	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv or table',
+		description: 'Output format: "csv", "table", "md"',
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 	{
@@ -205,7 +205,7 @@ function getParamsFromOptions( opt ) {
 
 	if ( ! isValidTableFormat( params.output ) ) {
 		throw new Error(
-			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table" or "csv".`
+			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", or "md".`
 		);
 	}
 
@@ -826,6 +826,18 @@ function outputResults( opt, results ) {
 		} );
 
 		tableData.push( tableRow );
+	}
+
+	// Format the numbers with a consistent number of decimal points.
+	if ( opt.output === 'table' || opt.output === 'md' ) {
+		const precision = opt.showVariance ? 2 : 1;
+		tableData.forEach( ( row ) => {
+			for ( let i = 1; i < row.length; i++ ) {
+				if ( typeof row[ i ] === 'number' ) {
+					row[ i ] = row[ i ].toFixed( precision );
+				}
+			}
+		} );
 	}
 
 	output( table( headings, tableData, opt.output, true ) );

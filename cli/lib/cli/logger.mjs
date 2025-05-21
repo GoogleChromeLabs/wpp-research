@@ -22,6 +22,7 @@
 import chalk from 'chalk';
 import { table as formatTable } from 'table';
 import { stringify as formatCsv } from 'csv-stringify/sync'; // eslint-disable-line import/no-unresolved
+import { markdownTable } from 'markdown-table';
 
 // Responsible for the actual command output.
 export const output = ( text ) => {
@@ -47,9 +48,10 @@ export const formats = {
 
 export const OUTPUT_FORMAT_TABLE = 'table';
 export const OUTPUT_FORMAT_CSV = 'csv';
+export const OUTPUT_FORMAT_MD = 'md';
 
 export function isValidTableFormat( format ) {
-	return format === OUTPUT_FORMAT_TABLE || format === OUTPUT_FORMAT_CSV;
+	return format === OUTPUT_FORMAT_TABLE || format === OUTPUT_FORMAT_CSV || format === OUTPUT_FORMAT_MD;
 }
 
 export function table( headings, data, format, rowsAsColumns ) {
@@ -79,6 +81,10 @@ export function table( headings, data, format, rowsAsColumns ) {
 
 	if ( format === OUTPUT_FORMAT_CSV ) {
 		return formatCsv( tableData );
+	} else if ( format === OUTPUT_FORMAT_MD ) {
+		// Align the first column to the left, but align all remaining columns to the right since they are numeric.
+		const align = [ 'l', ...Array( headings.length - 1 ).fill( 'r' ) ];
+		return markdownTable( tableData, { align } );
 	}
 
 	return formatTable( tableData );

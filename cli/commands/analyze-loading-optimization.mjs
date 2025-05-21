@@ -76,7 +76,7 @@ export const options = [
 	},
 	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv, csv-oneline, table, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
+		description: 'Output format: csv, csv-oneline, table, md, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 ];
@@ -104,7 +104,7 @@ function getParamsFromOptions( opt ) {
 		! [ 'csv-oneline', 'json' ].includes( params.output )
 	) {
 		throw new Error(
-			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", "csv-oneline", or "json".`
+			`Invalid output ${ opt.output }. The output format provided via the --output (-o) argument must be either "table", "csv", "csv-oneline", "json", or "md".`
 		);
 	}
 
