@@ -76,7 +76,7 @@ export const options = [
 	},
 	{
 		argname: '-o, --output <output>',
-		description: 'Output format: csv, csv-oneline, table, md, or json', // TODO: Add ability to output CSV as single row for sake of putting in spreadsheet.
+		description: 'Output format: csv, csv-oneline, table, md, or json',
 		defaults: OUTPUT_FORMAT_TABLE,
 	},
 ];
