@@ -51,7 +51,11 @@ export const OUTPUT_FORMAT_CSV = 'csv';
 export const OUTPUT_FORMAT_MD = 'md';
 
 export function isValidTableFormat( format ) {
-	return format === OUTPUT_FORMAT_TABLE || format === OUTPUT_FORMAT_CSV || format === OUTPUT_FORMAT_MD;
+	return (
+		format === OUTPUT_FORMAT_TABLE ||
+		format === OUTPUT_FORMAT_CSV ||
+		format === OUTPUT_FORMAT_MD
+	);
 }
 
 export function table( headings, data, format, rowsAsColumns ) {
