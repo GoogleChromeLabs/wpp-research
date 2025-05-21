@@ -28,7 +28,6 @@ import round from 'lodash-es/round.js';
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {import("puppeteer").Browser} Browser */
-/** @typedef {import("puppeteer").Page} Page */
 /** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
 /** @typedef {import("puppeteer").Device} Device */
 /** @typedef {keyof typeof KnownDevices} KnownDeviceName */
@@ -518,9 +517,6 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 		/** @type {Browser} */
 		let browser;
 
-		/** @type {Page} */
-		let page;
-
 		try {
 			browser = await launchBrowser();
 			if ( logProgress ) {
@@ -528,7 +524,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 					`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
 				);
 			}
-			page = await browser.newPage();
+			const page = await browser.newPage();
 			await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
 			if ( params.cpuThrottleFactor ) {
 				await page.emulateCPUThrottling( params.cpuThrottleFactor );
