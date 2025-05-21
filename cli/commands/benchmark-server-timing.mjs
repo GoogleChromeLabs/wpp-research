@@ -348,16 +348,5 @@ function outputResults( opt, results ) {
 		tableData.push( tableRow );
 	}
 
-	// Format the numbers with a consistent number of decimal points.
-	if ( opt.output === 'table' || opt.output === 'md' ) {
-		tableData.forEach( ( row ) => {
-			for ( let i = 1; i < row.length; i++ ) {
-				if ( typeof row[ i ] === 'number' ) {
-					row[ i ] = row[ i ].toFixed( 2 );
-				}
-			}
-		} );
-	}
-
 	output( table( headings, tableData, opt.output, true ) );
 }
