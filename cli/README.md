@@ -28,7 +28,7 @@ By default, only the median values are returned. You can optionally request all 
 
 * `--test` (`-t`): You need to pass a WebPageTest result ID (e.g. "221011_AiDcV7_GGM") or URL (e.g. "https://www.webpagetest.org/result/221011_AiDcV7_GGM/"). You can optionally pass multiple test result IDs to merge their metrics. This is usually not relevant but can be helpful to combine multiple results with similar test configuration, to effectively have more test runs than the limit of 9 that WebPageTest imposes.
 * `--metrics` (`-m`): You need to pass one or more WebPageTest metrics. Any metrics available on the "Graph Page Data" view (e.g. "https://www.webpagetest.org/graph_page_data.php?tests=221011_AiDcV7_GGM&median_value=1") are available. For a full list, please see the source code of the `createGetSingleMetricValue_()` function in the `lib/wpt/result.mjs` file. Additionally, you can access any Server-Timing metric by its identifier prefixed with "Server-Timing:". You can even aggregate multiple metrics in one via addition (` + `) and/or subtraction (` - `). Make sure to include a space before and after the arithmetic operator.
-* `--format` (`-f`): The output format: Either "table" or "csv".
+* `--format` (`-f`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--include-runs` (`-i`): Whether to also show the full results for all runs.
 * `--rows-as-columns` (`-r`): Whether to inverse rows and columns.
@@ -86,7 +86,7 @@ By default, only the median values are returned. You can optionally request all 
 #### Arguments
 
 * `--test` (`-t`): You need to pass a WebPageTest result ID (e.g. "221011_AiDcV7_GGM") or URL (e.g. "https://www.webpagetest.org/result/221011_AiDcV7_GGM/"). You can optionally pass multiple test result IDs to merge their metrics. This is usually not relevant but can be helpful to combine multiple results with similar test configuration, to effectively have more test runs than the limit of 9 that WebPageTest imposes.
-* `--format` (`-f`): The output format: Either "table" or "csv".
+* `--format` (`-f`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--include-runs` (`-i`): Whether to also show the full results for all runs.
 * `--rows-as-columns` (`-r`): Whether to inverse rows and columns.
@@ -123,7 +123,7 @@ Sends the selected number of requests with a certain concurrency to provided URL
 * `--concurrency` (`-c`): Number of requests to make at the same time.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
-* `--output` (`-o`): The output format: Either "table" or "csv".
+* `--output` (`-o`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 
 #### Examples
@@ -158,7 +158,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
 * `--metrics` (`-m`): Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".
-* `--output` (`-o`): The output format: Either "table" or "csv".
+* `--output` (`-o`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 * `--throttle-cpu` (`-t`): Enable CPU throttling to emulate slow CPUs.
 * `--network-conditions` (`-c`): Enable emulation of network conditions. Options: "Slow 3G", "Fast 3G", "Slow 4G", "Fast 4G", "broadband". Note that "Fast 3G" and "Slow 4G" are identical, and this is used in Lighthouse for testing on mobile. The "broadband" value corresponds to what Lighthouse uses for testing on desktop: 10,240 kb/s throughput with 40 ms TCP RTT.
@@ -211,7 +211,7 @@ Loads the given URL with both desktop and mobile emulation and gathers informati
 #### Arguments
 
 * `--url` (`-u`): A URL to analyze.
-* `--output` (`-o`): The output format, either "table", "json", "csv", or "csv-oneline".
+* `--output` (`-o`): The output format, either "table", "json", "csv", "csv-oneline", or "md".
 
 #### Examples
 
