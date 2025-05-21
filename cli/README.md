@@ -123,6 +123,7 @@ Sends the selected number of requests with a certain concurrency to provided URL
 * `--concurrency` (`-c`): Number of requests to make at the same time.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
+* `--diff` (`-d`): Add diffs in terms of milliseconds and percentages when two URLs are provided via `--file`.
 * `--output` (`-o`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.
 
@@ -157,6 +158,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--url` (`-u`): A URL to benchmark.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
+* `--diff` (`-d`): Add diffs in terms of milliseconds and percentages when two URLs are provided via `--file`.
 * `--metrics` (`-m`): Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".
 * `--output` (`-o`): The output format: Either "table", "csv", or "md".
 * `--show-percentiles` (`-p`): Whether to show more granular percentiles instead of only the median.

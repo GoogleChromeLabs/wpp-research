@@ -27,6 +27,7 @@ import round from 'lodash-es/round.js';
  */
 import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
 import {
+	amendDiffsToTableData,
 	log,
 	logPartial,
 	output,
@@ -63,6 +64,12 @@ export const options = [
 	{
 		argname: '-f, --file <file>',
 		description: 'File with URLs to run benchmark tests for',
+	},
+	{
+		argname: '-d, --diff',
+		description:
+			'Compute the difference between two URLs. Only applicable when using --file and two URLs are provided.',
+		defaults: false,
 	},
 	{
 		argname: '-o, --output <output>',
@@ -346,6 +353,19 @@ function outputResults( opt, results ) {
 		} );
 
 		tableData.push( tableRow );
+	}
+
+	// When two URLs are being benchmarked and the --diff option is provided, add columns for the millisecond diff and percentage diff.
+	if ( opt.diff ) {
+		if ( tableData.length !== 2 ) {
+			log(
+				formats.error(
+					`The --diff option was ignored because you provided ${ results.length } URL(s), but it requires two URLs to compare.`
+				)
+			);
+		} else {
+			amendDiffsToTableData( tableData );
+		}
 	}
 
 	output( table( headings, tableData, opt.output, true ) );

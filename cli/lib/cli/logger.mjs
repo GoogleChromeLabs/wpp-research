@@ -58,6 +58,48 @@ export function isValidTableFormat( format ) {
 	);
 }
 
+/**
+ * Amends the table data with milliseconds and percent diffs.
+ *
+ * @param {Array<Array<number|string>>} tableData
+ */
+export function amendDiffsToTableData( tableData ) {
+	if ( tableData.length !== 2 ) {
+		throw new Error( 'Table data must have exactly two rows.' );
+	}
+
+	const msDiffs = [ 'Diff (ms)' ];
+	const percentDiffs = [ 'Diff (%)' ];
+
+	// Note: rowIndex starts at 1 to skip over the URL row.
+	for ( let rowIndex = 1; rowIndex < tableData[ 0 ].length; rowIndex++ ) {
+		const first = tableData[ 0 ][ rowIndex ];
+		const second = tableData[ 1 ][ rowIndex ];
+		if ( typeof first !== 'number' || typeof second !== 'number' ) {
+			msDiffs.push( '--' );
+			percentDiffs.push( '--' );
+		} else {
+			const diffMs = second - first;
+			const diffPercent = ( ( second - first ) / first ) * 100;
+
+			let prefix = '';
+			if ( diffMs < 0 ) {
+				prefix = '-';
+			} else if ( diffMs > 0 ) {
+				prefix = '+';
+			}
+
+			msDiffs.push( prefix + Math.abs( diffMs ).toFixed( 2 ) );
+			percentDiffs.push(
+				prefix + Math.abs( diffPercent ).toFixed( 1 ) + '%'
+			);
+		}
+	}
+
+	tableData.push( msDiffs );
+	tableData.push( percentDiffs );
+}
+
 export function table( headings, data, format, rowsAsColumns ) {
 	const tableData = [];
 
