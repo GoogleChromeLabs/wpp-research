@@ -42,12 +42,6 @@ export function parseWptTestId( testIdOrUrl ) {
 	return testId;
 }
 
-/**
- * Gets URLs.
- *
- * @param {{ url: ?string, file: ?string }} opt
- * @returns {AsyncGenerator<string>}
- */
 export async function* getURLs( opt ) {
 	if ( !! opt.url ) {
 		yield opt.url;
