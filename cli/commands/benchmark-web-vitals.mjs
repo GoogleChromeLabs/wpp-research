@@ -569,14 +569,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			}
 
 			if ( response.status() !== 200 ) {
-				if ( logProgress ) {
-					log(
-						formats.error(
-							`Error: Bad response code ${ response.status() }.`
-						)
-					);
-				}
-				continue;
+				throw new Error( `Bad response code ${ response.status() }.` );
 			}
 
 			if ( groupedMetrics.webVitals ) {
