@@ -490,33 +490,47 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 		} );
 	}
 
+	/** @type {Browser} */
+	let browser;
+
 	// Prime the network connections so that the initial DNS lookup in the operating system does not negatively impact the initial TTFB metric.
 	if ( ! params.skipNetworkPriming ) {
-		const browser = await launchBrowser();
-		if ( logProgress ) {
-			log( `Priming network...` );
-		}
-		const page = await browser.newPage();
-		if ( params.emulateDevice ) {
-			await page.emulate( params.emulateDevice );
-		}
-		const urlObj = new URL( url );
-		urlObj.searchParams.append( 'rnd', String( Math.random() ) );
-		await page.goto( urlObj.toString(), {
-			waitUntil: 'domcontentloaded',
-		} );
-		await browser.close();
-		if ( params.pauseDuration ) {
-			await new Promise( ( resolve ) => {
-				setTimeout( resolve, params.pauseDuration );
+		try {
+			browser = await launchBrowser();
+			if ( logProgress ) {
+				log( `Priming network...` );
+			}
+			const page = await browser.newPage();
+			if ( params.emulateDevice ) {
+				await page.emulate( params.emulateDevice );
+			}
+			const urlObj = new URL( url );
+			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
+			await page.goto( urlObj.toString(), {
+				waitUntil: 'domcontentloaded',
 			} );
+			await browser.close();
+			if ( params.pauseDuration ) {
+				await new Promise( ( resolve ) => {
+					setTimeout( resolve, params.pauseDuration );
+				} );
+			}
+		} catch ( err ) {
+			if ( logProgress ) {
+				log(
+					formats.error(
+						`Network priming request failed: ${ err.message }.`
+					)
+				);
+			}
+		} finally {
+			if ( browser ) {
+				await browser.close();
+			}
 		}
 	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
-		/** @type {Browser} */
-		let browser;
-
 		try {
 			browser = await launchBrowser();
 			if ( logProgress ) {
