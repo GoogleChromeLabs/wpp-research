@@ -41,6 +41,7 @@ import round from 'lodash-es/round.js';
  */
 import {
 	getURLs,
+	collectUrlArgs,
 	shouldLogURLProgress,
 	shouldLogIterationsProgress,
 } from '../lib/cli/args.mjs';
@@ -67,7 +68,10 @@ import {
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'A URL to run benchmark tests for',
+		description:
+			'URL to run benchmark tests for, where multiple URLs can be supplied by repeating the argument',
+		defaults: [],
+		parseArg: collectUrlArgs,
 	},
 	{
 		argname: '-n, --number <number>',
@@ -136,7 +140,7 @@ export const options = [
 
 /**
  * @typedef {Object} Params
- * @property {?string}             url                - See above.
+ * @property {string[]}            url                - See above.
  * @property {number}              amount             - See above.
  * @property {?string}             file               - See above.
  * @property {boolean}             diff               - See above.
@@ -164,7 +168,7 @@ export const options = [
 
 /**
  * @param {Object}        opt
- * @param {?string}       opt.url
+ * @param {string[]}      opt.url
  * @param {string|number} opt.number
  * @param {?string}       opt.file
  * @param {boolean}       opt.diff
@@ -219,9 +223,9 @@ function getParamsFromOptions( opt ) {
 		);
 	}
 
-	if ( ! params.file && ! params.url ) {
+	if ( ! params.file && params.url.length === 0 ) {
 		throw new Error(
-			'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
+			'You need to provide a URL to benchmark via one or more --url (-u) arguments, or a file with one or more URLs via the --file (-f) argument.'
 		);
 	}
 
@@ -432,9 +436,9 @@ export async function handler( opt ) {
 		if ( logURLProgress ) {
 			// If also logging individual iterations, put those on a new line.
 			if ( logIterationsProgress ) {
-				log( `Benchmarking URL ${ url }...` );
+				log( `Benchmarking URL ${ url } ... ` );
 			} else {
-				logPartial( `Benchmarking URL ${ url }...` );
+				logPartial( `Benchmarking URL ${ url } ... ` );
 			}
 		}
 
@@ -450,11 +454,14 @@ export async function handler( opt ) {
 			if ( logURLProgress ) {
 				// If also logging individual iterations, provide more context on benchmarking which URL was completed.
 				if ( logIterationsProgress ) {
-					log(
-						formats.success(
-							`Completed benchmarking URL ${ url }.`
-						)
-					);
+					const message = `Completed benchmarking URL ${ url }.`;
+					if ( 0 === completeRequests ) {
+						log( formats.error( message ) );
+					} else {
+						log( formats.success( message ) );
+					}
+				} else if ( 0 === completeRequests ) {
+					log( formats.error( 'Failure.' ) );
 				} else {
 					log( formats.success( 'Success.' ) );
 				}
@@ -506,33 +513,47 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 		} );
 	}
 
+	/** @type {Browser} */
+	let browser;
+
 	// Prime the network connections so that the initial DNS lookup in the operating system does not negatively impact the initial TTFB metric.
 	if ( ! params.skipNetworkPriming ) {
-		const browser = await launchBrowser();
-		if ( logProgress ) {
-			log( `Priming network...` );
-		}
-		const page = await browser.newPage();
-		if ( params.emulateDevice ) {
-			await page.emulate( params.emulateDevice );
-		}
-		const urlObj = new URL( url );
-		urlObj.searchParams.append( 'rnd', String( Math.random() ) );
-		await page.goto( urlObj.toString(), {
-			waitUntil: 'domcontentloaded',
-		} );
-		await browser.close();
-		if ( params.pauseDuration ) {
-			await new Promise( ( resolve ) => {
-				setTimeout( resolve, params.pauseDuration );
+		try {
+			browser = await launchBrowser();
+			if ( logProgress ) {
+				log( `Priming network...` );
+			}
+			const page = await browser.newPage();
+			if ( params.emulateDevice ) {
+				await page.emulate( params.emulateDevice );
+			}
+			const urlObj = new URL( url );
+			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
+			await page.goto( urlObj.toString(), {
+				waitUntil: 'domcontentloaded',
 			} );
+			await browser.close();
+			if ( params.pauseDuration ) {
+				await new Promise( ( resolve ) => {
+					setTimeout( resolve, params.pauseDuration );
+				} );
+			}
+		} catch ( err ) {
+			if ( logProgress ) {
+				log(
+					formats.error(
+						`Network priming request failed: ${ err.message }.`
+					)
+				);
+			}
+		} finally {
+			if ( browser ) {
+				await browser.close();
+			}
 		}
 	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
-		/** @type {Browser} */
-		let browser;
-
 		try {
 			browser = await launchBrowser();
 			if ( logProgress ) {

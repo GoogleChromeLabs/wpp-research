@@ -119,7 +119,7 @@ Sends the selected number of requests with a certain concurrency to provided URL
 
 #### Arguments
 
-* `--url` (`-u`): A URL to benchmark.
+* `--url` (`-u`): A URL to benchmark. Multiple URLs may be specified by repeating this argument.
 * `--concurrency` (`-c`): Number of requests to make at the same time.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
@@ -155,7 +155,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 
 #### Arguments
 
-* `--url` (`-u`): A URL to benchmark.
+* `--url` (`-u`): A URL to benchmark. Multiple URLs may be specified by repeating this argument.
 * `--number` (`-n`): Total number of requests to send.
 * `--file` (`-f`): File with URLs (one URL per line) to run benchmark tests for.
 * `--diff` (`-d`): Add diffs in terms of milliseconds and percentages when two URLs are provided via `--file`.

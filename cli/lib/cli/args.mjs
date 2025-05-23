@@ -42,9 +42,26 @@ export function parseWptTestId( testIdOrUrl ) {
 	return testId;
 }
 
+/**
+ * Collects --url args.
+ *
+ * @param {string}   url
+ * @param {string[]} urls
+ * @return {string[]} URLs.
+ */
+export function collectUrlArgs( url, urls ) {
+	return urls.concat( [ url ] );
+}
+
 export async function* getURLs( opt ) {
-	if ( !! opt.url ) {
+	if ( typeof opt.url === 'string' ) {
 		yield opt.url;
+	}
+
+	if ( Array.isArray( opt.url ) ) {
+		for ( const url of opt.url ) {
+			yield url;
+		}
 	}
 
 	if ( !! opt.file ) {
@@ -62,7 +79,7 @@ export async function* getURLs( opt ) {
 }
 
 export function shouldLogURLProgress( opt ) {
-	return ! opt.url && !! opt.file;
+	return ( Array.isArray( opt.url ) && opt.url.length > 1 ) || !! opt.url;
 }
 
 export function shouldLogIterationsProgress( opt ) {
