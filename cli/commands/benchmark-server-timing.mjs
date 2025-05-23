@@ -25,7 +25,11 @@ import round from 'lodash-es/round.js';
 /**
  * Internal dependencies
  */
-import { getURLs, shouldLogURLProgress } from '../lib/cli/args.mjs';
+import {
+	collectUrlArgs,
+	getURLs,
+	shouldLogURLProgress,
+} from '../lib/cli/args.mjs';
 import {
 	log,
 	logPartial,
@@ -48,7 +52,10 @@ import {
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'A URL to run benchmark tests for',
+		description:
+			'URL to run benchmark tests for, where multiple URLs can be supplied by repeating the argument',
+		defaults: [],
+		parseArg: collectUrlArgs,
 	},
 	{
 		argname: '-c, --concurrency <concurrency>',
@@ -98,7 +105,7 @@ export async function handler( opt ) {
 
 	for await ( const url of getURLs( opt ) ) {
 		if ( logURLProgress ) {
-			logPartial( `Benchmarking URL ${ url }...` );
+			logPartial( `Benchmarking URL ${ url } ... ` );
 		}
 
 		try {
@@ -120,7 +127,7 @@ export async function handler( opt ) {
 	if ( results.length === 0 ) {
 		log(
 			formats.error(
-				'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
+				'You need to provide a URL to benchmark via one or more --url (-u) arguments, or a file with one or more URLs via the --file (-f) argument.'
 			)
 		);
 	} else {
