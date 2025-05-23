@@ -49,13 +49,29 @@ import {
 const program = new Command();
 
 const withOptions = ( command, options ) => {
-	options.forEach( ( { description, argname, defaults, required } ) => {
-		if ( required ) {
-			command = command.requiredOption( argname, description );
-		} else {
-			command = command.option( argname, description, defaults );
+	options.forEach(
+		( { description, argname, defaults, parseArg, required } ) => {
+			if ( required ) {
+				command = command.requiredOption(
+					argname,
+					description,
+					parseArg,
+					defaults
+				);
+			} else {
+				if ( parseArg ) {
+					command = command.option(
+						argname,
+						description,
+						parseArg,
+						defaults
+					);
+				} else {
+					command = command.option( argname, description, defaults );
+				}
+			}
 		}
-	} );
+	);
 	return command;
 };
 

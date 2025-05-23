@@ -41,6 +41,7 @@ import round from 'lodash-es/round.js';
  */
 import {
 	getURLs,
+	collectUrlArgs,
 	shouldLogURLProgress,
 	shouldLogIterationsProgress,
 } from '../lib/cli/args.mjs';
@@ -66,7 +67,10 @@ import {
 export const options = [
 	{
 		argname: '-u, --url <url>',
-		description: 'A URL to run benchmark tests for',
+		description:
+			'URL to run benchmark tests for, where multiple URLs can be supplied by repeating the argument',
+		defaults: [],
+		parseArg: collectUrlArgs,
 	},
 	{
 		argname: '-n, --number <number>',
@@ -129,7 +133,7 @@ export const options = [
 
 /**
  * @typedef {Object} Params
- * @property {?string}             url                - See above.
+ * @property {string[]}            url                - See above.
  * @property {number}              amount             - See above.
  * @property {?string}             file               - See above.
  * @property {?string[]}           metrics            - See above.
@@ -156,7 +160,7 @@ export const options = [
 
 /**
  * @param {Object}        opt
- * @param {?string}       opt.url
+ * @param {string[]}      opt.url
  * @param {string|number} opt.number
  * @param {?string}       opt.file
  * @param {?string[]}     opt.metrics
@@ -209,9 +213,9 @@ function getParamsFromOptions( opt ) {
 		);
 	}
 
-	if ( ! params.file && ! params.url ) {
+	if ( ! params.file && params.url.length === 0 ) {
 		throw new Error(
-			'You need to provide a URL to benchmark via the --url (-u) argument, or a file with multiple URLs via the --file (-f) argument.'
+			'You need to provide a URL to benchmark via one or more --url (-u) arguments, or a file with one or more URLs via the --file (-f) argument.'
 		);
 	}
 
