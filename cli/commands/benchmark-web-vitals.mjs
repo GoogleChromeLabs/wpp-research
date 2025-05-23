@@ -514,124 +514,134 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 	}
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
-		const browser = await launchBrowser();
-		if ( logProgress ) {
-			logPartial(
-				`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
-			);
-		}
-		const page = await browser.newPage();
-		await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
-		if ( params.cpuThrottleFactor ) {
-			await page.emulateCPUThrottling( params.cpuThrottleFactor );
-		}
+		/** @type {Browser} */
+		let browser;
 
-		if ( params.networkConditions ) {
-			await page.emulateNetworkConditions( params.networkConditions );
-		}
-
-		if ( params.emulateDevice ) {
-			await page.emulate( params.emulateDevice );
-		}
-		if ( params.windowViewport ) {
-			await page.setViewport( {
-				...( params.emulateDevice
-					? params.emulateDevice.viewport
-					: {} ),
-				...params.windowViewport,
-			} );
-		}
-
-		// Load the page.
-		const urlObj = new URL( url );
-		urlObj.searchParams.append( 'rnd', String( Math.random() ) );
-
-		// Make sure any username and password in the URL is passed along for authentication.
-		if ( urlObj.username && urlObj.password ) {
-			await page.authenticate( {
-				username: urlObj.username,
-				password: urlObj.password,
-			} );
-		}
-
-		const response = await page.goto( urlObj.toString(), {
-			waitUntil: 'networkidle0',
-		} );
-		if ( scriptTag ) {
-			await page.addScriptTag( { content: scriptTag, type: 'module' } );
-		}
-
-		if ( response.status() !== 200 ) {
+		try {
+			browser = await launchBrowser();
 			if ( logProgress ) {
-				log(
-					formats.error(
-						`Error: Bad response code ${ response.status() }.`
-					)
+				logPartial(
+					`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
 				);
 			}
-			continue;
-		}
+			const page = await browser.newPage();
+			await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
+			if ( params.cpuThrottleFactor ) {
+				await page.emulateCPUThrottling( params.cpuThrottleFactor );
+			}
 
-		completeRequests++;
+			if ( params.networkConditions ) {
+				await page.emulateNetworkConditions( params.networkConditions );
+			}
 
-		if ( groupedMetrics.webVitals ) {
-			await Promise.all(
-				Object.values( groupedMetrics.webVitals ).map(
-					async ( value ) => {
-						// Wait until global is populated.
-						await page.waitForFunction(
-							`window.${ value.global } !== undefined`
-						);
+			if ( params.emulateDevice ) {
+				await page.emulate( params.emulateDevice );
+			}
+			if ( params.windowViewport ) {
+				await page.setViewport( {
+					...( params.emulateDevice
+						? params.emulateDevice.viewport
+						: {} ),
+					...params.windowViewport,
+				} );
+			}
 
-						/*
-						 * Do a random click, since only that triggers certain metrics
-						 * like LCP, as only a user interaction stops reporting new LCP
-						 * entries. See https://web.dev/lcp/.
-						 *
-						 * Click off screen to prevent clicking a link by accident and navigating away.
-						 */
-						await page.click( 'body', {
-							offset: { x: -500, y: -500 },
-						} );
-						// Get the metric value from the global.
-						const metric =
-							/** @type {number} */ await page.evaluate(
-								( global ) => window[ global ],
-								value.global
+			// Load the page.
+			const urlObj = new URL( url );
+			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
+
+			// Make sure any username and password in the URL is passed along for authentication.
+			if ( urlObj.username && urlObj.password ) {
+				await page.authenticate( {
+					username: urlObj.username,
+					password: urlObj.password,
+				} );
+			}
+
+			const response = await page.goto( urlObj.toString(), {
+				waitUntil: 'networkidle0',
+			} );
+			if ( scriptTag ) {
+				await page.addScriptTag( {
+					content: scriptTag,
+					type: 'module',
+				} );
+			}
+
+			if ( response.status() !== 200 ) {
+				throw new Error( `Bad response code ${ response.status() }.` );
+			}
+
+			if ( groupedMetrics.webVitals ) {
+				await Promise.all(
+					Object.values( groupedMetrics.webVitals ).map(
+						async ( value ) => {
+							// Wait until global is populated.
+							await page.waitForFunction(
+								`window.${ value.global } !== undefined`
 							);
-						value.results.push( metric );
+
+							/*
+							 * Do a random click, since only that triggers certain metrics
+							 * like LCP, as only a user interaction stops reporting new LCP
+							 * entries. See https://web.dev/lcp/.
+							 *
+							 * Click off screen to prevent clicking a link by accident and navigating away.
+							 */
+							await page.click( 'body', {
+								offset: { x: -500, y: -500 },
+							} );
+							// Get the metric value from the global.
+							const metric =
+								/** @type {number} */ await page.evaluate(
+									( global ) => window[ global ],
+									value.global
+								);
+							value.results.push( metric );
+						}
+					)
+				).catch( () => {
+					/* Ignore errors. */
+				} );
+			}
+
+			if ( groupedMetrics.serverTiming ) {
+				const serverTimingMetrics = await page.evaluate( () => {
+					const entry = performance.getEntries().find(
+						( ent ) => ent instanceof PerformanceNavigationTiming // eslint-disable-line no-undef
+					);
+					// eslint-disable-next-line no-undef
+					if ( entry instanceof PerformanceNavigationTiming ) {
+						return entry.serverTiming.reduce( ( acc, value ) => {
+							acc[ value.name ] = value.duration;
+							return acc;
+						}, {} );
 					}
-				)
-			).catch( () => {
-				/* Ignore errors. */
-			} );
-		}
-
-		if ( groupedMetrics.serverTiming ) {
-			const serverTimingMetrics = await page.evaluate( () => {
-				const entry = performance.getEntries().find(
-					( ent ) => ent instanceof PerformanceNavigationTiming // eslint-disable-line no-undef
+					return {};
+				} );
+				Object.values( groupedMetrics.serverTiming ).forEach(
+					( value ) => {
+						if ( serverTimingMetrics[ value.name ] ) {
+							value.results.push(
+								serverTimingMetrics[ value.name ]
+							);
+						}
+					}
 				);
-				// eslint-disable-next-line no-undef
-				if ( entry instanceof PerformanceNavigationTiming ) {
-					return entry.serverTiming.reduce( ( acc, value ) => {
-						acc[ value.name ] = value.duration;
-						return acc;
-					}, {} );
-				}
-				return {};
-			} );
-			Object.values( groupedMetrics.serverTiming ).forEach( ( value ) => {
-				if ( serverTimingMetrics[ value.name ] ) {
-					value.results.push( serverTimingMetrics[ value.name ] );
-				}
-			} );
-		}
+			}
 
-		await browser.close();
-
-		if ( logProgress ) {
-			log( formats.success( 'Success.' ) );
+			completeRequests++;
+			if ( logProgress ) {
+				log( formats.success( 'Success.' ) );
+			}
+		} catch ( err ) {
+			if ( logProgress ) {
+				log( formats.error( `Error: ${ err.message }.` ) );
+			}
+		} finally {
+			if ( browser ) {
+				await browser.close();
+			}
 		}
 
 		// Add a pause before the next request to give the server a chance to breathe. This is to prevent CPU from getting
