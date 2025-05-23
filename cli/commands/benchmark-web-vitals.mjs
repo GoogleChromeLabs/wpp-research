@@ -444,12 +444,10 @@ export async function handler( opt ) {
 					} else {
 						log( formats.success( message ) );
 					}
+				} else if ( 0 === completeRequests ) {
+					log( formats.error( 'Failure.' ) );
 				} else {
-					if ( 0 === completeRequests ) {
-						log( formats.error( 'Failure.' ) );
-					} else {
-						log( formats.success( 'Success.' ) );
-					}
+					log( formats.success( 'Success.' ) );
 				}
 			}
 		} catch ( err ) {

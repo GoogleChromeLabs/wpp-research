@@ -45,9 +45,9 @@ export function parseWptTestId( testIdOrUrl ) {
 /**
  * Collects --url args.
  *
- * @param {string} url
+ * @param {string}   url
  * @param {string[]} urls
- * @returns {string[]}
+ * @return {string[]} URLs.
  */
 export function collectUrlArgs( url, urls ) {
 	return urls.concat( [ url ] );

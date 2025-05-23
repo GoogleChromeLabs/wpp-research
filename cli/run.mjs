@@ -58,17 +58,15 @@ const withOptions = ( command, options ) => {
 					parseArg,
 					defaults
 				);
+			} else if ( parseArg ) {
+				command = command.option(
+					argname,
+					description,
+					parseArg,
+					defaults
+				);
 			} else {
-				if ( parseArg ) {
-					command = command.option(
-						argname,
-						description,
-						parseArg,
-						defaults
-					);
-				} else {
-					command = command.option( argname, description, defaults );
-				}
+				command = command.option( argname, description, defaults );
 			}
 		}
 	);
