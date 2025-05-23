@@ -434,13 +434,18 @@ export async function handler( opt ) {
 			if ( logURLProgress ) {
 				// If also logging individual iterations, provide more context on benchmarking which URL was completed.
 				if ( logIterationsProgress ) {
-					log(
-						formats.success(
-							`Completed benchmarking URL ${ url }.`
-						)
-					);
+					const message = `Completed benchmarking URL ${ url }.`;
+					if ( 0 === completeRequests ) {
+						log( formats.error( message ) );
+					} else {
+						log( formats.success( message ) );
+					}
 				} else {
-					log( formats.success( 'Success.' ) );
+					if ( 0 === completeRequests ) {
+						log( formats.error( 'Failure.' ) );
+					} else {
+						log( formats.success( 'Success.' ) );
+					}
 				}
 			}
 		} catch ( err ) {
