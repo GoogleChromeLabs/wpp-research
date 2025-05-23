@@ -46,6 +46,7 @@ import {
 	shouldLogIterationsProgress,
 } from '../lib/cli/args.mjs';
 import {
+	amendDiffsToTableData,
 	log,
 	logPartial,
 	output,
@@ -80,6 +81,12 @@ export const options = [
 	{
 		argname: '-f, --file <file>',
 		description: 'File with URLs to run benchmark tests for',
+	},
+	{
+		argname: '-d, --diff',
+		description:
+			'Compute the difference between two URLs. Only applicable when using --file and two URLs are provided.',
+		defaults: false,
 	},
 	{
 		argname: '-m, --metrics <metrics...>',
@@ -136,6 +143,7 @@ export const options = [
  * @property {string[]}            url                - See above.
  * @property {number}              amount             - See above.
  * @property {?string}             file               - See above.
+ * @property {boolean}             diff               - See above.
  * @property {?string[]}           metrics            - See above.
  * @property {string}              output             - See above.
  * @property {boolean}             showPercentiles    - See above.
@@ -163,6 +171,7 @@ export const options = [
  * @param {string[]}      opt.url
  * @param {string|number} opt.number
  * @param {?string}       opt.file
+ * @param {boolean}       opt.diff
  * @param {?string[]}     opt.metrics
  * @param {string}        opt.output
  * @param {boolean}       opt.showPercentiles
@@ -184,6 +193,7 @@ function getParamsFromOptions( opt ) {
 				? opt.number
 				: parseInt( opt.number, 10 ),
 		file: opt.file,
+		diff: opt.diff,
 		metrics:
 			opt.metrics && opt.metrics.length
 				? opt.metrics
@@ -216,6 +226,12 @@ function getParamsFromOptions( opt ) {
 	if ( ! params.file && params.url.length === 0 ) {
 		throw new Error(
 			'You need to provide a URL to benchmark via one or more --url (-u) arguments, or a file with one or more URLs via the --file (-f) argument.'
+		);
+	}
+
+	if ( params.diff && ! params.file ) {
+		throw new Error(
+			'The --diff argument is only relevant when you supply a --file argument which references a file with two URLs.'
 		);
 	}
 
@@ -857,6 +873,19 @@ function outputResults( opt, results ) {
 		} );
 
 		tableData.push( tableRow );
+	}
+
+	// When two URLs are being benchmarked and the --diff option is provided, add columns for the millisecond diff and percentage diff.
+	if ( opt.diff ) {
+		if ( tableData.length !== 2 ) {
+			log(
+				formats.error(
+					`The --diff option was ignored because you provided ${ results.length } URL(s), but it requires two URLs to compare.`
+				)
+			);
+		} else {
+			amendDiffsToTableData( tableData );
+		}
 	}
 
 	output( table( headings, tableData, opt.output, true ) );
