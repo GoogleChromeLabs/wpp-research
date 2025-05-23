@@ -98,7 +98,7 @@ export async function handler( opt ) {
 
 	for await ( const url of getURLs( opt ) ) {
 		if ( logURLProgress ) {
-			logPartial( `Benchmarking URL ${ url }...` );
+			logPartial( `Benchmarking URL ${ url } ... ` );
 		}
 
 		try {

@@ -416,9 +416,9 @@ export async function handler( opt ) {
 		if ( logURLProgress ) {
 			// If also logging individual iterations, put those on a new line.
 			if ( logIterationsProgress ) {
-				log( `Benchmarking URL ${ url }...` );
+				log( `Benchmarking URL ${ url } ... ` );
 			} else {
-				logPartial( `Benchmarking URL ${ url }...` );
+				logPartial( `Benchmarking URL ${ url } ... ` );
 			}
 		}
 
