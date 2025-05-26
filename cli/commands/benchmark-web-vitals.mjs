@@ -657,8 +657,9 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 							value.results.push( metric );
 						}
 					)
-				).catch( () => {
-					/* Ignore errors. */
+				).catch( ( err ) => {
+					// TODO: Why not just throw this error, or rather not catch it in order to skip to the next iteration.
+					log( formats.error( `Error: ${ err.message }.` ) );
 				} );
 			}
 
