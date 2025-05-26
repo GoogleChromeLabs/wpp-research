@@ -646,7 +646,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 							 * Click off screen to prevent clicking a link by accident and navigating away.
 							 */
 							await page.click( 'body', {
-								offset: { x: -500, y: -500 },
+								offset: { x: 0, y: 0 },
 							} );
 							// Get the metric value from the global.
 							const metric =
