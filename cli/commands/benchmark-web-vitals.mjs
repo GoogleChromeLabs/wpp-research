@@ -245,21 +245,26 @@ function getParamsFromOptions( opt ) {
 		);
 	}
 
-	if ( opt.throttleCpu ) {
-		params.cpuThrottleFactor = parseFloat( opt.throttleCpu );
-		if ( isNaN( params.cpuThrottleFactor ) ) {
-			throw new Error(
-				`Supplied CPU throttle factor "${ opt.throttleCpu }" is not a number.`
-			);
-		}
-	}
-
 	if ( [ 'chrome', 'firefox' ].includes( opt.browser ) ) {
 		params.browser = opt.browser;
 	} else {
 		throw new Error(
 			`Unrecognized browser: ${ opt.browser }. Must be 'chrome' or 'firefox'.`
 		);
+	}
+
+	if ( opt.throttleCpu ) {
+		if ( params.browser === 'firefox' ) {
+			throw new Error(
+				'CPU throttling is not currently available in Firefox..'
+			);
+		}
+		params.cpuThrottleFactor = parseFloat( opt.throttleCpu );
+		if ( isNaN( params.cpuThrottleFactor ) ) {
+			throw new Error(
+				`Supplied CPU throttle factor "${ opt.throttleCpu }" is not a number.`
+			);
+		}
 	}
 
 	if ( opt.networkConditions ) {
