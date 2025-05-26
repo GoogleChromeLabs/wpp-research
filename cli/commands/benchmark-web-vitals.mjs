@@ -254,7 +254,21 @@ function getParamsFromOptions( opt ) {
 		}
 	}
 
+	if ( [ 'chrome', 'firefox' ].includes( opt.browser ) ) {
+		params.browser = opt.browser;
+	} else {
+		throw new Error(
+			`Unrecognized browser: ${ opt.browser }. Must be 'chrome' or 'firefox'.`
+		);
+	}
+
 	if ( opt.networkConditions ) {
+		if ( params.browser === 'firefox' ) {
+			throw new Error(
+				'Network emulation is not currently available in Firefox.'
+			);
+		}
+
 		if ( 'broadband' === opt.networkConditions ) {
 			/**
 			 * Network conditions used for desktop in Lighthouse/PSI.
@@ -287,14 +301,6 @@ function getParamsFromOptions( opt ) {
 			);
 		}
 		params.emulateDevice = KnownDevices[ opt.emulateDevice ];
-	}
-
-	if ( [ 'chrome', 'firefox' ].includes( opt.browser ) ) {
-		params.browser = opt.browser;
-	} else {
-		throw new Error(
-			`Unrecognized browser: ${ opt.browser }. Must be 'chrome' or 'firefox'.`
-		);
 	}
 
 	if ( opt.windowViewport ) {
@@ -587,7 +593,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 				await page.emulateCPUThrottling( params.cpuThrottleFactor );
 			}
 
-			if ( 'firefox' !== params.browser && params.networkConditions ) {
+			if ( params.networkConditions ) {
 				await page.emulateNetworkConditions( params.networkConditions );
 			}
 
