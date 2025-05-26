@@ -28,6 +28,7 @@ import round from 'lodash-es/round.js';
 /* eslint-disable jsdoc/valid-types */
 /** @typedef {import("puppeteer").NetworkConditions} NetworkConditions */
 /** @typedef {import("puppeteer").Browser} Browser */
+/** @typedef {import("puppeteer").SupportedBrowser} SupportedBrowser */
 /** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
 /** @typedef {import("puppeteer").Device} Device */
 /** @typedef {keyof typeof KnownDevices} KnownDeviceName */
@@ -122,6 +123,12 @@ export const options = [
 			'Enable a specific device by name, for example "Moto G4" or "iPad"',
 	},
 	{
+		argname: '-b, --browser <browser>',
+		description:
+			'Use a specific browser for benchmarking. Can be either "chrome" or "firefox". Defaults to "chrome".',
+		defaults: 'chrome',
+	},
+	{
 		argname: '-w, --window-viewport <dimensions>',
 		description:
 			'Open page with the supplied viewport dimensions such as "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"), defaults to "960x700" if no specific device is being emulated',
@@ -151,6 +158,7 @@ export const options = [
  * @property {?number}             cpuThrottleFactor  - See above.
  * @property {?NetworkConditions}  networkConditions  - See above.
  * @property {?Device}             emulateDevice      - See above.
+ * @property {SupportedBrowser}    browser            - See above.
  * @property {?ViewportDimensions} windowViewport     - See above.
  * @property {?number}             pauseDuration      - See above.
  * @property {boolean}             skipNetworkPriming - See above.
@@ -179,6 +187,7 @@ export const options = [
  * @param {?string}       opt.throttleCpu
  * @param {?string}       opt.networkConditions
  * @param {?string}       opt.emulateDevice
+ * @param {string}        opt.browser
  * @param {?string}       opt.windowViewport
  * @param {?string}       opt.pauseDuration
  * @param {boolean}       opt.skipNetworkPriming
@@ -204,6 +213,7 @@ function getParamsFromOptions( opt ) {
 		cpuThrottleFactor: null,
 		networkConditions: null,
 		emulateDevice: null,
+		browser: null,
 		pauseDuration: null,
 		skipNetworkPriming: Boolean( opt.skipNetworkPriming ),
 		windowViewport: ! opt.emulateDevice
@@ -277,6 +287,14 @@ function getParamsFromOptions( opt ) {
 			);
 		}
 		params.emulateDevice = KnownDevices[ opt.emulateDevice ];
+	}
+
+	if ( [ 'chrome', 'firefox' ].includes( opt.browser ) ) {
+		params.browser = opt.browser;
+	} else {
+		throw new Error(
+			`Unrecognized browser: ${ opt.browser }. Must be 'chrome' or 'firefox'.`
+		);
 	}
 
 	if ( opt.windowViewport ) {
@@ -519,7 +537,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 	// Prime the network connections so that the initial DNS lookup in the operating system does not negatively impact the initial TTFB metric.
 	if ( ! params.skipNetworkPriming ) {
 		try {
-			browser = await launchBrowser();
+			browser = await launchBrowser( params.browser );
 			if ( logProgress ) {
 				log( `Priming network...` );
 			}
@@ -555,19 +573,21 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		try {
-			browser = await launchBrowser();
+			browser = await launchBrowser( params.browser );
 			if ( logProgress ) {
 				logPartial(
 					`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
 				);
 			}
 			const page = await browser.newPage();
-			await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
+			if ( 'firefox' !== params.browser ) {
+				await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
+			}
 			if ( params.cpuThrottleFactor ) {
 				await page.emulateCPUThrottling( params.cpuThrottleFactor );
 			}
 
-			if ( params.networkConditions ) {
+			if ( 'firefox' !== params.browser && params.networkConditions ) {
 				await page.emulateNetworkConditions( params.networkConditions );
 			}
 
@@ -894,10 +914,12 @@ function outputResults( opt, results ) {
 /**
  * Launches headless browser with cache disabled.
  *
+ * @param {SupportedBrowser} browser - Browser type.
  * @return {Promise<Browser>} Browser.
  */
-async function launchBrowser() {
+async function launchBrowser( browser ) {
 	return puppeteer.launch( {
+		browser,
 		headless: true,
 		args: [ '--disable-cache' ],
 	} );
