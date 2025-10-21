@@ -138,8 +138,7 @@ export const options = [
 	},
 	{
 		argname: '--enable-cache',
-		description:
-			'Whether to enable the browser cache.',
+		description: 'Whether to enable the browser cache.',
 	},
 ];
 
@@ -523,16 +522,14 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 
 	/** @type {Browser} */
 	const browser = await launchBrowser();
-	const page      = await browser.newPage();
+	const page = await browser.newPage();
 	await page.setCacheEnabled( params.enableCache );
 	if ( params.emulateDevice ) {
 		await page.emulate( params.emulateDevice );
 	}
 	if ( params.windowViewport ) {
 		await page.setViewport( {
-			...( params.emulateDevice
-				? params.emulateDevice.viewport
-				: {} ),
+			...( params.emulateDevice ? params.emulateDevice.viewport : {} ),
 			...params.windowViewport,
 		} );
 	}
@@ -546,7 +543,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			const urlObj = new URL( url );
 			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
 			await page.goto( urlObj.toString(), {
-				waitUntil: 'networkidle0'
+				waitUntil: 'networkidle0',
 			} );
 			if ( params.pauseDuration ) {
 				await new Promise( ( resolve ) => {
@@ -556,9 +553,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 		} catch ( err ) {
 			if ( logProgress ) {
 				log(
-					formats.error(
-						`Priming request failed: ${ err.message }.`
-					)
+					formats.error( `Priming request failed: ${ err.message }.` )
 				);
 			}
 		}
@@ -894,6 +889,6 @@ function outputResults( opt, results ) {
  */
 async function launchBrowser() {
 	return puppeteer.launch( {
-		headless: true
+		headless: true,
 	} );
 }
