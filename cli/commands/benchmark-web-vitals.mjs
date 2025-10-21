@@ -136,6 +136,11 @@ export const options = [
 		description:
 			'Whether to skip making an initial network-priming request to the URL before the requests to collect metrics.',
 	},
+	{
+		argname: '--enable-cache',
+		description:
+			'Whether to enable the browser cache.',
+	},
 ];
 
 /**
@@ -154,6 +159,7 @@ export const options = [
  * @property {?ViewportDimensions} windowViewport     - See above.
  * @property {?number}             pauseDuration      - See above.
  * @property {boolean}             skipNetworkPriming - See above.
+ * @property {boolean}             enableCache        - See above.
  */
 
 /**
@@ -182,6 +188,7 @@ export const options = [
  * @param {?string}       opt.windowViewport
  * @param {?string}       opt.pauseDuration
  * @param {boolean}       opt.skipNetworkPriming
+ * @param {boolean}       opt.enableCache
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -206,6 +213,7 @@ function getParamsFromOptions( opt ) {
 		emulateDevice: null,
 		pauseDuration: null,
 		skipNetworkPriming: Boolean( opt.skipNetworkPriming ),
+		enableCache: Boolean( opt.enableCache ),
 		windowViewport: ! opt.emulateDevice
 			? { width: 960, height: 700 }
 			: null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
@@ -514,25 +522,32 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 	}
 
 	/** @type {Browser} */
-	let browser;
+	const browser = await launchBrowser();
+	const page      = await browser.newPage();
+	await page.setCacheEnabled( params.enableCache );
+	if ( params.emulateDevice ) {
+		await page.emulate( params.emulateDevice );
+	}
+	if ( params.windowViewport ) {
+		await page.setViewport( {
+			...( params.emulateDevice
+				? params.emulateDevice.viewport
+				: {} ),
+			...params.windowViewport,
+		} );
+	}
 
 	// Prime the network connections so that the initial DNS lookup in the operating system does not negatively impact the initial TTFB metric.
-	if ( ! params.skipNetworkPriming ) {
+	if ( ! params.skipNetworkPriming || params.enableCache ) {
 		try {
-			browser = await launchBrowser();
 			if ( logProgress ) {
-				log( `Priming network...` );
-			}
-			const page = await browser.newPage();
-			if ( params.emulateDevice ) {
-				await page.emulate( params.emulateDevice );
+				log( `Priming requests...` );
 			}
 			const urlObj = new URL( url );
 			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
 			await page.goto( urlObj.toString(), {
-				waitUntil: 'domcontentloaded',
+				waitUntil: 'networkidle0'
 			} );
-			await browser.close();
 			if ( params.pauseDuration ) {
 				await new Promise( ( resolve ) => {
 					setTimeout( resolve, params.pauseDuration );
@@ -542,45 +557,27 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			if ( logProgress ) {
 				log(
 					formats.error(
-						`Network priming request failed: ${ err.message }.`
+						`Priming request failed: ${ err.message }.`
 					)
 				);
-			}
-		} finally {
-			if ( browser ) {
-				await browser.close();
 			}
 		}
 	}
 
+	if ( params.networkConditions ) {
+		await page.emulateNetworkConditions( params.networkConditions );
+	}
+	await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
+	if ( params.cpuThrottleFactor ) {
+		await page.emulateCPUThrottling( params.cpuThrottleFactor );
+	}
+
 	for ( let requestNum = 0; requestNum < params.amount; requestNum++ ) {
 		try {
-			browser = await launchBrowser();
 			if ( logProgress ) {
 				logPartial(
 					`Benchmarking ${ requestNum + 1 } / ${ params.amount }...`
 				);
-			}
-			const page = await browser.newPage();
-			await page.setBypassCSP( true ); // Bypass CSP so the web vitals script tag can be injected below.
-			if ( params.cpuThrottleFactor ) {
-				await page.emulateCPUThrottling( params.cpuThrottleFactor );
-			}
-
-			if ( params.networkConditions ) {
-				await page.emulateNetworkConditions( params.networkConditions );
-			}
-
-			if ( params.emulateDevice ) {
-				await page.emulate( params.emulateDevice );
-			}
-			if ( params.windowViewport ) {
-				await page.setViewport( {
-					...( params.emulateDevice
-						? params.emulateDevice.viewport
-						: {} ),
-					...params.windowViewport,
-				} );
 			}
 
 			// Load the page.
@@ -675,10 +672,6 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			if ( logProgress ) {
 				log( formats.error( `Error: ${ err.message }.` ) );
 			}
-		} finally {
-			if ( browser ) {
-				await browser.close();
-			}
 		}
 
 		// Add a pause before the next request to give the server a chance to breathe. This is to prevent CPU from getting
@@ -690,6 +683,9 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			} );
 		}
 	}
+
+	await page.close();
+	await browser.close();
 
 	// Retrieve all base metric values.
 	const metricResults = {};
@@ -898,7 +894,6 @@ function outputResults( opt, results ) {
  */
 async function launchBrowser() {
 	return puppeteer.launch( {
-		headless: true,
-		args: [ '--disable-cache' ],
+		headless: true
 	} );
 }
