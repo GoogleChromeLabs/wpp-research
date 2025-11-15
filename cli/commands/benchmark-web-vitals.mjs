@@ -588,7 +588,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			}
 
 			const response = await page.goto( urlObj.toString(), {
-				waitUntil: params.enableCache ? 'networkidle0' : 'domcontentloaded',
+				waitUntil: 'networkidle0',
 			} );
 			if ( scriptTag ) {
 				await page.addScriptTag( {
