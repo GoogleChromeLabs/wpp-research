@@ -543,7 +543,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			const urlObj = new URL( url );
 			urlObj.searchParams.append( 'rnd', String( Math.random() ) );
 			await page.goto( urlObj.toString(), {
-				waitUntil: 'networkidle0',
+				waitUntil: params.enableCache ? 'networkidle0' : 'domcontentloaded',
 			} );
 			if ( params.pauseDuration ) {
 				await new Promise( ( resolve ) => {
