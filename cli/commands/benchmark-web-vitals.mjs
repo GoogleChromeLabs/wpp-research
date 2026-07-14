@@ -30,6 +30,7 @@ import round from 'lodash-es/round.js';
 /** @typedef {import("puppeteer").Browser} Browser */
 /** @typedef {keyof typeof PredefinedNetworkConditions} NetworkConditionName */
 /** @typedef {import("puppeteer").Device} Device */
+/** @typedef {import("puppeteer").PuppeteerLifeCycleEvent} LifeCycleEvent */
 /** @typedef {keyof typeof KnownDevices} KnownDeviceName */
 
 /* eslint-enable jsdoc/valid-types */
@@ -41,7 +42,7 @@ import round from 'lodash-es/round.js';
  */
 import {
 	getURLs,
-	collectUrlArgs,
+	collectArgs,
 	shouldLogURLProgress,
 	shouldLogIterationsProgress,
 } from '../lib/cli/args.mjs';
@@ -71,7 +72,7 @@ export const options = [
 		description:
 			'URL to run benchmark tests for, where multiple URLs can be supplied by repeating the argument',
 		defaults: [],
-		parseArg: collectUrlArgs,
+		parseArg: collectArgs,
 	},
 	{
 		argname: '-n, --number <number>',
@@ -136,6 +137,13 @@ export const options = [
 		description:
 			'Whether to skip making an initial network-priming request to the URL before the requests to collect metrics.',
 	},
+	{
+		argname: '--wait-until <lifecycleEvent>',
+		description:
+			'Tells Puppeteer how long to wait before considering the page to be loaded. May be one "load", "domcontentloaded", "networkidle0", and/or "networkidle2". Default "networkidle0". Multiple event strings may be supplied by repeating the argument.',
+		defaults: [ 'networkidle0' ],
+		parseArg: collectArgs,
+	},
 ];
 
 /**
@@ -154,6 +162,7 @@ export const options = [
  * @property {?ViewportDimensions} windowViewport     - See above.
  * @property {?number}             pauseDuration      - See above.
  * @property {boolean}             skipNetworkPriming - See above.
+ * @property {LifeCycleEvent[]}    waitUntil          - See above.
  */
 
 /**
@@ -182,6 +191,7 @@ export const options = [
  * @param {?string}       opt.windowViewport
  * @param {?string}       opt.pauseDuration
  * @param {boolean}       opt.skipNetworkPriming
+ * @param {string[]}      opt.waitUntil
  * @return {Params} Parameters.
  */
 function getParamsFromOptions( opt ) {
@@ -209,6 +219,7 @@ function getParamsFromOptions( opt ) {
 		windowViewport: ! opt.emulateDevice
 			? { width: 960, height: 700 }
 			: null, // Viewport similar to @wordpress/e2e-test-utils 'large' configuration.
+		waitUntil: opt.waitUntil,
 	};
 
 	if ( isNaN( params.amount ) ) {
@@ -314,6 +325,22 @@ function getParamsFromOptions( opt ) {
 			);
 		}
 		params.pauseDuration = pauseDuration;
+	}
+
+	const validLifecycleEvents = [
+		'load',
+		'domcontentloaded',
+		'networkidle0',
+		'networkidle2',
+	];
+	for ( const waitUntil of opt.waitUntil ) {
+		if ( ! validLifecycleEvents.includes( waitUntil ) ) {
+			throw new Error(
+				`Unexpected value '${ waitUntil }' for --wait-until. Expected one or more of: ${ validLifecycleEvents.join(
+					', '
+				) }`
+			);
+		}
 	}
 
 	return params;
@@ -596,7 +623,7 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 			}
 
 			const response = await page.goto( urlObj.toString(), {
-				waitUntil: 'networkidle0',
+				waitUntil: params.waitUntil,
 			} );
 			if ( scriptTag ) {
 				await page.addScriptTag( {

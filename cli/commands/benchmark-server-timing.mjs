@@ -26,7 +26,7 @@ import round from 'lodash-es/round.js';
  * Internal dependencies
  */
 import {
-	collectUrlArgs,
+	collectArgs,
 	getURLs,
 	shouldLogURLProgress,
 } from '../lib/cli/args.mjs';
@@ -56,7 +56,7 @@ export const options = [
 		description:
 			'URL to run benchmark tests for, where multiple URLs can be supplied by repeating the argument',
 		defaults: [],
-		parseArg: collectUrlArgs,
+		parseArg: collectArgs,
 	},
 	{
 		argname: '-c, --concurrency <concurrency>',
