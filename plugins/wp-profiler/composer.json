@@ -1,0 +1,5 @@
+{
+    "require": {
+        "perftools/php-profiler": "^1.1"
+    }
+}
