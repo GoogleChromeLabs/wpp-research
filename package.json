@@ -7,6 +7,7 @@
     "node": ">= 18"
   },
   "devDependencies": {
+    "@puppeteer/browsers": "^2.10.5",
     "@wordpress/scripts": "^30.8.1",
     "autocannon": "^7.15.0",
     "chalk": "^5.3.0",
