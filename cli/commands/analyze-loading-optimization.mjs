@@ -34,6 +34,8 @@ import {
 	output,
 	table,
 	OUTPUT_FORMAT_TABLE,
+	formatCsv,
+	prefixQuoteFormula,
 } from '../lib/cli/logger.mjs';
 
 /**
@@ -182,21 +184,22 @@ function outputResults( params, urlReport ) {
 
 	if ( params.output === 'csv-oneline' ) {
 		const headings = [ 'url' ];
-		const values = [ params.url ];
+		const values = [ prefixQuoteFormula( params.url ) ];
 
 		for ( const deviceName of deviceNames ) {
 			for ( const fieldName of fieldNames ) {
 				headings.push( `${ deviceName }:${ fieldName }` );
 				values.push(
-					formatValue(
-						urlReport.deviceAnalyses[ deviceName ][ fieldName ]
+					prefixQuoteFormula(
+						formatValue(
+							urlReport.deviceAnalyses[ deviceName ][ fieldName ]
+						)
 					)
 				);
 			}
 		}
 
-		output( headings.join( ',' ) );
-		output( values.join( ',' ) );
+		output( formatCsv( [ headings, values ] ).trimEnd() );
 		return;
 	}
 
@@ -375,7 +378,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 				webVitalsLcpGlobal
 			];
 
-		const lcpElement = webVitalsLCP.attribution.lcpEntry.element;
+		const lcpElement = webVitalsLCP?.attribution?.lcpEntry?.element;
 
 		/** @type {DeviceAnalysis} */
 		const analysis = {
@@ -395,13 +398,21 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 		};
 
 		// Obtain lcpMetric.
-		analysis.lcpMetric = webVitalsLCP.delta;
+		if ( typeof webVitalsLCP?.delta === 'number' ) {
+			analysis.lcpMetric = webVitalsLCP.delta;
+		}
 
 		// Obtain lcpElement.
-		analysis.lcpElement = lcpElement.tagName;
+		if ( lcpElement && typeof lcpElement.tagName === 'string' ) {
+			analysis.lcpElement = lcpElement.tagName;
+		}
 
 		// Obtain lcpElementIsLazyLoaded.
-		if ( lcpElement.getAttribute( 'loading' ) === 'lazy' ) {
+		if (
+			lcpElement &&
+			typeof lcpElement.getAttribute === 'function' &&
+			lcpElement.getAttribute( 'loading' ) === 'lazy'
+		) {
 			// TODO: Use lcpElement.loading instead.
 			analysis.lcpElementIsLazyLoaded = true;
 		}
@@ -409,6 +420,7 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 		// Obtain lcpImageMissingFetchPriority.
 		if (
 			lcpElement instanceof HTMLImageElement &&
+			typeof lcpElement.getAttribute === 'function' &&
 			lcpElement.getAttribute( 'fetchpriority' ) !== 'high' &&
 			! imageHasDataUrl( lcpElement ) // Nothing to fetch for a data: URL.
 		) {
@@ -458,6 +470,46 @@ async function analyze( browser, url, { width, height, userAgent, isMobile } ) {
 
 		return analysis;
 	}, 'webVitalsLCP' );
+
+	// Treat every value returned from page.evaluate as untrusted.
+	if (
+		typeof finalAnalysis?.lcpElement !== 'string' ||
+		! /^[A-Z]+$/.test( finalAnalysis.lcpElement )
+	) {
+		finalAnalysis.lcpElement = '';
+	}
+
+	if (
+		typeof finalAnalysis?.lcpMetric !== 'number' ||
+		! Number.isFinite( finalAnalysis.lcpMetric )
+	) {
+		finalAnalysis.lcpMetric = 0;
+	}
+
+	finalAnalysis.lcpElementIsLazyLoaded = Boolean(
+		finalAnalysis?.lcpElementIsLazyLoaded
+	);
+	finalAnalysis.lcpImageMissingFetchPriority = Boolean(
+		finalAnalysis?.lcpImageMissingFetchPriority
+	);
+
+	for ( const countProp of [
+		'fetchPriorityCount',
+		'fetchPriorityInsideViewport',
+		'fetchPriorityOutsideViewport',
+		'lazyLoadableCount',
+		'lazyLoadedInsideViewport',
+		'lazyLoadedOutsideViewport',
+		'eagerLoadedInsideViewport',
+		'eagerLoadedOutsideViewport',
+	] ) {
+		finalAnalysis[ countProp ] =
+			typeof finalAnalysis?.[ countProp ] === 'number' &&
+			Number.isInteger( finalAnalysis[ countProp ] ) &&
+			finalAnalysis[ countProp ] >= 0
+				? finalAnalysis[ countProp ]
+				: 0;
+	}
 
 	finalAnalysis.errors = determineErrors( finalAnalysis );
 

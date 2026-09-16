@@ -24,6 +24,8 @@ import { table as formatTable } from 'table';
 import { stringify as formatCsv } from 'csv-stringify/sync'; // eslint-disable-line import/no-unresolved
 import { markdownTable } from 'markdown-table';
 
+export { formatCsv };
+
 // Responsible for the actual command output.
 export const output = ( text ) => {
 	process.stdout.write( `${ text }\n` );
@@ -56,6 +58,21 @@ export function isValidTableFormat( format ) {
 		format === OUTPUT_FORMAT_CSV ||
 		format === OUTPUT_FORMAT_MD
 	);
+}
+
+/**
+ * Neutralizes spreadsheet formula injection by prefix-quoting values
+ * that begin with =, +, -, or @.
+ *
+ * @param {*} value Value to sanitize.
+ * @return {*} Sanitized value.
+ */
+export function prefixQuoteFormula( value ) {
+	const str = typeof value === 'string' ? value : String( value ?? '' );
+	if ( /^[=+\-@]/.test( str ) ) {
+		return `'${ str }`;
+	}
+	return value;
 }
 
 /**
@@ -126,7 +143,10 @@ export function table( headings, data, format, rowsAsColumns ) {
 	}
 
 	if ( format === OUTPUT_FORMAT_CSV ) {
-		return formatCsv( tableData );
+		const safeTableData = tableData.map( ( row ) =>
+			row.map( ( cell ) => prefixQuoteFormula( cell ) )
+		);
+		return formatCsv( safeTableData );
 	} else if ( format === OUTPUT_FORMAT_MD ) {
 		// Align the first column to the left, but align all remaining columns to the right since they are numeric.
 		const align = [ 'l', ...Array( headings.length - 1 ).fill( 'r' ) ];
