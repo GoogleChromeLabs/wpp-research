@@ -91,7 +91,7 @@ export const options = [
 	{
 		argname: '-m, --metrics <metrics...>',
 		description:
-			'Which metrics to include; by default these are "FCP", "LCP", "TTFB" and "LCP-TTFB".',
+			'Which metrics to include; by default these are "FCP", "LCP", "TTFB", "TTLB", and "LCP-TTFB".',
 	},
 	{
 		argname: '-o, --output <output>',
@@ -158,9 +158,9 @@ export const options = [
 
 /**
  * @typedef {Object} MetricsDefinitionEntry
- * @property {string}    type     Either 'webVitals', 'serverTiming', or 'aggregate'.
+ * @property {string}    type     Either 'webVitals', 'serverTiming', 'performanceTiming', or 'aggregate'.
  * @property {?string}   listen   Which event to listen to (only relevant for type 'webVitals').
- * @property {?string}   global   Which JS global to find the metric in (only relevant for type 'webVitals').
+ * @property {?string}   global   Which JS global to find the metric in (only relevant for type 'webVitals' or 'performanceTiming').
  * @property {?string[]} add      Which other metrics to add (only relevant for type 'aggregate').
  * @property {?string[]} subtract Which other metrics to subtract (only relevant for type 'aggregate').
  * @property {?string}   name     Name of the Server-Timing metric (only relevant for type 'serverTiming').
@@ -197,7 +197,7 @@ function getParamsFromOptions( opt ) {
 		metrics:
 			opt.metrics && opt.metrics.length
 				? opt.metrics
-				: [ 'FCP', 'LCP', 'TTFB', 'LCP-TTFB' ],
+				: [ 'FCP', 'LCP', 'TTFB', 'TTLB', 'LCP-TTFB' ],
 		output: opt.output,
 		showPercentiles: Boolean( opt.showPercentiles ),
 		showVariance: Boolean( opt.showVariance ),
@@ -346,6 +346,10 @@ function getMetricsDefinition( metrics ) {
 			type: 'webVitals',
 			listen: 'onTTFB',
 			global: 'webVitalsTTFB',
+		},
+		TTLB: {
+			type: 'performanceTiming',
+			global: 'wppResearchTTLB',
 		},
 		'LCP-TTFB': {
 			type: 'aggregate',
@@ -513,6 +517,19 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 		} );
 	}
 
+	if ( groupedMetrics.performanceTiming ) {
+		if ( scriptTag ) {
+			scriptTag += ';';
+		} else {
+			scriptTag = '';
+		}
+		Object.values( groupedMetrics.performanceTiming ).forEach(
+			( value ) => {
+				scriptTag += `const entry = performance.getEntriesByType('navigation')[0]; if (entry) { window.${ value.global } = entry.responseEnd; }`;
+			}
+		);
+	}
+
 	/** @type {Browser} */
 	let browser;
 
@@ -609,34 +626,42 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 				throw new Error( `Bad response code ${ response.status() }.` );
 			}
 
-			if ( groupedMetrics.webVitals ) {
-				await Promise.all(
-					Object.values( groupedMetrics.webVitals ).map(
-						async ( value ) => {
-							// Wait until global is populated.
-							await page.waitForFunction(
-								`window.${ value.global } !== undefined`
-							);
+			const pageMetrics = {
+				...( groupedMetrics.webVitals || {} ),
+				...( groupedMetrics.performanceTiming || {} ),
+			};
 
-							/*
-							 * Do a random click, since only that triggers certain metrics
-							 * like LCP, as only a user interaction stops reporting new LCP
-							 * entries. See https://web.dev/lcp/.
-							 *
-							 * Click off screen to prevent clicking a link by accident and navigating away.
-							 */
+			if ( Object.keys( pageMetrics ).length > 0 ) {
+				await Promise.all(
+					Object.values( pageMetrics ).map( async ( value ) => {
+						// Wait until global is populated.
+						await page.waitForFunction(
+							`window.${ value.global } !== undefined`
+						);
+
+						/*
+						 * Do a random click, since only that triggers certain metrics
+						 * like LCP, as only a user interaction stops reporting new LCP
+						 * entries. See https://web.dev/lcp/.
+						 *
+						 * Click off screen to prevent clicking a link by accident and navigating away.
+						 *
+						 * This is only needed for web vitals that have a 'listen' property.
+						 */
+						if ( value.listen ) {
 							await page.click( 'body', {
 								offset: { x: -500, y: -500 },
 							} );
-							// Get the metric value from the global.
-							const metric =
-								/** @type {number} */ await page.evaluate(
-									( global ) => window[ global ],
-									value.global
-								);
-							value.results.push( metric );
 						}
-					)
+
+						// Get the metric value from the global.
+						const metric =
+							/** @type {number} */ await page.evaluate(
+								( global ) => window[ global ],
+								value.global
+							);
+						value.results.push( metric );
+					} )
 				).catch( () => {
 					/* Ignore errors. */
 				} );
@@ -693,9 +718,14 @@ async function benchmarkURL( url, metricsDefinition, params, logProgress ) {
 
 	// Retrieve all base metric values.
 	const metricResults = {};
-	if ( groupedMetrics.webVitals || groupedMetrics.serverTiming ) {
+	if (
+		groupedMetrics.webVitals ||
+		groupedMetrics.performanceTiming ||
+		groupedMetrics.serverTiming
+	) {
 		const baseMetrics = {
 			...( groupedMetrics.webVitals || {} ),
+			...( groupedMetrics.performanceTiming || {} ),
 			...( groupedMetrics.serverTiming || {} ),
 		};
 		Object.entries( baseMetrics ).forEach( ( [ key, value ] ) => {
