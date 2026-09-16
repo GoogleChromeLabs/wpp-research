@@ -1,5 +1,8 @@
 # WPP Research
 
+> [!WARNING]
+> This repository is no longer actively maintained.
+
 A collection of CLI scripts and SQL queries to research various WordPress performance aspects in the lab and in the field.
 
 * The `cli` directory contains the source code for the various CLI scripts (which can be invoked by `npm run research`).
