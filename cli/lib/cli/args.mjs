@@ -43,14 +43,14 @@ export function parseWptTestId( testIdOrUrl ) {
 }
 
 /**
- * Collects --url args.
+ * Collects args.
  *
- * @param {string}   url
- * @param {string[]} urls
- * @return {string[]} URLs.
+ * @param {string}   arg
+ * @param {string[]} args
+ * @return {string[]} Args.
  */
-export function collectUrlArgs( url, urls ) {
-	return urls.concat( [ url ] );
+export function collectArgs( arg, args ) {
+	return args.concat( [ arg ] );
 }
 
 export async function* getURLs( opt ) {

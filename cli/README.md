@@ -168,6 +168,7 @@ Loads the provided URLs in a headless browser several times to measure median We
 * `--window-viewport` (`-w`): Specify the viewport window size, like "mobile" (an alias for "412x823") or "desktop" (an alias for "1350x940"). Defaults to "960x700" if no device is being emulated.
 * `--pause-duration`: Specify the number of milliseconds to pause between making requests in order to give the server a chance to catch its breath. This is to prevent CPU from getting increasingly taxed which would progressively reflect poorly on TTFB. It's also provided as an option to be a good netizen when benchmarking a site in the field since the `rnd` query parameter will usually bust page caches.
 * `--skip-network-priming`: Skip priming the network before making an initial request with metric collection. By default, an initial request is made to a benchmarked URL without collecting any metrics. This is to ensure that the DNS lookups have been cached in the operating system so that the TTFB for the initial request won't be slower than the rest.
+* `--wait-until`: Specify the [lifecycle event](https://pptr.dev/api/puppeteer.puppeteerlifecycleevent)(s) at which the URL is considered loaded. May be "domcontentloaded", "load", "networkidle0", or "networkidle2". Multiple events may be supplied by repeating the argument. Default "networkidle2".
 
 #### Examples
 
